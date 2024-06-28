@@ -90,45 +90,6 @@ df = fetch_data()
 
 # Streamlit app setup
 
-# Add the link with animated arrows at the top
-st.markdown(
-    """
-    <style>
-        .link-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-bottom: 1rem;
-            font-size: 1.5rem;
-            font-weight: bold;
-        }
-        .arrow {
-            margin: 0 10px;
-            display: inline-block;
-            font-size: 1.5rem;
-            animation: bounce 1s infinite;
-        }
-        @keyframes bounce {
-            0%, 20%, 50%, 80%, 100% {
-                transform: translateY(0);
-            }
-            40% {
-                transform: translateY(-10px);
-            }
-            60% {
-                transform: translateY(-5px);
-            }
-        }
-    </style>
-    <div class="link-container">
-        <span class="arrow">➡️</span>
-        <a href="https://forms.gle/SnWNCmRnavyk7kmt5" target="_blank">Enter your data here!</a>
-        <span class="arrow">⬅️</span>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
 # Add a JPG picture at the top as a header
 st.markdown(
     """
@@ -161,8 +122,47 @@ st.markdown(
 
 st.markdown('<style>div.block-container{padding-top:1rem;}</style>', unsafe_allow_html=True)
 
+# Add the link with animated arrows at the top
+st.markdown(
+    """
+    <style>
+        .link-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 0rem;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .arrow {
+            margin: 0 10px;
+            display: inline-block;
+            font-size: 1.5rem;
+            animation: bounce 1s infinite;
+        }
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-10px);
+            }
+            60% {
+                transform: translateY(-5px);
+            }
+        }
+    </style>
+    <div class="link-container">
+        <span class="arrow">➡️</span>
+        <a href="https://forms.gle/SnWNCmRnavyk7kmt5" target="_blank">Enter your data here!</a>
+        <span class="arrow">⬅️</span>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
 # Sidebar setup
-st.sidebar.header("Choose your filter:")
+# st.sidebar.header("Choose your filter:")
 
 # Initialize the filtered dataframe
 filtered_df = df.copy()
