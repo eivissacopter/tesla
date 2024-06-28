@@ -13,7 +13,22 @@ st.set_page_config(page_title="Tesla version Analysis", page_icon=":battery:", l
 def fetch_data():
     # Google Sheets API setup
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds = ServiceAccountCredentials.from_json_keyfile_name("/Users/mille/OneDrive/Tesla/STREAMLIT/tesla/.streamlit/credentials.json", scope)
+    
+    # Fetching credentials from Streamlit secrets
+    creds_dict = {
+        "type": st.secrets["gcp_service_account"]["type"],
+        "project_id": st.secrets["gcp_service_account"]["project_id"],
+        "private_key_id": st.secrets["gcp_service_account"]["private_key_id"],
+        "private_key": st.secrets["gcp_service_account"]["private_key"].replace("\\n", "\n"),
+        "client_email": st.secrets["gcp_service_account"]["client_email"],
+        "client_id": st.secrets["gcp_service_account"]["client_id"],
+        "auth_uri": st.secrets["gcp_service_account"]["auth_uri"],
+        "token_uri": st.secrets["gcp_service_account"]["token_uri"],
+        "auth_provider_x509_cert_url": st.secrets["gcp_service_account"]["auth_provider_x509_cert_url"],
+        "client_x509_cert_url": st.secrets["gcp_service_account"]["client_x509_cert_url"]
+    }
+
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
 
     # Define the URL of the Google Sheets
@@ -103,6 +118,7 @@ columns_to_display = list(filtered_df.columns[:filtered_df.columns.get_loc('Resu
 filtered_df_to_display = filtered_df[columns_to_display]
 
 st.write(filtered_df_to_display)  # Display the final filtered data
+
 
 # Uncomment the following section to add plots if needed
 # with col1:
