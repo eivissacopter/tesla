@@ -246,7 +246,7 @@ st.sidebar.markdown(
             padding: 1rem;
         }
         .sidebar-content img {
-            width: 250px;
+            width: 230px;
             height: auto;
             margin-right: 1rem;
         }
