@@ -3,4 +3,4 @@ pandas
 numpy
 plotly
 gspread
-ServiceAccountCredentials
+oauth2client.service_account
