@@ -5,47 +5,56 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import plotly.figure_factory as ff
 
-# Google Sheets API setup
-scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name("/Users/mille/OneDrive/Tesla/STREAMLIT/tesla/.streamlit/credentials.json", scope)
-client = gspread.authorize(creds)
-
-# Define the URL of the Google Sheets
-url = "https://docs.google.com/spreadsheets/d/1LmyllKqJWBr8J_LKVIAimsOigT4-hpfi5NeFJR8qZhQ/edit?usp=sharing"
-spreadsheet = client.open_by_url(url)
-sheet = spreadsheet.worksheet("Database")  # Open the 'Database' worksheet
-
-# Fetch all data from the sheet, including the header row
-data = sheet.get_all_values()
-
-# Fix duplicate headers
-header = data[0]
-unique_header = []
-for col in header:
-    col = col.strip()  # Trim whitespace
-    if col not in unique_header:
-        unique_header.append(col)
-    else:
-        # Add a suffix to make the header unique
-        suffix = 1
-        new_col = f"{col}_{suffix}"
-        while new_col in unique_header:
-            suffix += 1
-            new_col = f"{col}_{suffix}"
-        unique_header.append(new_col)
-
-# Convert data to DataFrame
-df = pd.DataFrame(data[1:], columns=unique_header)
-
-# Clean up the 'Age' column to remove any non-numeric characters
-df['Age'] = df['Age'].str.extract('(\d+)').astype(float)
-
-# Clean up the 'Odometer' column to ensure it is numeric
-df['Odometer'] = df['Odometer'].str.replace(',', '').str.extract('(\d+)').astype(float)
-
-# Streamlit app setup
+# Set page config as the first Streamlit command
 st.set_page_config(page_title="Tesla version Analysis", page_icon=":battery:", layout="wide")
 
+# Function to fetch data from Google Sheets
+@st.cache_data
+def fetch_data():
+    # Google Sheets API setup
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    creds = ServiceAccountCredentials.from_json_keyfile_name("/Users/mille/OneDrive/Tesla/STREAMLIT/tesla/.streamlit/credentials.json", scope)
+    client = gspread.authorize(creds)
+
+    # Define the URL of the Google Sheets
+    url = "https://docs.google.com/spreadsheets/d/1LmyllKqJWBr8J_LKVIAimsOigT4-hpfi5NeFJR8qZhQ/edit?usp=sharing"
+    spreadsheet = client.open_by_url(url)
+    sheet = spreadsheet.worksheet("Database")  # Open the 'Database' worksheet
+
+    # Fetch all data from the sheet, including the header row
+    data = sheet.get_all_values()
+
+    # Fix duplicate headers
+    header = data[0]
+    unique_header = []
+    for col in header:
+        col = col.strip()  # Trim whitespace
+        if col not in unique_header:
+            unique_header.append(col)
+        else:
+            # Add a suffix to make the header unique
+            suffix = 1
+            new_col = f"{col}_{suffix}"
+            while new_col in unique_header:
+                suffix += 1
+                new_col = f"{col}_{suffix}"
+            unique_header.append(new_col)
+
+    # Convert data to DataFrame
+    df = pd.DataFrame(data[1:], columns=unique_header)
+
+    # Clean up the 'Age' column to remove any non-numeric characters
+    df['Age'] = df['Age'].str.extract('(\d+)').astype(float)
+
+    # Clean up the 'Odometer' column to ensure it is numeric
+    df['Odometer'] = df['Odometer'].str.replace(',', '').str.extract('(\d+)').astype(float)
+
+    return df
+
+# Fetch the data using the caching function
+df = fetch_data()
+
+# Streamlit app setup
 st.title(" :battery: Tesla version Analysis")
 st.markdown('<style>div.block-container{padding-top:1rem;}</style>', unsafe_allow_html=True)
 
@@ -95,17 +104,18 @@ filtered_df_to_display = filtered_df[columns_to_display]
 
 st.write(filtered_df_to_display)  # Display the final filtered data
 
-#with col1:
-#    st.subheader("Degradation per battery")
-#    fig = px.bar(category_df, x="Battery", y="Degradation", text=['${:,.2f}'.format(x) for x in category_df["Degradation"]],
-#                 template="seaborn")
-#    st.plotly_chart(fig, use_container_width=True, height=200)
+# Uncomment the following section to add plots if needed
+# with col1:
+#     st.subheader("Degradation per battery")
+#     fig = px.bar(category_df, x="Battery", y="Degradation", text=['${:,.2f}'.format(x) for x in category_df["Degradation"]],
+#                  template="seaborn")
+#     st.plotly_chart(fig, use_container_width=True, height=200)
 
-#with col2:
-#    st.subheader("Degradation per version Type")
-#    fig = px.pie(filtered_df, values="Degradation", names="version", hole=0.5)
-#    fig.update_traces(text=filtered_df["version"], textposition="outside")
-#    st.plotly_chart(fig, use_container_width=True)
+# with col2:
+#     st.subheader("Degradation per version Type")
+#     fig = px.pie(filtered_df, values="Degradation", names="version", hole=0.5)
+#     fig.update_traces(text=filtered_df["version"], textposition="outside")
+#     st.plotly_chart(fig, use_container_width=True)
 
 # cl1, cl2 = st.columns((2))
 # with cl1:
