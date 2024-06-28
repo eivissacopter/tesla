@@ -104,40 +104,44 @@ st.markdown('<style>div.block-container{padding-top:1rem;}</style>', unsafe_allo
 
 st.sidebar.header("Choose your filter: ")
 
-# Create filter for Tesla
-car = st.sidebar.multiselect("Tesla :red_car: ", df["Tesla"].unique())
-
-# Create filter for Version
-version = st.sidebar.multiselect("Version :traffic_light: ", df["Version"].unique())
-
-# Create filter for Battery
-battery = st.sidebar.multiselect("Battery :battery: ", df["Battery"].unique())
-
-# Create filter for Minimum Age
-min_age = st.sidebar.number_input("Minimum Age (months)", min_value=0, value=int(df["Age"].min()))
-
-# Create filter for Maximum Age
-max_age = st.sidebar.number_input("Maximum Age (months)", min_value=0, value=int(df["Age"].max()))
-
-# Create filter for Minimum ODO
-min_odo = st.sidebar.number_input("Minimum ODO (km)", min_value=0, value=int(df["Odometer"].min()))
-
-# Create filter for Maximum ODO
-max_odo = st.sidebar.number_input("Maximum ODO (km)", min_value=0, value=int(df["Odometer"].max()))
-
-# Apply filters
+# Initialize the filtered dataframe
 filtered_df = df.copy()
+
+# Create filter for Tesla
+car_options = filtered_df["Tesla"].unique()
+car = st.sidebar.multiselect("Tesla :red_car: ", car_options)
 
 if car:
     filtered_df = filtered_df[filtered_df["Tesla"].isin(car)]
 
+# Create filter for Version
+version_options = filtered_df["Version"].unique()
+version = st.sidebar.multiselect("Version :traffic_light: ", version_options)
+
 if version:
     filtered_df = filtered_df[filtered_df["Version"].isin(version)]
+
+# Create filter for Battery
+battery_options = filtered_df["Battery"].unique()
+battery = st.sidebar.multiselect("Battery :battery: ", battery_options)
 
 if battery:
     filtered_df = filtered_df[filtered_df["Battery"].isin(battery)]
 
+# Create filter for Minimum Age
+min_age = st.sidebar.number_input("Minimum Age (months)", min_value=0, value=int(filtered_df["Age"].min()))
+
+# Create filter for Maximum Age
+max_age = st.sidebar.number_input("Maximum Age (months)", min_value=0, value=int(filtered_df["Age"].max()))
+
 filtered_df = filtered_df[(filtered_df["Age"] >= min_age) & (filtered_df["Age"] <= max_age)]
+
+# Create filter for Minimum ODO
+min_odo = st.sidebar.number_input("Minimum ODO (km)", min_value=0, value=int(filtered_df["Odometer"].min()))
+
+# Create filter for Maximum ODO
+max_odo = st.sidebar.number_input("Maximum ODO (km)", min_value=0, value=int(filtered_df["Odometer"].max()))
+
 filtered_df = filtered_df[(filtered_df["Odometer"] >= min_odo) & (filtered_df["Odometer"] <= max_odo)]
 
 category_df = filtered_df.groupby(by=["Version"], as_index=False)["Degradation"].sum()
@@ -153,6 +157,7 @@ filtered_df_to_display = filtered_df_to_display.iloc[::-1]
 filtered_df_to_display = filtered_df_to_display.loc[:, ~filtered_df_to_display.columns.str.match(r'(^$|^_)')]
 
 st.write(filtered_df_to_display)  # Display the final filtered data
+
 
 
 
