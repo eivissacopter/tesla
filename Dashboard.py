@@ -6,7 +6,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 import plotly.figure_factory as ff
 
 # Set page config as the first Streamlit command
-st.set_page_config(page_title="Tesla version Analysis", page_icon=":battery:", layout="wide")
+st.set_page_config(page_title="Tesla Battery Analysis", page_icon=":battery:", layout="wide")
 
 # Function to fetch data from Google Sheets
 @st.cache_data
@@ -70,19 +70,39 @@ def fetch_data():
 df = fetch_data()
 
 # Streamlit app setup
-st.title(" :battery: Tesla version Analysis")
+
+# Add a JPG picture at the top as a header
+st.markdown(
+    """
+    <style>
+        .header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            padding: 2rem 0;
+        }
+    </style>
+    <div class="header">
+        <img src="https://uploads.tff-forum.de/original/4X/e/c/7/ec7257041b0b9c87755b20a8c9dd267cb615ed82.jpeg" alt="Tesla Battery Analysis" width="300">
+        <h1 style="margin: 0; padding-top: 1rem;">Tesla Battery Analysis</h1>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
 st.markdown('<style>div.block-container{padding-top:1rem;}</style>', unsafe_allow_html=True)
 
 st.sidebar.header("Choose your filter: ")
 
 # Create filter for Tesla
-car = st.sidebar.multiselect("Tesla", df["Tesla"].unique())
+car = st.sidebar.multiselect("Tesla :red_car: ", df["Tesla"].unique())
 
 # Create filter for Version
-version = st.sidebar.multiselect("Version", df["Version"].unique())
+version = st.sidebar.multiselect("Version :traffic_light: ", df["Version"].unique())
 
 # Create filter for Battery
-battery = st.sidebar.multiselect("Battery", df["Battery"].unique())
+battery = st.sidebar.multiselect("Battery :battery: ", df["Battery"].unique())
 
 # Create filter for Minimum Age
 min_age = st.sidebar.number_input("Minimum Age (months)", min_value=0, value=int(df["Age"].min()))
@@ -120,7 +140,11 @@ filtered_df_to_display = filtered_df[columns_to_display]
 # Reverse the DataFrame
 filtered_df_to_display = filtered_df_to_display.iloc[::-1]
 
+# Drop columns where the header is empty or starts with '_'
+filtered_df_to_display = filtered_df_to_display.loc[:, ~filtered_df_to_display.columns.str.match(r'(^$|^_)')]
+
 st.write(filtered_df_to_display)  # Display the final filtered data
+
 
 # Uncomment the following section to add plots if needed
 # with col1:
