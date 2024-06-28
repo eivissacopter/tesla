@@ -90,6 +90,45 @@ df = fetch_data()
 
 # Streamlit app setup
 
+# Add the link with animated arrows at the top
+st.markdown(
+    """
+    <style>
+        .link-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .arrow {
+            margin: 0 10px;
+            display: inline-block;
+            font-size: 1.5rem;
+            animation: bounce 1s infinite;
+        }
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-10px);
+            }
+            60% {
+                transform: translateY(-5px);
+            }
+        }
+    </style>
+    <div class="link-container">
+        <span class="arrow">➡️</span>
+        <a href="https://forms.gle/SnWNCmRnavyk7kmt5" target="_blank">Enter your data here!</a>
+        <span class="arrow">⬅️</span>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
 # Add a JPG picture at the top as a header
 st.markdown(
     """
@@ -99,7 +138,8 @@ st.markdown(
             justify-content: center;
             align-items: center;
             flex-direction: column;
-            padding: 2rem 0;
+            padding: 0rem 0;
+            margin-bottom: 0rem; /* Adjust the margin bottom to reduce space */
         }
         .header img {
             width: 100%;
@@ -121,7 +161,8 @@ st.markdown(
 
 st.markdown('<style>div.block-container{padding-top:1rem;}</style>', unsafe_allow_html=True)
 
-st.sidebar.header("Choose your filter: ")
+# Sidebar setup
+st.sidebar.header("Choose your filter:")
 
 # Initialize the filtered dataframe
 filtered_df = df.copy()
@@ -157,25 +198,14 @@ col3, col4 = st.sidebar.columns(2)
 min_odo = col3.number_input("MIN ODO (km)", min_value=0, value=int(filtered_df["Odometer"].min()))
 max_odo = col4.number_input("MAX ODO (km)", min_value=0, value=int(filtered_df["Odometer"].max()))
 
-category_df = filtered_df.groupby(by=["Version"], as_index=False)["Degradation"].sum()
-
-# Select columns up to 'Result vs Fleet' for display
-columns_to_display = list(filtered_df.columns[:filtered_df.columns.get_loc('Result vs fleet data') + 1])
-filtered_df_to_display = filtered_df[columns_to_display]
-
-# Reverse the DataFrame
-filtered_df_to_display = filtered_df_to_display.iloc[::-1]
-
-# Drop columns where the header is empty or starts with '_'
-filtered_df_to_display = filtered_df_to_display.loc[:, ~filtered_df_to_display.columns.str.match(r'(^$|^_)')]
-
-####################################################################################################################
+# Columns layout for Y-axis and X-axis selection
+col5, col6 = st.sidebar.columns(2)
 
 # Radio buttons for Y-axis data selection
-y_axis_data = st.sidebar.radio("Y-axis Data", ['Degradation', 'Capacity', 'Rated Range'], index=0)
+y_axis_data = col5.radio("Y-axis Data", ['Degradation', 'Capacity', 'Rated Range'], index=0)
 
 # Radio buttons for X-axis data selection
-x_axis_data = st.sidebar.radio("X-axis Data", ['Age', 'Odometer', 'Cycles'], index=0)
+x_axis_data = col6.radio("X-axis Data", ['Age', 'Odometer', 'Cycles'], index=0)
 
 # Determine Y-axis column name based on selection
 if y_axis_data == 'Degradation':
@@ -198,15 +228,13 @@ else:  # 'Cycles'
 
 # Create scatterplot
 fig = px.scatter(filtered_df, x=x_axis_data, y=y_column, color='Battery',
-                 title=f'{y_label} vs {x_label}', labels={x_axis_data: x_label, y_column: y_label})
+                 labels={x_axis_data: x_label, y_column: y_label})
 
 # Plot the figure
 st.plotly_chart(fig, use_container_width=True)
 
-####################################################################################################################
-
 # Display the top 5 rows
-st.write(filtered_df_to_display.head(5))  # Display the final filtered data
+st.write(filtered_df.head(10))  # Display the final filtered data
 
 # Sidebar with logo and link
 st.sidebar.markdown(
@@ -218,7 +246,7 @@ st.sidebar.markdown(
             padding: 1rem;
         }
         .sidebar-content img {
-            width: 200px;
+            width: 250px;
             height: auto;
             margin-right: 1rem;
         }
