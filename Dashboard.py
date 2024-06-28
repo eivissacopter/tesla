@@ -171,9 +171,6 @@ filtered_df_to_display = filtered_df_to_display.loc[:, ~filtered_df_to_display.c
 
 ####################################################################################################################
 
-# Scatterplot
-st.sidebar.subheader("Scatterplot Options")
-
 # Radio buttons for Y-axis data selection
 y_axis_data = st.sidebar.radio("Y-axis Data", ['Degradation', 'Capacity', 'Rated Range'], index=0)
 
@@ -200,7 +197,7 @@ else:  # 'Cycles'
     x_label = 'Cycles [n]'
 
 # Create scatterplot
-fig = px.scatter(filtered_df, x=x_axis_data, y=y_column, color='Battery', 
+fig = px.scatter(filtered_df, x=x_axis_data, y=y_column, color='Battery',
                  title=f'{y_label} vs {x_label}', labels={x_axis_data: x_label, y_column: y_label})
 
 # Plot the figure
@@ -210,3 +207,32 @@ st.plotly_chart(fig, use_container_width=True)
 
 # Display the top 5 rows
 st.write(filtered_df_to_display.head(5))  # Display the final filtered data
+
+# Sidebar with logo and link
+st.sidebar.markdown(
+    """
+    <style>
+        .sidebar-content {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+        }
+        .sidebar-content img {
+            width: 200px;
+            height: auto;
+            margin-right: 1rem;
+        }
+        .sidebar-content a {
+            color: black;
+            text-decoration: none;
+            font-weight: bold;
+        }
+    </style>
+    <div class="sidebar-content">
+        <a href="https://buymeacoffee.com/eivissa" target="_blank">
+            <img src="https://media.giphy.com/media/o7RZbs4KAA6tvM4H6j/giphy.gif" alt="Buy Me a Coffee">
+        </a>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
