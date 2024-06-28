@@ -147,21 +147,15 @@ battery = st.sidebar.multiselect("Battery :battery: ", battery_options)
 if battery:
     filtered_df = filtered_df[filtered_df["Battery"].isin(battery)]
 
-# Create filter for Minimum Age
-min_age = st.sidebar.number_input("Minimum Age (months)", min_value=0, value=int(filtered_df["Age"].min()))
+# Create filter for Minimum Age and Maximum Age side by side
+col1, col2 = st.sidebar.columns(2)
+min_age = col1.number_input("MIN Age (months)", min_value=0, value=int(filtered_df["Age"].min()))
+max_age = col2.number_input("MAX Age (months)", min_value=0, value=int(filtered_df["Age"].max()))
 
-# Create filter for Maximum Age
-max_age = st.sidebar.number_input("Maximum Age (months)", min_value=0, value=int(filtered_df["Age"].max()))
-
-filtered_df = filtered_df[(filtered_df["Age"] >= min_age) & (filtered_df["Age"] <= max_age)]
-
-# Create filter for Minimum ODO
-min_odo = st.sidebar.number_input("Minimum ODO (km)", min_value=0, value=int(filtered_df["Odometer"].min()))
-
-# Create filter for Maximum ODO
-max_odo = st.sidebar.number_input("Maximum ODO (km)", min_value=0, value=int(filtered_df["Odometer"].max()))
-
-filtered_df = filtered_df[(filtered_df["Odometer"] >= min_odo) & (filtered_df["Odometer"] <= max_odo)]
+# Create filter for Minimum ODO and Maximum ODO side by side
+col3, col4 = st.sidebar.columns(2)
+min_odo = col3.number_input("MIN ODO (km)", min_value=0, value=int(filtered_df["Odometer"].min()))
+max_odo = col4.number_input("MAX ODO (km)", min_value=0, value=int(filtered_df["Odometer"].max()))
 
 category_df = filtered_df.groupby(by=["Version"], as_index=False)["Degradation"].sum()
 
@@ -174,9 +168,6 @@ filtered_df_to_display = filtered_df_to_display.iloc[::-1]
 
 # Drop columns where the header is empty or starts with '_'
 filtered_df_to_display = filtered_df_to_display.loc[:, ~filtered_df_to_display.columns.str.match(r'(^$|^_)')]
-
-# Display the top 5 rows
-st.write(filtered_df_to_display.head(5))  # Display the final filtered data
 
 ####################################################################################################################
 
@@ -214,3 +205,8 @@ fig = px.scatter(filtered_df, x=x_axis_data, y=y_column, color='Battery',
 
 # Plot the figure
 st.plotly_chart(fig, use_container_width=True)
+
+####################################################################################################################
+
+# Display the top 5 rows
+st.write(filtered_df_to_display.head(5))  # Display the final filtered data
