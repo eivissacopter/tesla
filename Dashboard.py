@@ -38,10 +38,19 @@ def fetch_data():
     # Fetch all data from the sheet, including the header row
     data = sheet.get_all_values()
 
-    # Fix duplicate headers
+    # Filter out columns with empty headers or headers starting with an underscore
     header = data[0]
+    filtered_header = [col.strip() for col in header if col.strip() and not col.strip().startswith('_')]
+    
+    # Get the indices of the columns to keep
+    keep_indices = [i for i, col in enumerate(header) if col.strip() in filtered_header]
+
+    # Filter the data based on the kept indices
+    filtered_data = [[row[i] for i in keep_indices] for row in data]
+
+    # Fix duplicate headers
     unique_header = []
-    for col in header:
+    for col in filtered_header:
         col = col.strip()  # Trim whitespace
         if col not in unique_header:
             unique_header.append(col)
@@ -55,7 +64,7 @@ def fetch_data():
             unique_header.append(new_col)
 
     # Convert data to DataFrame
-    df = pd.DataFrame(data[1:], columns=unique_header)
+    df = pd.DataFrame(filtered_data[1:], columns=unique_header)
 
     # Clean up the 'Age' column to remove " Months" and convert to float
     df['Age'] = df['Age'].str.replace(" Months", "").str.replace(",", ".").astype(float)
@@ -84,11 +93,49 @@ def fetch_data():
 
     return df
 
-
 # Fetch the data using the caching function
 df = fetch_data()
 
 # Streamlit app setup
+
+# Add the link with animated arrows at the top
+st.markdown(
+    """
+    <style>
+        .link-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        .arrow {
+            margin: 0 10px;
+            display: inline-block;
+            font-size: 1.5rem;
+            animation: bounce 1s infinite;
+        }
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-10px);
+            }
+            60% {
+                transform: translateY(-5px);
+            }
+        }
+    </style>
+    <div class="link-container">
+        <span class="arrow">➡️</span>
+        <a href="https://forms.gle/SnWNCmRnavyk7kmt5" target="_blank">Enter your data here!</a>
+        <span class="arrow">⬅️</span>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 # Add a JPG picture at the top as a header
 st.markdown(
@@ -122,47 +169,7 @@ st.markdown(
 
 st.markdown('<style>div.block-container{padding-top:1rem;}</style>', unsafe_allow_html=True)
 
-# Add the link with animated arrows at the top
-st.markdown(
-    """
-    <style>
-        .link-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-bottom: 0rem;
-            font-size: 1.5rem;
-            font-weight: bold;
-        }
-        .arrow {
-            margin: 0 10px;
-            display: inline-block;
-            font-size: 1.5rem;
-            animation: bounce 1s infinite;
-        }
-        @keyframes bounce {
-            0%, 20%, 50%, 80%, 100% {
-                transform: translateY(0);
-            }
-            40% {
-                transform: translateY(-10px);
-            }
-            60% {
-                transform: translateY(-5px);
-            }
-        }
-    </style>
-    <div class="link-container">
-        <span class="arrow">➡️</span>
-        <a href="https://forms.gle/SnWNCmRnavyk7kmt5" target="_blank">Enter your data here!</a>
-        <span class="arrow">⬅️</span>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
 # Sidebar setup
-# st.sidebar.header("Choose your filter:")
 
 # Initialize the filtered dataframe
 filtered_df = df.copy()
@@ -190,13 +197,13 @@ if battery:
 
 # Create filter for Minimum Age and Maximum Age side by side
 col1, col2 = st.sidebar.columns(2)
-min_age = col1.number_input("MIN Age [Months]", min_value=0, value=int(filtered_df["Age"].min()))
-max_age = col2.number_input("MAX Age [Months]", min_value=0, value=int(filtered_df["Age"].max()))
+min_age = col1.number_input("MIN Age (months)", min_value=0, value=int(filtered_df["Age"].min()))
+max_age = col2.number_input("MAX Age (months)", min_value=0, value=int(filtered_df["Age"].max()))
 
 # Create filter for Minimum ODO and Maximum ODO side by side
 col3, col4 = st.sidebar.columns(2)
-min_odo = col3.number_input("MIN Odometer [km]", min_value=0, value=int(filtered_df["Odometer"].min()))
-max_odo = col4.number_input("MAX Odometer [km]", min_value=0, value=int(filtered_df["Odometer"].max()))
+min_odo = col3.number_input("MIN ODO (km)", min_value=0, value=int(filtered_df["Odometer"].min()), step=10000)
+max_odo = col4.number_input("MAX ODO (km)", min_value=0, value=int(filtered_df["Odometer"].max()), step=10000)
 
 # Columns layout for Y-axis and X-axis selection
 col5, col6 = st.sidebar.columns(2)
@@ -206,6 +213,10 @@ y_axis_data = col5.radio("Y-axis Data", ['Degradation', 'Capacity', 'Rated Range
 
 # Radio buttons for X-axis data selection
 x_axis_data = col6.radio("X-axis Data", ['Age', 'Odometer', 'Cycles'], index=0)
+
+# Apply filters for Age and Odometer
+filtered_df = filtered_df[(filtered_df["Age"] >= min_age) & (filtered_df["Age"] <= max_age)]
+filtered_df = filtered_df[(filtered_df["Odometer"] >= min_odo) & (filtered_df["Odometer"] <= max_odo)]
 
 # Determine Y-axis column name based on selection
 if y_axis_data == 'Degradation':
@@ -220,21 +231,45 @@ else:  # 'Rated Range'
 
 # Determine X-axis label based on selection
 if x_axis_data == 'Age':
+    x_column = 'Age'
     x_label = 'Age [months]'
 elif x_axis_data == 'Odometer':
+    x_column = 'Odometer'
     x_label = 'Odometer [km]'
 else:  # 'Cycles'
+    x_column = 'Cycles'
     x_label = 'Cycles [n]'
 
 # Create scatterplot
-fig = px.scatter(filtered_df, x=x_axis_data, y=y_column, color='Battery',
-                 labels={x_axis_data: x_label, y_column: y_label})
+fig = px.scatter(filtered_df, x=x_column, y=y_column, color='Battery',
+                 labels={x_column: x_label, y_column: y_label})
 
 # Plot the figure
 st.plotly_chart(fig, use_container_width=True)
 
-# Display the top 5 rows
-st.write(filtered_df.head(10))  # Display the final filtered data
+# Display the top 10 rows of the filtered data
+st.write(filtered_df.head(10))
+
+# Show number of rows in filtered data
+st.sidebar.write(f"Filtered Data Rows: {filtered_df.shape[0]}")
+
+# Reset filters button
+if st.sidebar.button("Reset Filters"):
+    # Reset all filter variables
+    car = []
+    version = []
+    battery = []
+    min_age = int(filtered_df["Age"].min())
+    max_age = int(filtered_df["Age"].max())
+    min_odo = int(filtered_df["Odometer"].min())
+    max_odo = int(filtered_df["Odometer"].max())
+    y_axis_data = 'Degradation'
+    x_axis_data = 'Age'
+
+    # Reset filtered_df to original df
+    filtered_df = df.copy()
+
+    st.sidebar.success("Filters have been reset.")
 
 # Sidebar with logo and link
 st.sidebar.markdown(
