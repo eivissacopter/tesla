@@ -32,7 +32,7 @@ def fetch_data():
     client = gspread.authorize(creds)
 
     # Define the URL of the Google Sheets
-    url = "https://docs.google.com/spreadsheets/d/1LmyllKqJWBr8J_LKVIAimsOigT4-hpfi5NeFJR8qZhQ/edit?usp=sharing"
+    url = st.secrets["connections"]["gsheets"]["spreadsheet"]
     spreadsheet = client.open_by_url(url)
     sheet = spreadsheet.worksheet("Database")  # Open the 'Database' worksheet
 
@@ -117,8 +117,10 @@ category_df = filtered_df.groupby(by=["Version"], as_index=False)["Degradation"]
 columns_to_display = list(filtered_df.columns[:filtered_df.columns.get_loc('Result vs fleet data') + 1])
 filtered_df_to_display = filtered_df[columns_to_display]
 
-st.write(filtered_df_to_display)  # Display the final filtered data
+# Reverse the DataFrame
+filtered_df_to_display = filtered_df_to_display.iloc[::-1]
 
+st.write(filtered_df_to_display)  # Display the final filtered data
 
 # Uncomment the following section to add plots if needed
 # with col1:
