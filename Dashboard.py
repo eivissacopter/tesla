@@ -184,17 +184,20 @@ st.write(filtered_df_to_display.head(5))  # Display the final filtered data
 st.sidebar.subheader("Scatterplot Options")
 
 # Radio buttons for Y-axis data selection
-y_axis_data = st.sidebar.radio("Y-axis Data", ['Degradation', 'Capacity Net Now', 'Rated Range'], index=0)
+y_axis_data = st.sidebar.radio("Y-axis Data", ['Degradation', 'Capacity', 'Rated Range'], index=0)
 
 # Radio buttons for X-axis data selection
 x_axis_data = st.sidebar.radio("X-axis Data", ['Age', 'Odometer', 'Cycles'], index=0)
 
-# Determine Y-axis label based on selection
+# Determine Y-axis column name based on selection
 if y_axis_data == 'Degradation':
+    y_column = 'Degradation'
     y_label = 'Degradation [%]'
-elif y_axis_data == 'Capacity Net Now':
+elif y_axis_data == 'Capacity':
+    y_column = 'Capacity Net Now'  # This should match the original column name
     y_label = 'Capacity [kWh]'
 else:  # 'Rated Range'
+    y_column = 'Rated Range'
     y_label = 'Rated Range [km]'
 
 # Determine X-axis label based on selection
@@ -203,12 +206,11 @@ if x_axis_data == 'Age':
 elif x_axis_data == 'Odometer':
     x_label = 'Odometer [km]'
 else:  # 'Cycles'
-    x_label = 'Cycles'
+    x_label = 'Cycles [n]'
 
 # Create scatterplot
-fig = px.scatter(filtered_df, x=x_axis_data, y=y_axis_data, color='Battery', 
-                 title=f'{y_label} vs {x_label}', labels={x_axis_data: x_label, y_axis_data: y_label})
-
+fig = px.scatter(filtered_df, x=x_axis_data, y=y_column, color='Battery', 
+                 title=f'{y_label} vs {x_label}', labels={x_axis_data: x_label, y_column: y_label})
 
 # Plot the figure
 st.plotly_chart(fig, use_container_width=True)
