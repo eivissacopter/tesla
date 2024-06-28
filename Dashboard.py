@@ -254,22 +254,22 @@ st.write(filtered_df.head(10))
 st.sidebar.write(f"Filtered Data Rows: {filtered_df.shape[0]}")
 
 # Reset filters button
-if st.sidebar.button("Reset Filters"):
-    # Reset all filter variables
-    car = []
-    version = []
-    battery = []
-    min_age = int(filtered_df["Age"].min())
-    max_age = int(filtered_df["Age"].max())
-    min_odo = int(filtered_df["Odometer"].min())
-    max_odo = int(filtered_df["Odometer"].max())
-    y_axis_data = 'Degradation'
-    x_axis_data = 'Age'
+# if st.sidebar.button("Reset Filters"):
+#     # Reset all filter variables
+#     car = []
+#     version = []
+#     battery = []
+#     min_age = int(filtered_df["Age"].min())
+#     max_age = int(filtered_df["Age"].max())
+#     min_odo = int(filtered_df["Odometer"].min())
+#     max_odo = int(filtered_df["Odometer"].max())
+#     y_axis_data = 'Degradation'
+#     x_axis_data = 'Age'
 
-    # Reset filtered_df to original df
-    filtered_df = df.copy()
+#     # Reset filtered_df to original df
+#     filtered_df = df.copy()
 
-    st.sidebar.success("Filters have been reset.")
+#     st.sidebar.success("Filters have been reset.")
 
 # Sidebar with logo and link
 st.sidebar.markdown(
