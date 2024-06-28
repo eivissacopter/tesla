@@ -82,10 +82,19 @@ st.markdown(
             flex-direction: column;
             padding: 2rem 0;
         }
+        .header img {
+            width: 100%;
+            height: auto;
+        }
+        .header h1 {
+            margin: 0;
+            padding-top: 1rem;
+            text-align: center;
+        }
     </style>
     <div class="header">
-        <img src="https://uploads.tff-forum.de/original/4X/e/c/7/ec7257041b0b9c87755b20a8c9dd267cb615ed82.jpeg" alt="Tesla Battery Analysis" width="300">
-        <h1 style="margin: 0; padding-top: 1rem;">Tesla Battery Analysis</h1>
+        <img src="https://uploads.tff-forum.de/original/4X/e/c/7/ec7257041b0b9c87755b20a8c9dd267cb615ed82.jpeg" alt="Tesla Battery Analysis">
+        <h1>Tesla Battery Analysis</h1>
     </div>
     """,
     unsafe_allow_html=True
@@ -144,6 +153,7 @@ filtered_df_to_display = filtered_df_to_display.iloc[::-1]
 filtered_df_to_display = filtered_df_to_display.loc[:, ~filtered_df_to_display.columns.str.match(r'(^$|^_)')]
 
 st.write(filtered_df_to_display)  # Display the final filtered data
+
 
 
 # Uncomment the following section to add plots if needed
