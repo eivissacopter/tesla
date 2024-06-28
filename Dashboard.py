@@ -7,7 +7,7 @@ import plotly.figure_factory as ff
 
 # Google Sheets API setup
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name("/Users/mille/OneDrive/Tesla/STREAMLIT/tesla/credentials.json", scope)
+creds = ServiceAccountCredentials.from_json_keyfile_name("/Users/mille/OneDrive/Tesla/STREAMLIT/tesla/.streamlit/credentials.json", scope)
 client = gspread.authorize(creds)
 
 # Define the URL of the Google Sheets
