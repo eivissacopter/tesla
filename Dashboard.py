@@ -103,12 +103,12 @@ st.markdown(
             margin-bottom: 0rem; /* Adjust the margin bottom to reduce space */
         }
         .header img {
-            width: 100%;
+            width: 80%;
             height: auto;
         }
         .header h1 {
             margin: 0;
-            padding-top: 1rem;
+            padding-top: 0rem;
             text-align: center;
         }
     </style>
@@ -190,13 +190,13 @@ if battery:
 
 # Create filter for Minimum Age and Maximum Age side by side
 col1, col2 = st.sidebar.columns(2)
-min_age = col1.number_input("MIN Age (months)", min_value=0, value=int(filtered_df["Age"].min()))
-max_age = col2.number_input("MAX Age (months)", min_value=0, value=int(filtered_df["Age"].max()))
+min_age = col1.number_input("MIN Age [Months]", min_value=0, value=int(filtered_df["Age"].min()))
+max_age = col2.number_input("MAX Age [Months]", min_value=0, value=int(filtered_df["Age"].max()))
 
 # Create filter for Minimum ODO and Maximum ODO side by side
 col3, col4 = st.sidebar.columns(2)
-min_odo = col3.number_input("MIN ODO (km)", min_value=0, value=int(filtered_df["Odometer"].min()))
-max_odo = col4.number_input("MAX ODO (km)", min_value=0, value=int(filtered_df["Odometer"].max()))
+min_odo = col3.number_input("MIN Odometer [km]", min_value=0, value=int(filtered_df["Odometer"].min()))
+max_odo = col4.number_input("MAX Odometer [km]", min_value=0, value=int(filtered_df["Odometer"].max()))
 
 # Columns layout for Y-axis and X-axis selection
 col5, col6 = st.sidebar.columns(2)
