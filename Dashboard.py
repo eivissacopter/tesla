@@ -280,7 +280,7 @@ else:  # 'Cycles'
 # Create scatterplot with watermark
 fig = px.scatter(st.session_state.filtered_df, x=x_column, y=y_column, color='Battery',
                  labels={x_column: x_label, y_column: y_label},
-                 title="Tesla Battery Analysis")
+                 title="")
 
 # Add watermark to the plot
 fig.add_annotation(
