@@ -3,12 +3,13 @@ import plotly.express as px
 import pandas as pd
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+from datetime import datetime
 
 # Set page config as the first Streamlit command
 st.set_page_config(page_title="Tesla Battery Analysis", page_icon=":battery:", layout="wide")
 
 # Function to fetch data from Google Sheets
-@st.cache
+@st.cache_data
 def fetch_data():
     # Google Sheets API setup
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
@@ -40,10 +41,21 @@ def fetch_data():
 
     # Filter out columns with empty headers or headers starting with an underscore
     header = data[0]
-    filtered_header = [col.strip() for col in header if col.strip() and not col.strip().startswith('_')]
+    filtered_header = []
+    keep_indices = []
+    stop_index = None
     
-    # Get the indices of the columns to keep
-    keep_indices = [i for i, col in enumerate(header) if col.strip() in filtered_header]
+    for i, col in enumerate(header):
+        col = col.strip()
+        if col and not col.startswith('_'):
+            filtered_header.append(col)
+            keep_indices.append(i)
+        if col == "Result vs fleet data":
+            stop_index = i
+            break
+
+    if stop_index is not None:
+        keep_indices = keep_indices[:stop_index + 1]
 
     # Filter the data based on the kept indices
     filtered_data = [[row[i] for i in keep_indices] for row in data]
@@ -98,46 +110,7 @@ df = fetch_data()
 
 # Streamlit app setup
 
-# Add the link with animated arrows at the top
-st.markdown(
-    """
-    <style>
-        .link-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-bottom: 1rem;
-            font-size: 1.2rem;
-            font-weight: bold;
-        }
-        .arrow {
-            margin: 0 10px;
-            display: inline-block;
-            font-size: 1.5rem;
-            animation: bounce 1s infinite;
-        }
-        @keyframes bounce {
-            0%, 20%, 50%, 80%, 100% {
-                transform: translateY(0);
-            }
-            40% {
-                transform: translateY(-10px);
-            }
-            60% {
-                transform: translateY(-5px);
-            }
-        }
-    </style>
-    <div class="link-container">
-        <span class="arrow">➡️</span>
-        <a href="https://forms.gle/SnWNCmRnavyk7kmt5" target="_blank">Enter your data here!</a>
-        <span class="arrow">⬅️</span>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-# Add a JPG picture at the top as a header
+# Add the main header picture with emojis
 st.markdown(
     """
     <style>
@@ -150,60 +123,124 @@ st.markdown(
             margin-bottom: 0rem; /* Adjust the margin bottom to reduce space */
         }
         .header img {
-            width: 80%;
+            width: 100%;
             height: auto;
         }
         .header h1 {
             margin: 0;
-            padding-top: 0rem;
+            padding-top: 1rem;
             text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+        }
+        .header h1 span {
+            margin: 0 10px;
         }
     </style>
     <div class="header">
-        <img src="https://uploads.tff-forum.de/original/4X/e/c/7/ec7257041b0b9c87755b20a8c9dd267cb615ed82.jpeg" alt="Tesla Battery Analysis">
-        <h1>Tesla Battery Analysis</h1>
+        <img src="https://uploads.tff-forum.de/original/4X/5/2/3/52397973df71db6122c1eda4c5c558d2ca70686c.jpeg" alt="Tesla Battery Analysis">
+        <h1><span>🔋</span> Tesla Battery Analysis <span>🔋</span></h1>
     </div>
     """,
     unsafe_allow_html=True
 )
+
+# Add Google Forms logo with text and correctly placed animated arrows with increased spacing
+st.markdown(
+    """
+    <style>
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.9; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .google-form-logo {
+            display: block;
+            margin: 0rem auto; /* Centers the logo horizontally below the header */
+            width: 300px;  /* Adjust the width of the logo as necessary */
+            height: auto;
+            animation: pulse 2s infinite ease-in-out;
+        }
+        .arrow-text {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        .arrow {
+            animation: blinker 3s linear infinite;
+            font-size: 24px;
+            margin: 0 20px; /* Increased spacing from text */
+        }
+        @keyframes blinker {
+            50% {
+                opacity: 0;
+            }
+        }
+    </style>
+    <div class="arrow-text">
+        <span>Add your data here</span>
+        <span class="arrow">🡢</span>
+        <a href="https://forms.gle/WtFayqANSr9kwKv39" target="_blank">
+            <img src="https://uploads.tff-forum.de/original/4X/b/e/6/be6339a1664cdbf97a8f560c74520c480111bed6.png" class="google-form-logo" alt="Google Forms Survey">
+        </a>
+        <span class="arrow">🡠</span>
+        <span>Add your data here</span>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
 
 st.markdown('<style>div.block-container{padding-top:1rem;}</style>', unsafe_allow_html=True)
 
 # Sidebar setup
 
 # Initialize the filtered dataframe
-filtered_df = df.copy()
+if "filtered_df" not in st.session_state:
+    st.session_state.filtered_df = df.copy()
+
+# Get the latest row
+latest_row = df.iloc[-1:]
+
+# Display the latest row at the top
+st.markdown("### Latest Entry")
+st.write(latest_row)
 
 # Create filter for Tesla
-car_options = filtered_df["Tesla"].unique()
+car_options = st.session_state.filtered_df["Tesla"].unique()
 car = st.sidebar.multiselect("Tesla :red_car: ", car_options)
 
 if car:
-    filtered_df = filtered_df[filtered_df["Tesla"].isin(car)]
+    st.session_state.filtered_df = st.session_state.filtered_df[st.session_state.filtered_df["Tesla"].isin(car)]
 
 # Create filter for Version
-version_options = filtered_df["Version"].unique()
+version_options = st.session_state.filtered_df["Version"].unique()
 version = st.sidebar.multiselect("Version :traffic_light: ", version_options)
 
 if version:
-    filtered_df = filtered_df[filtered_df["Version"].isin(version)]
+    st.session_state.filtered_df = st.session_state.filtered_df[st.session_state.filtered_df["Version"].isin(version)]
 
 # Create filter for Battery
-battery_options = filtered_df["Battery"].unique()
+battery_options = st.session_state.filtered_df["Battery"].unique()
 battery = st.sidebar.multiselect("Battery :battery: ", battery_options)
 
 if battery:
-    filtered_df = filtered_df[filtered_df["Battery"].isin(battery)]
+    st.session_state.filtered_df = st.session_state.filtered_df[st.session_state.filtered_df["Battery"].isin(battery)]
 
 # Create filter for Minimum Age and Maximum Age side by side
 col1, col2 = st.sidebar.columns(2)
-min_age = col1.number_input("MIN Age (months)", min_value=0, value=int(filtered_df["Age"].min()))
-max_age = col2.number_input("MAX Age (months)", min_value=0, value=int(filtered_df["Age"].max()))
+min_age = col1.number_input("MIN Age (months)", min_value=0, value=int(st.session_state.filtered_df["Age"].min()))
+max_age = col2.number_input("MAX Age (months)", min_value=0, value=int(st.session_state.filtered_df["Age"].max()))
 
 # Create filter for Minimum ODO and Maximum ODO side by side
 col3, col4 = st.sidebar.columns(2)
-min_odo = col3.number_input("MIN ODO (km)", min_value=0, value=int(filtered_df["Odometer"].min()), step=10000)
-max_odo = col4.number_input("MAX ODO (km)", min_value=0, value=int(filtered_df["Odometer"].max()), step=10000)
+min_odo = col3.number_input("MIN ODO (km)", min_value=0, value=int(st.session_state.filtered_df["Odometer"].min()), step=10000)
+max_odo = col4.number_input("MAX ODO (km)", min_value=0, value=int(st.session_state.filtered_df["Odometer"].max()), step=10000)
 
 # Columns layout for Y-axis and X-axis selection
 col5, col6 = st.sidebar.columns(2)
@@ -215,8 +252,8 @@ y_axis_data = col5.radio("Y-axis Data", ['Degradation', 'Capacity', 'Rated Range
 x_axis_data = col6.radio("X-axis Data", ['Age', 'Odometer', 'Cycles'], index=0)
 
 # Apply filters for Age and Odometer
-filtered_df = filtered_df[(filtered_df["Age"] >= min_age) & (filtered_df["Age"] <= max_age)]
-filtered_df = filtered_df[(filtered_df["Odometer"] >= min_odo) & (filtered_df["Odometer"] <= max_odo)]
+st.session_state.filtered_df = st.session_state.filtered_df[(st.session_state.filtered_df["Age"] >= min_age) & (st.session_state.filtered_df["Age"] <= max_age)]
+st.session_state.filtered_df = st.session_state.filtered_df[(st.session_state.filtered_df["Odometer"] >= min_odo) & (st.session_state.filtered_df["Odometer"] <= max_odo)]
 
 # Determine Y-axis column name based on selection
 if y_axis_data == 'Degradation':
@@ -240,36 +277,48 @@ else:  # 'Cycles'
     x_column = 'Cycles'
     x_label = 'Cycles [n]'
 
-# Create scatterplot
-fig = px.scatter(filtered_df, x=x_column, y=y_column, color='Battery',
-                 labels={x_column: x_label, y_column: y_label})
+# Create scatterplot with watermark
+fig = px.scatter(st.session_state.filtered_df, x=x_column, y=y_column, color='Battery',
+                 labels={x_column: x_label, y_column: y_label},
+                 title="Tesla Battery Analysis")
+
+# Add watermark to the plot
+fig.add_annotation(
+    text="@eivissacopter",
+    font=dict(size=20, color="lightgrey"),
+    align="center",
+    xref="paper",
+    yref="paper",
+    x=1.0,
+    y=0.0,
+    opacity=0.3,
+    showarrow=False
+)
+
 
 # Plot the figure
 st.plotly_chart(fig, use_container_width=True)
 
 # Display the top 10 rows of the filtered data
-st.write(filtered_df.head(10))
+# st.write(st.session_state.filtered_df.head(10))
 
 # Show number of rows in filtered data
-st.sidebar.write(f"Filtered Data Rows: {filtered_df.shape[0]}")
+st.sidebar.write(f"Filtered Data Rows: {st.session_state.filtered_df.shape[0]}")
 
 # Reset filters button
-# if st.sidebar.button("Reset Filters"):
-#     # Reset all filter variables
-#     car = []
-#     version = []
-#     battery = []
-#     min_age = int(filtered_df["Age"].min())
-#     max_age = int(filtered_df["Age"].max())
-#     min_odo = int(filtered_df["Odometer"].min())
-#     max_odo = int(filtered_df["Odometer"].max())
-#     y_axis_data = 'Degradation'
-#     x_axis_data = 'Age'
+if st.sidebar.button("Reset Filters"):
+    # Reset all filter variables
+    st.session_state.filtered_df = df.copy()
 
-#     # Reset filtered_df to original df
-#     filtered_df = df.copy()
+    st.experimental_rerun()
 
-#     st.sidebar.success("Filters have been reset.")
+# Add download button for the scatterplot
+import io
+from PIL import Image
+
+# Ensure the plot is saved with colors
+img_bytes = fig.to_image(format="png", engine="kaleido")
+st.download_button(label="Download Chart", data=img_bytes, file_name="tesla_battery_analysis.png", mime="image/png")
 
 # Sidebar with logo and link
 st.sidebar.markdown(
