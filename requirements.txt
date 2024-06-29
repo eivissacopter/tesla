@@ -3,4 +3,5 @@ pandas
 numpy
 plotly
 gspread
+kaleido
 oauth2client
