@@ -108,6 +108,8 @@ def fetch_data():
 # Fetch the data using the caching function
 df = fetch_data()
 
+####################################################################################################################
+
 # Streamlit app setup
 
 # Add the main header picture with emojis
@@ -195,8 +197,9 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-
 st.markdown('<style>div.block-container{padding-top:1rem;}</style>', unsafe_allow_html=True)
+
+####################################################################################################################
 
 # Sidebar setup
 
@@ -211,16 +214,16 @@ latest_row = df.iloc[-1:]
 st.markdown("### Latest Entry")
 st.write(latest_row)
 
-# Create filter for Tesla
+# Create filters for Tesla and Version side by side
+col1, col2 = st.sidebar.columns(2)
 car_options = st.session_state.filtered_df["Tesla"].unique()
-car = st.sidebar.multiselect("Tesla :red_car: ", car_options)
+car = col1.multiselect("Tesla :red_car: ", car_options)
 
 if car:
     st.session_state.filtered_df = st.session_state.filtered_df[st.session_state.filtered_df["Tesla"].isin(car)]
 
-# Create filter for Version
 version_options = st.session_state.filtered_df["Version"].unique()
-version = st.sidebar.multiselect("Version :traffic_light: ", version_options)
+version = col2.multiselect("Version :traffic_light: ", version_options)
 
 if version:
     st.session_state.filtered_df = st.session_state.filtered_df[st.session_state.filtered_df["Version"].isin(version)]
@@ -233,23 +236,23 @@ if battery:
     st.session_state.filtered_df = st.session_state.filtered_df[st.session_state.filtered_df["Battery"].isin(battery)]
 
 # Create filter for Minimum Age and Maximum Age side by side
-col1, col2 = st.sidebar.columns(2)
-min_age = col1.number_input("MIN Age (months)", min_value=0, value=int(st.session_state.filtered_df["Age"].min()))
-max_age = col2.number_input("MAX Age (months)", min_value=0, value=int(st.session_state.filtered_df["Age"].max()))
+col3, col4 = st.sidebar.columns(2)
+min_age = col3.number_input("MIN Age (months)", min_value=0, value=int(st.session_state.filtered_df["Age"].min()))
+max_age = col4.number_input("MAX Age (months)", min_value=0, value=int(st.session_state.filtered_df["Age"].max()))
 
 # Create filter for Minimum ODO and Maximum ODO side by side
-col3, col4 = st.sidebar.columns(2)
-min_odo = col3.number_input("MIN ODO (km)", min_value=0, value=int(st.session_state.filtered_df["Odometer"].min()), step=10000)
-max_odo = col4.number_input("MAX ODO (km)", min_value=0, value=int(st.session_state.filtered_df["Odometer"].max()), step=10000)
+col5, col6 = st.sidebar.columns(2)
+min_odo = col5.number_input("MIN ODO (km)", min_value=0, value=int(st.session_state.filtered_df["Odometer"].min()), step=10000)
+max_odo = col6.number_input("MAX ODO (km)", min_value=0, value=int(st.session_state.filtered_df["Odometer"].max()), step=10000)
 
 # Columns layout for Y-axis and X-axis selection
-col5, col6 = st.sidebar.columns(2)
+col7, col8 = st.sidebar.columns(2)
 
 # Radio buttons for Y-axis data selection
-y_axis_data = col5.radio("Y-axis Data", ['Degradation', 'Capacity', 'Rated Range'], index=0)
+y_axis_data = col7.radio("Y-axis Data", ['Degradation', 'Capacity', 'Rated Range'], index=0)
 
 # Radio buttons for X-axis data selection
-x_axis_data = col6.radio("X-axis Data", ['Age', 'Odometer', 'Cycles'], index=0)
+x_axis_data = col8.radio("X-axis Data", ['Age', 'Odometer', 'Cycles'], index=0)
 
 # Apply filters for Age and Odometer
 st.session_state.filtered_df = st.session_state.filtered_df[(st.session_state.filtered_df["Age"] >= min_age) & (st.session_state.filtered_df["Age"] <= max_age)]
@@ -277,31 +280,6 @@ else:  # 'Cycles'
     x_column = 'Cycles'
     x_label = 'Cycles [n]'
 
-# Create scatterplot with watermark
-fig = px.scatter(st.session_state.filtered_df, x=x_column, y=y_column, color='Battery',
-                 labels={x_column: x_label, y_column: y_label},
-                 title="")
-
-# Add watermark to the plot
-fig.add_annotation(
-    text="@eivissacopter",
-    font=dict(size=20, color="lightgrey"),
-    align="center",
-    xref="paper",
-    yref="paper",
-    x=1.0,
-    y=0.0,
-    opacity=0.3,
-    showarrow=False
-)
-
-
-# Plot the figure
-st.plotly_chart(fig, use_container_width=True)
-
-# Display the top 10 rows of the filtered data
-# st.write(st.session_state.filtered_df.head(10))
-
 # Show number of rows in filtered data
 st.sidebar.write(f"Filtered Data Rows: {st.session_state.filtered_df.shape[0]}")
 
@@ -312,15 +290,7 @@ if st.sidebar.button("Reset Filters"):
 
     st.experimental_rerun()
 
-# Add download button for the scatterplot
-import io
-from PIL import Image
-
-# Ensure the plot is saved with colors
-img_bytes = fig.to_image(format="png", engine="kaleido")
-st.download_button(label="Download Chart", data=img_bytes, file_name="tesla_battery_analysis.png", mime="image/png")
-
-# Sidebar with logo and link
+# Animated Banner with logo and link
 st.sidebar.markdown(
     """
     <style>
@@ -348,3 +318,35 @@ st.sidebar.markdown(
     """,
     unsafe_allow_html=True
 )
+
+####################################################################################################################
+
+# Create scatterplot with watermark
+fig = px.scatter(st.session_state.filtered_df, x=x_column, y=y_column, color='Battery',
+                 labels={x_column: x_label, y_column: y_label},
+                 title="")
+
+# Add watermark to the plot
+fig.add_annotation(
+    text="@eivissacopter",
+    font=dict(size=20, color="lightgrey"),
+    align="center",
+    xref="paper",
+    yref="paper",
+    x=1.0,
+    y=0.0,
+    opacity=0.3,
+    showarrow=False
+)
+
+# Plot the figure
+st.plotly_chart(fig, use_container_width=True)
+
+# Add download button for the scatterplot
+import io
+from PIL import Image
+
+# Ensure the plot is saved with colors
+img_bytes = fig.to_image(format="png", engine="kaleido")
+st.download_button(label="Download Chart", data=img_bytes, file_name="tesla_battery_analysis.png", mime="image/png")
+
