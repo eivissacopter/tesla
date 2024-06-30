@@ -214,26 +214,44 @@ latest_row = df.iloc[-1:]
 st.markdown("### Latest Entry")
 st.write(latest_row)
 
-# Create filters for Tesla and Version side by side
-col1, col2 = st.sidebar.columns(2)
-car_options = st.session_state.filtered_df["Tesla"].unique()
-car = col1.multiselect("Tesla :red_car: ", car_options)
+############################################################
 
-if car:
-    st.session_state.filtered_df = st.session_state.filtered_df[st.session_state.filtered_df["Tesla"].isin(car)]
+# Create filter for Tesla
+tesla = st.sidebar.multiselect("Tesla :red_car: ", df["Tesla"].unique())
+if not tesla:
+    df2 = df.copy()
+else:
+    df2 = df[df["Tesla"].isin(tesla)]
 
-version_options = st.session_state.filtered_df["Version"].unique()
-version = col2.multiselect("Version :traffic_light: ", version_options)
+# Create filter for Version based on selected Tesla
+version = st.sidebar.multiselect("Version :traffic_light: ", df2["Version"].unique())
+if not version:
+    df3 = df2.copy()
+else:
+    df3 = df2[df2["Version"].isin(version)]
 
-if version:
-    st.session_state.filtered_df = st.session_state.filtered_df[st.session_state.filtered_df["Version"].isin(version)]
+# Create filter for Battery based on selected Tesla and Version
+battery = st.sidebar.multiselect("Battery :battery: ", df3["Battery"].unique())
 
-# Create filter for Battery
-battery_options = st.session_state.filtered_df["Battery"].unique()
-battery = st.sidebar.multiselect("Battery :battery: ", battery_options)
+# Apply combined filters to update the session state
+if not tesla and not version and not battery:
+    st.session_state.filtered_df = df.copy()
+else:
+    conditions = []
+    if tesla:
+        conditions.append(df["Tesla"].isin(tesla))
+    if version:
+        conditions.append(df["Version"].isin(version))
+    if battery:
+        conditions.append(df["Battery"].isin(battery))
+    
+    condition = conditions[0]
+    for cond in conditions[1:]:
+        condition &= cond
 
-if battery:
-    st.session_state.filtered_df = st.session_state.filtered_df[st.session_state.filtered_df["Battery"].isin(battery)]
+    st.session_state.filtered_df = df[condition]
+
+############################################################
 
 # Create filter for Minimum Age and Maximum Age side by side
 col3, col4 = st.sidebar.columns(2)
@@ -284,11 +302,9 @@ else:  # 'Cycles'
 st.sidebar.write(f"Filtered Data Rows: {st.session_state.filtered_df.shape[0]}")
 
 # Reset filters button
-if st.sidebar.button("Reset Filters"):
-    # Reset all filter variables
-    st.session_state.filtered_df = df.copy()
-
-    st.experimental_rerun()
+# if st.sidebar.button("Reset Filters"):
+#     # Reset the displayed data to the original dataframe
+#     st.session_state.filtered_df = df.copy()
 
 # Animated Banner with logo and link
 st.sidebar.markdown(
@@ -349,4 +365,3 @@ from PIL import Image
 # Ensure the plot is saved with colors
 img_bytes = fig.to_image(format="png", engine="kaleido")
 st.download_button(label="Download Chart", data=img_bytes, file_name="tesla_battery_analysis.png", mime="image/png")
-
