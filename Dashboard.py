@@ -453,13 +453,26 @@ fig = px.scatter(
 # Add trend line if selected
 if add_trend_line:
     if trend_line_type == 'Linear Regression':
-        fig = px.scatter(
-            st.session_state.filtered_df, x=x_column, y=y_column, color='Battery',
-            labels={x_column: x_label, y_column: y_label},
-            trendline='ols',
-            color_discrete_sequence=color_sequence,
-            title=""
-        )
+        # Perform linear regression for each battery type
+        batteries = filtered_df['Battery'].unique()
+        for battery in batteries:
+            battery_df = filtered_df[filtered_df['Battery'] == battery]
+            X = battery_df[x_column].values.reshape(-1, 1)
+            y = battery_df[y_column].values.reshape(-1, 1)
+            
+            lin_reg = LinearRegression()
+            lin_reg.fit(X, y)
+            
+            # Generate values for plotting the trendline
+            x_range = np.linspace(filtered_df[x_column].min(), filtered_df[x_column].max(), 100).reshape(-1, 1)
+            y_pred = lin_reg.predict(x_range)
+            
+            # Get the color of the corresponding scatter points
+            battery_color = fig.data[filtered_df['Battery'].unique().tolist().index(battery)].marker.color
+            
+            # Add the trendline trace with the corresponding color
+            battery_trace = go.Scatter(x=x_range.flatten(), y=y_pred.flatten(), mode='lines', name=f"{battery} Linear Trendline", line=dict(color=battery_color))
+            fig.add_trace(battery_trace)
     elif trend_line_type == 'Logarithmic Regression':
         # Perform logarithmic regression for each battery type
         batteries = filtered_df['Battery'].unique()
@@ -472,14 +485,14 @@ if add_trend_line:
             log_reg.fit(X, y)
             
             # Generate values for plotting the trendline
-            x_range = np.linspace(X.min(), X.max(), 100)
-            y_pred = log_reg.predict(x_range.reshape(-1, 1))
+            x_range = np.linspace(filtered_df[x_column].min(), filtered_df[x_column].max(), 100)
+            y_pred = log_reg.predict(np.log(x_range).reshape(-1, 1))
             
             # Get the color of the corresponding scatter points
             battery_color = fig.data[filtered_df['Battery'].unique().tolist().index(battery)].marker.color
             
             # Add the trendline trace with the corresponding color
-            battery_trace = go.Scatter(x=np.exp(x_range).flatten(), y=y_pred.flatten(), mode='lines', name=f"{battery} Logarithmic Trendline", line=dict(color=battery_color))
+            battery_trace = go.Scatter(x=x_range.flatten(), y=y_pred.flatten(), mode='lines', name=f"{battery} Logarithmic Trendline", line=dict(color=battery_color))
             fig.add_trace(battery_trace)
     elif trend_line_type == 'Polynomial Regression (3rd Degree)':
         from sklearn.preprocessing import PolynomialFeatures
@@ -498,7 +511,7 @@ if add_trend_line:
             poly_reg.fit(X_poly, y)
             
             # Generate values for plotting the trendline
-            x_range = np.linspace(X.min(), X.max(), 100).reshape(-1, 1)
+            x_range = np.linspace(filtered_df[x_column].min(), filtered_df[x_column].max(), 100).reshape(-1, 1)
             x_range_poly = poly.transform(x_range)
             y_pred = poly_reg.predict(x_range_poly)
             
