@@ -319,11 +319,11 @@ else:  # 'Cycles'
 # Toggle switch for trend line
 add_trend_line = st.sidebar.checkbox("Add Trend Line", value=False)
 
-# Selector for trend line type with understandable names
+# Add a checkbox for Polynomial Regression in the sidebar
 if add_trend_line:
     trend_line_type = st.sidebar.selectbox(
         "Trend Line Type", 
-        ['Linear Regression', 'Logarithmic Regression']
+        ['Linear Regression', 'Logarithmic Regression', 'Polynomial Regression (3rd Degree)']
     )
 
 # Show number of rows in filtered data
@@ -406,9 +406,6 @@ if add_trend_line:
                          trendline='ols',
                          title="")
     elif trend_line_type == 'Logarithmic Regression':
-        # Filter out non-positive values from the x_column and rows with NaNs in x_column or y_column
-        filtered_df = st.session_state.filtered_df[(st.session_state.filtered_df[x_column] > 0) & st.session_state.filtered_df[x_column].notna() & st.session_state.filtered_df[y_column].notna()]
-
         # Perform logarithmic regression for each battery type
         batteries = filtered_df['Battery'].unique()
         for battery in batteries:
@@ -428,6 +425,33 @@ if add_trend_line:
             
             # Add the trendline trace with the corresponding color
             battery_trace = go.Scatter(x=np.exp(x_range).flatten(), y=y_pred.flatten(), mode='lines', name=f"{battery} Logarithmic Trendline", line=dict(color=battery_color))
+            fig.add_trace(battery_trace)
+    elif trend_line_type == 'Polynomial Regression (3rd Degree)':
+        from sklearn.preprocessing import PolynomialFeatures
+        
+        # Perform polynomial regression for each battery type
+        batteries = filtered_df['Battery'].unique()
+        for battery in batteries:
+            battery_df = filtered_df[filtered_df['Battery'] == battery]
+            X = battery_df[x_column].values.reshape(-1, 1)
+            y = battery_df[y_column].values.reshape(-1, 1)
+            
+            poly = PolynomialFeatures(degree=3)
+            X_poly = poly.fit_transform(X)
+            
+            poly_reg = LinearRegression()
+            poly_reg.fit(X_poly, y)
+            
+            # Generate values for plotting the trendline
+            x_range = np.linspace(X.min(), X.max(), 100).reshape(-1, 1)
+            x_range_poly = poly.transform(x_range)
+            y_pred = poly_reg.predict(x_range_poly)
+            
+            # Get the color of the corresponding scatter points
+            battery_color = fig.data[filtered_df['Battery'].unique().tolist().index(battery)].marker.color
+            
+            # Add the trendline trace with the corresponding color
+            battery_trace = go.Scatter(x=x_range.flatten(), y=y_pred.flatten(), mode='lines', name=f"{battery} 3rd Degree Polynomial Trendline", line=dict(color=battery_color))
             fig.add_trace(battery_trace)
 
 # Add watermark to the plot
