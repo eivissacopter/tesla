@@ -73,7 +73,7 @@ def fetch_data():
         if col and not col.startswith('_'):
             filtered_header.append(col)
             keep_indices.append(i)
-        if col == "Degradation":
+        if col == "DC Ratio":
             stop_index = i
             break
 
@@ -234,13 +234,13 @@ if "filtered_df" not in st.session_state:
     st.session_state.filtered_df = df.copy()
 
 # Get the latest row
-latest_row = df.iloc[-1:]
+latest_row = df.iloc[-3:]
 
 # Display the latest row at the top
 st.markdown(
     """
     <div>
-        Latest Entry
+        Latest Entries
     </div>
     """,
     unsafe_allow_html=True
@@ -402,19 +402,22 @@ st.sidebar.markdown(
 
 ####################################################################################################################
 
-# Create scatterplot with watermark and color sequence
-fig = px.scatter(
-    st.session_state.filtered_df, x=x_column, y=y_column, color='Battery',
-    labels={x_column: x_label, y_column: y_label},
-    color_discrete_sequence=color_sequence,
-    title=""
-)
-
 # Ensure the 'Cycles' column is numeric
 st.session_state.filtered_df[x_column] = pd.to_numeric(st.session_state.filtered_df[x_column], errors='coerce')
 
 # Filter out non-positive values from the x_column and rows with NaNs in x_column or y_column
 filtered_df = st.session_state.filtered_df[(st.session_state.filtered_df[x_column] > 0) & st.session_state.filtered_df[x_column].notna() & st.session_state.filtered_df[y_column].notna()]
+
+# Sort the filtered_df by the x_column
+filtered_df = filtered_df.sort_values(by=x_column)
+
+# Create scatterplot with watermark and color sequence
+fig = px.scatter(
+    filtered_df, x=x_column, y=y_column, color='Battery',
+    labels={x_column: x_label, y_column: y_label},
+    color_discrete_sequence=color_sequence,
+    title=""
+)
 
 # Add trend line if selected
 if add_trend_line:
@@ -484,7 +487,7 @@ fig.add_annotation(
     yref="paper",
     x=0.5,
     y=0.5,
-    opacity=0.3,
+    opacity=0.05,
     showarrow=False
 )
 
@@ -492,7 +495,7 @@ fig.add_annotation(
 st.plotly_chart(fig, use_container_width=True)
 
 # Add download button for the scatterplot
-img_bytes = fig.to_image(format="png", engine="kaleido", scale=3)  # Ensure scaling for better resolution
+img_bytes = fig.to_image(format="png", engine="kaleido", scale=5)  # Ensure scaling for better resolution
 st.download_button(label="Download Chart", data=img_bytes, file_name="tesla_battery_analysis.png", mime="image/png")
 
 ####################################################################################################################
@@ -500,15 +503,15 @@ st.download_button(label="Download Chart", data=img_bytes, file_name="tesla_batt
 # Determine the denominator column based on the X-axis selection
 if x_axis_data == 'Age':
     denominator_column = 'Age'
-    x_label = 'Age [months]'
+    x_label = 'Month'
     divisor = 1  # No additional scaling
 elif x_axis_data == 'Odometer':
     denominator_column = 'Odometer'
-    x_label = 'Odometer [1,000 km]'
+    x_label = '1000km]'
     divisor = 1000  # Scale Odometer to 1,000 km
 else:  # 'Cycles'
     denominator_column = 'Cycles'
-    x_label = 'Cycles [n]'
+    x_label = 'Cycle'
     divisor = 1  # No additional scaling
 
 # Convert Degradation and the selected denominator column to numeric, coerce errors to NaN and drop rows with NaN values
@@ -534,7 +537,7 @@ bar_fig = px.bar(
     avg_degradation_per_x, x='DegradationPerX', y='Battery', orientation='h',
     labels={'DegradationPerX': f'Average Degradation / {x_label}'},
     color_discrete_sequence=color_sequence,
-    title=f''
+    title=f'Average Degradation per {x_label}'
 )
 
 # Invert the x-axis
@@ -552,7 +555,7 @@ bar_fig.add_annotation(
     yref="paper",
     x=0.5,
     y=0.5,
-    opacity=0.3,
+    opacity=0.05,
     showarrow=False
 )
 
@@ -560,5 +563,5 @@ bar_fig.add_annotation(
 st.plotly_chart(bar_fig, use_container_width=True)
 
 # Add download button for the bar chart
-bar_img_bytes = bar_fig.to_image(format="png", engine="kaleido", scale=3)  # Ensure scaling for better resolution
+bar_img_bytes = bar_fig.to_image(format="png", engine="kaleido", scale=5)  # Ensure scaling for better resolution
 st.download_button(label="Download Chart", data=bar_img_bytes, file_name="average_degradation_per_x.png", mime="image/png")
