@@ -4,6 +4,9 @@ import pandas as pd
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
+import numpy as np
+from sklearn.linear_model import LinearRegression
+import plotly.graph_objects as go
 
 # Set page config as the first Streamlit command
 st.set_page_config(page_title="Tesla Battery Analysis", page_icon=":battery:", layout="wide")
@@ -39,6 +42,8 @@ def fetch_data():
     # Fetch all data from the sheet, including the header row
     data = sheet.get_all_values()
 
+####################################################################################################################
+
     # Filter out columns with empty headers or headers starting with an underscore
     header = data[0]
     filtered_header = []
@@ -50,7 +55,7 @@ def fetch_data():
         if col and not col.startswith('_'):
             filtered_header.append(col)
             keep_indices.append(i)
-        if col == "Result vs fleet data":
+        if col == "Degradation":
             stop_index = i
             break
 
@@ -88,7 +93,7 @@ def fetch_data():
     df = df.apply(lambda x: x.str.replace(',', '.') if x.dtype == "object" else x)
 
     # Add negative sign to specific columns if they exist
-    columns_to_negate = ['Degradation', 'DegradationPerMonth', 'DegradationPerCycle']
+    columns_to_negate = ['Degradation']
     for col in columns_to_negate:
        if col in df.columns:
            df[col] = '-' + df[col]
@@ -102,6 +107,9 @@ def fetch_data():
 
     df['Capacity Net Now'] = df['Capacity Net Now'].str.replace(' kWh', '').str.replace(',', '.')
     df['Capacity Net Now'] = pd.to_numeric(df['Capacity Net Now'], errors='coerce')
+
+    # Convert Degradation to numeric
+    df['Degradation'] = pd.to_numeric(df['Degradation'].str.replace('%', ''), errors='coerce')
 
     return df
 
@@ -188,7 +196,7 @@ st.markdown(
         <span>Add your data here</span>
         <span class="arrow">🡢</span>
         <a href="https://forms.gle/WtFayqANSr9kwKv39" target="_blank">
-            <img src="https://uploads.tff-forum.de/original/4X/b/e/6/be6339a1664cdbf97a8f560c74520c480111bed6.png" class="google-form-logo" alt="Google Forms Survey">
+            <img src="https://i.ibb.co/YZvSDRm/google-forms-400x182-removebg-preview.png" class="google-form-logo" alt="Google Forms Survey">
         </a>
         <span class="arrow">🡠</span>
         <span>Add your data here</span>
@@ -210,8 +218,24 @@ if "filtered_df" not in st.session_state:
 # Get the latest row
 latest_row = df.iloc[-1:]
 
-# Display the latest row at the top
-st.markdown("### Latest Entry")
+# Display the latest row at the top and move text to the center
+st.markdown(
+    """
+    <style>
+        .center-text {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+    </style>
+    <div class="center-text">
+        Latest Entry
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
 st.write(latest_row)
 
 ############################################################
@@ -298,6 +322,16 @@ else:  # 'Cycles'
     x_column = 'Cycles'
     x_label = 'Cycles [n]'
 
+# Toggle switch for trend line
+add_trend_line = st.sidebar.checkbox("Add Trend Line", value=False)
+
+# Selector for trend line type with understandable names
+if add_trend_line:
+    trend_line_type = st.sidebar.selectbox(
+        "Trend Line Type", 
+        ['Linear Regression', 'Logarithmic Regression']
+    )
+
 # Show number of rows in filtered data
 st.sidebar.write(f"Filtered Data Rows: {st.session_state.filtered_df.shape[0]}")
 
@@ -313,22 +347,43 @@ st.sidebar.markdown(
         .sidebar-content {
             display: flex;
             align-items: center;
-            padding: 1rem;
+            justify-content: space-between;
+            padding: 0rem;
         }
         .sidebar-content img {
-            width: 230px;
             height: auto;
-            margin-right: 1rem;
+        }
+        .sidebar-content .akku-wiki {
+            width: 90px;  /* Set specific width for Akku Wiki logo */
+        }
+        .sidebar-content .buy-me-coffee {
+            width: 240px;  /* Set specific width for Buy Me a Coffee logo */
+        }
+        .sidebar-content .follow-on-x {
+            width: 110px;  /* Set specific width for Follow on X logo */
+        }
+        .sidebar-content .text {
+            text-align: center;
+            font-size: 12px;  /* Default font size for text */
         }
         .sidebar-content a {
-            color: black;
+            color: white;
             text-decoration: none;
             font-weight: bold;
         }
     </style>
     <div class="sidebar-content">
+        <a href="https://tff-forum.de/t/wiki-akkuwiki-model-3-model-y-cybertruck/107641?u=eivissa" target="_blank">
+            <div>
+                <img src="https://i.ibb.co/vBvVFTg/TFF-Logo-ohne-Schrift-removebg-preview.png" class="akku-wiki" alt="Akku Wiki">
+                <div class="text">Akku Wiki</div>
+            </div>
+        </a>
         <a href="https://buymeacoffee.com/eivissa" target="_blank">
-            <img src="https://media.giphy.com/media/o7RZbs4KAA6tvM4H6j/giphy.gif" alt="Buy Me a Coffee">
+            <img src="https://media.giphy.com/media/o7RZbs4KAA6tvM4H6j/giphy.gif" class="buy-me-coffee" alt="Buy Me a Coffee">
+        </a>
+        <a href="https://x.com/eivissacopter" target="_blank">
+            <img src="https://i.ibb.co/xLhFQNn/c23e7825a07e5e998bd361f9c991e12c-400x400-removebg-preview.png" class="follow-on-x" alt="Follow on X">
         </a>
     </div>
     """,
@@ -342,6 +397,39 @@ fig = px.scatter(st.session_state.filtered_df, x=x_column, y=y_column, color='Ba
                  labels={x_column: x_label, y_column: y_label},
                  title="")
 
+# Add trend line if selected
+if add_trend_line:
+    if trend_line_type == 'Linear Regression':
+        # Create trendline for each group
+        fig = px.scatter(st.session_state.filtered_df, x=x_column, y=y_column, color='Battery',
+                         labels={x_column: x_label, y_column: y_label},
+                         trendline='ols',
+                         title="")
+    elif trend_line_type == 'Logarithmic Regression':
+        # Filter out non-positive values from the x_column and rows with NaNs in x_column or y_column
+        filtered_df = st.session_state.filtered_df[(st.session_state.filtered_df[x_column] > 0) & st.session_state.filtered_df[x_column].notna() & st.session_state.filtered_df[y_column].notna()]
+
+        # Perform logarithmic regression for each battery type
+        batteries = filtered_df['Battery'].unique()
+        for battery in batteries:
+            battery_df = filtered_df[filtered_df['Battery'] == battery]
+            X = np.log(battery_df[x_column].values.reshape(-1, 1))
+            y = battery_df[y_column].values.reshape(-1, 1)
+            
+            log_reg = LinearRegression()
+            log_reg.fit(X, y)
+            
+            # Generate values for plotting the trendline
+            x_range = np.linspace(X.min(), X.max(), 100)
+            y_pred = log_reg.predict(x_range.reshape(-1, 1))
+            
+            # Get the color of the corresponding scatter points
+            battery_color = fig.data[filtered_df['Battery'].unique().tolist().index(battery)].marker.color
+            
+            # Add the trendline trace with the corresponding color
+            battery_trace = go.Scatter(x=np.exp(x_range).flatten(), y=y_pred.flatten(), mode='lines', name=f"{battery} Logarithmic Trendline", line=dict(color=battery_color))
+            fig.add_trace(battery_trace)
+
 # Add watermark to the plot
 fig.add_annotation(
     text="@eivissacopter",
@@ -349,8 +437,8 @@ fig.add_annotation(
     align="center",
     xref="paper",
     yref="paper",
-    x=1.0,
-    y=0.0,
+    x=0.5,
+    y=0.5,
     opacity=0.3,
     showarrow=False
 )
@@ -365,3 +453,68 @@ from PIL import Image
 # Ensure the plot is saved with colors
 img_bytes = fig.to_image(format="png", engine="kaleido")
 st.download_button(label="Download Chart", data=img_bytes, file_name="tesla_battery_analysis.png", mime="image/png")
+
+####################################################################################################################
+
+# Determine the denominator column based on the X-axis selection
+if x_axis_data == 'Age':
+    denominator_column = 'Age'
+    x_label = 'Age [months]'
+    divisor = 1  # No additional scaling
+elif x_axis_data == 'Odometer':
+    denominator_column = 'Odometer'
+    x_label = 'Odometer [1,000 km]'
+    divisor = 1000  # Scale Odometer to 1,000 km
+else:  # 'Cycles'
+    denominator_column = 'Cycles'
+    x_label = 'Cycles [n]'
+    divisor = 1  # No additional scaling
+
+# Convert Degradation and the selected denominator column to numeric, coerce errors to NaN and drop rows with NaN values
+st.session_state.filtered_df['Degradation'] = pd.to_numeric(st.session_state.filtered_df['Degradation'], errors='coerce')
+st.session_state.filtered_df[denominator_column] = pd.to_numeric(st.session_state.filtered_df[denominator_column], errors='coerce')
+st.session_state.filtered_df = st.session_state.filtered_df.dropna(subset=['Degradation', denominator_column])
+
+# Calculate degradation per selected X-axis value
+st.session_state.filtered_df['DegradationPerX'] = st.session_state.filtered_df['Degradation'] / (st.session_state.filtered_df[denominator_column] / divisor)
+
+# Filter out rows where DegradationPerX is NaN, 0, or infinite
+st.session_state.filtered_df = st.session_state.filtered_df.replace([np.inf, -np.inf], np.nan).dropna(subset=['DegradationPerX'])
+st.session_state.filtered_df = st.session_state.filtered_df[st.session_state.filtered_df['DegradationPerX'] != 0]
+
+# Group by Battery and calculate the average degradation per selected X-axis value
+avg_degradation_per_x = st.session_state.filtered_df.groupby('Battery')['DegradationPerX'].mean().reset_index()
+
+# Sort values from low to high
+avg_degradation_per_x = avg_degradation_per_x.sort_values(by='DegradationPerX', ascending=True)
+
+# Create horizontal bar chart
+bar_fig = px.bar(avg_degradation_per_x, x='DegradationPerX', y='Battery', orientation='h',
+                 labels={'DegradationPerX': f'Average Degradation / {x_label}'},
+                 title=f'Average Degradation per {x_label}')
+
+# Invert the x-axis
+bar_fig.update_xaxes(autorange='reversed')
+
+# Position the text at the end of each bar and format as percentage
+bar_fig.update_traces(texttemplate='%{x:.2f}%', textposition='outside')
+
+# Add watermark to the bar chart
+bar_fig.add_annotation(
+    text="@eivissacopter",
+    font=dict(size=20, color="lightgrey"),
+    align="center",
+    xref="paper",
+    yref="paper",
+    x=0.5,
+    y=0.5,
+    opacity=0.3,
+    showarrow=False
+)
+
+# Plot the bar chart
+st.plotly_chart(bar_fig, use_container_width=True)
+
+# Add download button for the bar chart
+bar_img_bytes = bar_fig.to_image(format="png", engine="kaleido")
+st.download_button(label="Download Chart", data=bar_img_bytes, file_name="average_degradation_per_x.png", mime="image/png")
