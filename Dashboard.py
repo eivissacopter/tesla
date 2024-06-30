@@ -527,7 +527,7 @@ st.plotly_chart(fig, use_container_width=True)
 
 # Add download button for the scatterplot
 img_bytes = fig.to_image(format="jpg", engine="kaleido", scale=5)  # Ensure scaling for better resolution
-st.download_button(label="Download Chart", data=img_bytes, file_name="tesla_battery_analysis.png", mime="image/png")
+st.download_button(label="Download Chart", data=img_bytes, file_name="tesla_battery_analysis.jpg", mime="image/jpg")
 
 ####################################################################################################################
 
