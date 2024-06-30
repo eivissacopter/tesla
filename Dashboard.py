@@ -6,7 +6,9 @@ from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 import numpy as np
 from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import PolynomialFeatures
 import plotly.graph_objects as go
+
 
 # Set page config as the first Streamlit command
 st.set_page_config(page_title="Tesla Battery Analysis", page_icon=":battery:", layout="wide")
@@ -218,18 +220,10 @@ if "filtered_df" not in st.session_state:
 # Get the latest row
 latest_row = df.iloc[-1:]
 
-# Display the latest row at the top and move text to the center
+# Display the latest row at the top
 st.markdown(
     """
-    <style>
-        .center-text {
-            text-align: center;
-            font-size: 24px;
-            font-weight: bold;
-            margin-top: 20px;
-        }
-    </style>
-    <div class="center-text">
+    <div>
         Latest Entry
     </div>
     """,
@@ -396,6 +390,12 @@ st.sidebar.markdown(
 fig = px.scatter(st.session_state.filtered_df, x=x_column, y=y_column, color='Battery',
                  labels={x_column: x_label, y_column: y_label},
                  title="")
+
+# Ensure the 'Cycles' column is numeric
+st.session_state.filtered_df[x_column] = pd.to_numeric(st.session_state.filtered_df[x_column], errors='coerce')
+
+# Filter out non-positive values from the x_column and rows with NaNs in x_column or y_column
+filtered_df = st.session_state.filtered_df[(st.session_state.filtered_df[x_column] > 0) & st.session_state.filtered_df[x_column].notna() & st.session_state.filtered_df[y_column].notna()]
 
 # Add trend line if selected
 if add_trend_line:
