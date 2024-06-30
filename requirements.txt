@@ -6,4 +6,4 @@ gspread
 kaleido
 oauth2client
 statsmodels
-LinearRegression
+scikit-learn
