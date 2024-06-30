@@ -346,22 +346,28 @@ if add_trend_line:
         ['Linear Regression', 'Logarithmic Regression', 'Polynomial Regression (3rd Degree)']
     )
 
-# Sidebar setup
-show_daily_soc_limit = st.sidebar.checkbox("Show Daily SOC Limit", value=False)
+# Add checkboxes for additional filters
+show_daily_soc_limit = st.sidebar.checkbox("Set Daily SOC", value=False)
 if show_daily_soc_limit:
     col1, col2 = st.sidebar.columns(2)
-    daily_soc_limit_values = df["Daily SOC Limit"].dropna()
-    daily_soc_min = col1.number_input("Min Daily SOC Limit (%)", value=float(daily_soc_limit_values.min()), step=10.0, min_value=0.0, max_value=100.0, key="daily_soc_min")
-    daily_soc_max = col2.number_input("Max Daily SOC Limit (%)", value=float(daily_soc_limit_values.max()), step=10.0, min_value=0.0, max_value=100.0, key="daily_soc_max")
-    df = df[(df["Daily SOC Limit"] >= daily_soc_min) & (df["Daily SOC Limit"] <= daily_soc_max)]
+    daily_soc_limit_values = st.session_state.filtered_df["Daily SOC Limit"].dropna().astype(float)
+    daily_soc_min = col1.number_input("Min SOC Limit", value=float(daily_soc_limit_values.min()), step=10.0, min_value=50.0, max_value=100.0, key="daily_soc_min")
+    daily_soc_max = col2.number_input("Max SOC Limit", value=float(daily_soc_limit_values.max()), step=10.0, min_value=50.0, max_value=100.0, key="daily_soc_max")
+    st.session_state.filtered_df = st.session_state.filtered_df[
+        (st.session_state.filtered_df["Daily SOC Limit"].astype(float) >= daily_soc_min) & 
+        (st.session_state.filtered_df["Daily SOC Limit"].astype(float) <= daily_soc_max)
+    ]
 
-show_dc_ratio = st.sidebar.checkbox("Show DC Ratio", value=False)
+show_dc_ratio = st.sidebar.checkbox("Set AC/DC Ratio", value=False)
 if show_dc_ratio:
     col3, col4 = st.sidebar.columns(2)
-    dc_ratio_values = df["DC Ratio"].dropna()
-    dc_ratio_min = col3.number_input("Min DC Ratio (%)", value=float(dc_ratio_values.min()), step=25.0, min_value=0.0, max_value=100.0, key="dc_ratio_min")
-    dc_ratio_max = col4.number_input("Max DC Ratio (%)", value=float(dc_ratio_values.max()), step=25.0, min_value=0.0, max_value=100.0, key="dc_ratio_max")
-    df = df[(df["DC Ratio"] >= dc_ratio_min) & (df["DC Ratio"] <= dc_ratio_max)]
+    dc_ratio_values = st.session_state.filtered_df["DC Ratio"].dropna().astype(float)
+    dc_ratio_min = col3.number_input("Min DC Ratio", value=float(dc_ratio_values.min()), step=25.0, min_value=0.0, max_value=100.0, key="dc_ratio_min")
+    dc_ratio_max = col4.number_input("Max DC Ratio", value=float(dc_ratio_values.max()), step=25.0, min_value=0.0, max_value=100.0, key="dc_ratio_max")
+    st.session_state.filtered_df = st.session_state.filtered_df[
+        (st.session_state.filtered_df["DC Ratio"].astype(float) >= dc_ratio_min) & 
+        (st.session_state.filtered_df["DC Ratio"].astype(float) <= dc_ratio_max)
+    ]
 
 # Filter the data based on the user-selected criteria
 st.session_state.filtered_df = st.session_state.filtered_df[(st.session_state.filtered_df["Age"] >= min_age) & (st.session_state.filtered_df["Age"] <= max_age)]
