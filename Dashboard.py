@@ -255,21 +255,21 @@ st.write(latest_row)
 ############################################################
 
 # Create filter for Tesla
-tesla = st.sidebar.multiselect("Tesla :red_car: ", df["Tesla"].unique())
+tesla = st.sidebar.multiselect(":red_car: Tesla", df["Tesla"].unique())
 if not tesla:
     df2 = df.copy()
 else:
     df2 = df[df["Tesla"].isin(tesla)]
 
 # Create filter for Version based on selected Tesla
-version = st.sidebar.multiselect("Version :traffic_light: ", df2["Version"].unique())
+version = st.sidebar.multiselect(":vertical_traffic_light: Version", df2["Version"].unique())
 if not version:
     df3 = df2.copy()
 else:
     df3 = df2[df2["Version"].isin(version)]
 
 # Create filter for Battery based on selected Tesla and Version
-battery = st.sidebar.multiselect("Battery :battery: ", df3["Battery"].unique())
+battery = st.sidebar.multiselect(":battery: Battery", df3["Battery"].unique())
 
 # Apply combined filters to update the session state
 if not tesla and not version and not battery:
@@ -293,22 +293,22 @@ else:
 
 # Create filter for Minimum Age and Maximum Age side by side
 col3, col4 = st.sidebar.columns(2)
-min_age = col3.number_input("MIN Age (months)", min_value=0, value=int(st.session_state.filtered_df["Age"].min()))
-max_age = col4.number_input("MAX Age (months)", min_value=0, value=int(st.session_state.filtered_df["Age"].max()))
+min_age = col3.number_input(":clock630: MIN Age (months)", min_value=0, value=int(st.session_state.filtered_df["Age"].min()))
+max_age = col4.number_input(":clock12: MAX Age (months)", min_value=0, value=int(st.session_state.filtered_df["Age"].max()))
 
 # Create filter for Minimum ODO and Maximum ODO side by side
 col5, col6 = st.sidebar.columns(2)
-min_odo = col5.number_input("MIN ODO (km)", min_value=0, value=int(st.session_state.filtered_df["Odometer"].min()), step=10000)
-max_odo = col6.number_input("MAX ODO (km)", min_value=0, value=int(st.session_state.filtered_df["Odometer"].max()), step=10000)
+min_odo = col5.number_input(":arrow_forward: MIN ODO (km)", min_value=0, value=int(st.session_state.filtered_df["Odometer"].min()), step=10000)
+max_odo = col6.number_input(":fast_forward: MAX ODO (km)", min_value=0, value=int(st.session_state.filtered_df["Odometer"].max()), step=10000)
 
 # Columns layout for Y-axis and X-axis selection
 col7, col8 = st.sidebar.columns(2)
 
 # Radio buttons for Y-axis data selection
-y_axis_data = col7.radio("Y-axis Data", ['Degradation', 'Capacity', 'Rated Range'], index=0)
+y_axis_data = col7.radio(":arrow_up_down: Y-axis Data", ['Degradation', 'Capacity', 'Rated Range'], index=0)
 
 # Radio buttons for X-axis data selection
-x_axis_data = col8.radio("X-axis Data", ['Age', 'Odometer', 'Cycles'], index=0)
+x_axis_data = col8.radio(":left_right_arrow: X-axis Data", ['Age', 'Odometer', 'Cycles'], index=0)
 
 # Apply filters for Age and Odometer
 st.session_state.filtered_df = st.session_state.filtered_df[(st.session_state.filtered_df["Age"] >= min_age) & (st.session_state.filtered_df["Age"] <= max_age)]
@@ -337,7 +337,7 @@ else:  # 'Cycles'
     x_label = 'Cycles [n]'
 
 # Toggle switch for trend line
-add_trend_line = st.sidebar.checkbox("Add Trend Line", value=False)
+add_trend_line = st.sidebar.checkbox(":chart_with_downwards_trend: Add Trend Line", value=False)
 
 # Add a checkbox for Polynomial Regression in the sidebar
 if add_trend_line:
@@ -347,7 +347,7 @@ if add_trend_line:
     )
 
 # Add checkboxes for additional filters
-show_daily_soc_limit = st.sidebar.checkbox("Set Daily SOC", value=False)
+show_daily_soc_limit = st.sidebar.checkbox(":battery: Set Daily SOC", value=False)
 if show_daily_soc_limit:
     col1, col2 = st.sidebar.columns(2)
     daily_soc_limit_values = st.session_state.filtered_df["Daily SOC Limit"].dropna().astype(float)
@@ -358,7 +358,7 @@ if show_daily_soc_limit:
         (st.session_state.filtered_df["Daily SOC Limit"].astype(float) <= daily_soc_max)
     ]
 
-show_dc_ratio = st.sidebar.checkbox("Set AC/DC Ratio", value=False)
+show_dc_ratio = st.sidebar.checkbox(":fuelpump: Set AC/DC Ratio", value=False)
 if show_dc_ratio:
     col3, col4 = st.sidebar.columns(2)
     dc_ratio_values = st.session_state.filtered_df["DC Ratio"].dropna().astype(float)
