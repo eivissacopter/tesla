@@ -534,7 +534,7 @@ bar_fig = px.bar(
     avg_degradation_per_x, x='DegradationPerX', y='Battery', orientation='h',
     labels={'DegradationPerX': f'Average Degradation / {x_label}'},
     color_discrete_sequence=color_sequence,
-    title=f'Average Degradation per {x_label}'
+    title=f''
 )
 
 # Invert the x-axis
