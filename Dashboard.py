@@ -8,10 +8,26 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
 import plotly.graph_objects as go
+import plotly.io as pio
 
 
 # Set page config as the first Streamlit command
 st.set_page_config(page_title="Tesla Battery Analysis", page_icon=":battery:", layout="wide")
+
+# Set default Plotly template and color sequence
+pio.templates.default = "plotly"
+color_sequence = [
+    "#0068c9",
+    "#83c9ff",
+    "#ff2b2b",
+    "#ffabab",
+    "#29b09d",
+    "#7defa1",
+    "#ff8700",
+    "#ffd16a",
+    "#6d3fc0",
+    "#d5dae5",
+]
 
 # Function to fetch data from Google Sheets
 @st.cache_data
@@ -386,10 +402,13 @@ st.sidebar.markdown(
 
 ####################################################################################################################
 
-# Create scatterplot with watermark
-fig = px.scatter(st.session_state.filtered_df, x=x_column, y=y_column, color='Battery',
-                 labels={x_column: x_label, y_column: y_label},
-                 title="")
+# Create scatterplot with watermark and color sequence
+fig = px.scatter(
+    st.session_state.filtered_df, x=x_column, y=y_column, color='Battery',
+    labels={x_column: x_label, y_column: y_label},
+    color_discrete_sequence=color_sequence,
+    title=""
+)
 
 # Ensure the 'Cycles' column is numeric
 st.session_state.filtered_df[x_column] = pd.to_numeric(st.session_state.filtered_df[x_column], errors='coerce')
@@ -400,11 +419,13 @@ filtered_df = st.session_state.filtered_df[(st.session_state.filtered_df[x_colum
 # Add trend line if selected
 if add_trend_line:
     if trend_line_type == 'Linear Regression':
-        # Create trendline for each group
-        fig = px.scatter(st.session_state.filtered_df, x=x_column, y=y_column, color='Battery',
-                         labels={x_column: x_label, y_column: y_label},
-                         trendline='ols',
-                         title="")
+        fig = px.scatter(
+            st.session_state.filtered_df, x=x_column, y=y_column, color='Battery',
+            labels={x_column: x_label, y_column: y_label},
+            trendline='ols',
+            color_discrete_sequence=color_sequence,
+            title=""
+        )
     elif trend_line_type == 'Logarithmic Regression':
         # Perform logarithmic regression for each battery type
         batteries = filtered_df['Battery'].unique()
@@ -471,11 +492,7 @@ fig.add_annotation(
 st.plotly_chart(fig, use_container_width=True)
 
 # Add download button for the scatterplot
-import io
-from PIL import Image
-
-# Ensure the plot is saved with colors
-img_bytes = fig.to_image(format="png", engine="kaleido")
+img_bytes = fig.to_image(format="png", engine="kaleido", scale=3)  # Ensure scaling for better resolution
 st.download_button(label="Download Chart", data=img_bytes, file_name="tesla_battery_analysis.png", mime="image/png")
 
 ####################################################################################################################
@@ -512,10 +529,13 @@ avg_degradation_per_x = st.session_state.filtered_df.groupby('Battery')['Degrada
 # Sort values from low to high
 avg_degradation_per_x = avg_degradation_per_x.sort_values(by='DegradationPerX', ascending=True)
 
-# Create horizontal bar chart
-bar_fig = px.bar(avg_degradation_per_x, x='DegradationPerX', y='Battery', orientation='h',
-                 labels={'DegradationPerX': f'Average Degradation / {x_label}'},
-                 title=f'Average Degradation per {x_label}')
+# Create horizontal bar chart with color sequence
+bar_fig = px.bar(
+    avg_degradation_per_x, x='DegradationPerX', y='Battery', orientation='h',
+    labels={'DegradationPerX': f'Average Degradation / {x_label}'},
+    color_discrete_sequence=color_sequence,
+    title=f'Average Degradation per {x_label}'
+)
 
 # Invert the x-axis
 bar_fig.update_xaxes(autorange='reversed')
@@ -540,5 +560,5 @@ bar_fig.add_annotation(
 st.plotly_chart(bar_fig, use_container_width=True)
 
 # Add download button for the bar chart
-bar_img_bytes = bar_fig.to_image(format="png", engine="kaleido")
+bar_img_bytes = bar_fig.to_image(format="png", engine="kaleido", scale=3)  # Ensure scaling for better resolution
 st.download_button(label="Download Chart", data=bar_img_bytes, file_name="average_degradation_per_x.png", mime="image/png")
