@@ -3,13 +3,11 @@ import plotly.express as px
 import pandas as pd
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-from datetime import datetime
 import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
 import plotly.graph_objects as go
 import plotly.io as pio
-
 
 # Set page config as the first Streamlit command
 st.set_page_config(page_title="Tesla Battery Analysis", page_icon=":battery:", layout="wide")
@@ -30,7 +28,7 @@ color_sequence = [
 ]
 
 # Function to fetch data from Google Sheets
-@st.cache_data
+@st.cache_data(ttl=300)  # Cache data for 300 seconds
 def fetch_data():
     # Google Sheets API setup
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
@@ -101,7 +99,7 @@ def fetch_data():
     # Convert data to DataFrame
     df = pd.DataFrame(filtered_data[1:], columns=unique_header)
 
-     # Handle 'Age' column conversion
+    # Handle 'Age' column conversion
     df['Age'] = df['Age'].str.replace(" Months", "").str.replace(",", ".").replace('', np.nan).astype(float)
 
     # Clean up the 'Odometer' column to ensure it is numeric
@@ -113,8 +111,8 @@ def fetch_data():
     # Add negative sign to specific columns if they exist
     columns_to_negate = ['Degradation']
     for col in columns_to_negate:
-       if col in df.columns:
-           df[col] = '-' + df[col]
+        if col in df.columns:
+            df[col] = '-' + df[col]
 
     # Replace '0,0%' in 'Degradation' with NaN
     df['Degradation'] = df['Degradation'].replace('-0.0%', float('NaN'))
@@ -135,8 +133,37 @@ def fetch_data():
 
     return df
 
-# Fetch the data using the caching function
+# Fetch the data and timestamp
 df = fetch_data()
+
+# Define default values for the filters
+default_tesla = []
+default_version = []
+default_battery = []
+default_min_age = int(df["Age"].min())
+default_max_age = int(df["Age"].max())
+default_min_odo = int(df["Odometer"].min())
+default_max_odo = int(df["Odometer"].max())
+default_daily_soc_limit = False
+default_dc_ratio = False
+
+# Initialize filter states in session_state if not already present
+if "filters" not in st.session_state:
+    st.session_state.filters = {
+        "tesla": default_tesla,
+        "version": default_version,
+        "battery": default_battery,
+        "min_age": default_min_age,
+        "max_age": default_max_age,
+        "min_odo": default_min_odo,
+        "max_odo": default_max_odo,
+        "show_daily_soc_limit": default_daily_soc_limit,
+        "show_dc_ratio": default_dc_ratio,
+    }
+
+# Initialize the filtered dataframe
+if "filtered_df" not in st.session_state:
+    st.session_state.filtered_df = df.copy()
 
 ####################################################################################################################
 
@@ -229,16 +256,8 @@ st.markdown(
 
 st.markdown('<style>div.block-container{padding-top:1rem;}</style>', unsafe_allow_html=True)
 
-####################################################################################################################
-
-# Sidebar setup
-
-# Initialize the filtered dataframe
-if "filtered_df" not in st.session_state:
-    st.session_state.filtered_df = df.copy()
-
 # Get the latest row
-latest_row = df.iloc[-3:]
+latest_row = df.iloc[-3:][::-1]
 
 # Display the latest row at the top
 st.markdown(
@@ -252,7 +271,9 @@ st.markdown(
 
 st.write(latest_row)
 
-############################################################
+####################################################################################################################
+
+# Sidebar setup
 
 # Create filter for Tesla
 tesla = st.sidebar.multiselect(":red_car: Tesla", df["Tesla"].unique())
@@ -373,13 +394,29 @@ if show_dc_ratio:
 st.session_state.filtered_df = st.session_state.filtered_df[(st.session_state.filtered_df["Age"] >= min_age) & (st.session_state.filtered_df["Age"] <= max_age)]
 st.session_state.filtered_df = st.session_state.filtered_df[(st.session_state.filtered_df["Odometer"] >= min_odo) & (st.session_state.filtered_df["Odometer"] <= max_odo)]
 
+# Add a refresh button and reset button in the sidebar
+refresh, reset = st.sidebar.columns(2)
+if refresh.button("Refresh Data", key="refresh_data"):
+    st.cache_data.clear()  # Clear the cache
+    st.experimental_rerun()  # Rerun the app to refresh with new data
+
+if reset.button("Reset Filters", key="reset_filters"):
+    # Reset filters to default values
+    st.session_state.filters = {
+        "tesla": default_tesla,
+        "version": default_version,
+        "battery": default_battery,
+        "min_age": default_min_age,
+        "max_age": default_max_age,
+        "min_odo": default_min_odo,
+        "max_odo": default_max_odo,
+        "show_daily_soc_limit": default_daily_soc_limit,
+        "show_dc_ratio": default_dc_ratio,
+    }
+    st.experimental_rerun()  # Rerun the app to apply reset filters
+
 # Show number of rows in filtered data
 st.sidebar.write(f"Filtered Data Rows: {st.session_state.filtered_df.shape[0]}")
-
-# Reset filters button
-# if st.sidebar.button("Reset Filters"):
-#     # Reset the displayed data to the original dataframe
-#     st.session_state.filtered_df = df.copy()
 
 # Animated Banner with logo and link
 st.sidebar.markdown(
