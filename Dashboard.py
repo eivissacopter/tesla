@@ -479,12 +479,23 @@ filtered_df = st.session_state.filtered_df[(st.session_state.filtered_df[x_colum
 # Sort the filtered_df by the x_column
 filtered_df = filtered_df.sort_values(by=x_column)
 
-# Create scatterplot with watermark and color sequence
+# Create the scatter plot
 fig = px.scatter(
     filtered_df, x=x_column, y=y_column, color='Battery',
     labels={x_column: x_label, y_column: y_label},
     color_discrete_sequence=color_sequence,
     title=""
+)
+
+# Update the layout to move the legend to the top left
+fig.update_layout(
+    legend=dict(
+        orientation="h",
+        yanchor="bottom",
+        y=1.02,
+        xanchor="left",  # Align to the left
+        x=0  # Set x position to 0 to align with the left edge
+    )
 )
 
 # Add trend line if selected
