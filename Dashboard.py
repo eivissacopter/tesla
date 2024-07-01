@@ -8,6 +8,8 @@ from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
 import plotly.graph_objects as go
 import plotly.io as pio
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 
 # Set page config as the first Streamlit command
 st.set_page_config(page_title="Tesla Battery Analysis", page_icon=":battery:", layout="wide")
@@ -276,23 +278,23 @@ st.write(latest_row)
 # Sidebar setup
 
 # Create filter for Tesla
-tesla = st.sidebar.multiselect(":red_car: Tesla", df["Tesla"].unique())
+tesla = st.sidebar.multiselect(":red_car: Tesla", df["Tesla"].unique(), key="tesla")
 if not tesla:
     df2 = df.copy()
 else:
     df2 = df[df["Tesla"].isin(tesla)]
 
 # Create filter for Version based on selected Tesla
-version = st.sidebar.multiselect(":vertical_traffic_light: Version", df2["Version"].unique())
+version = st.sidebar.multiselect(":vertical_traffic_light: Version", df2["Version"].unique(), key="version")
 if not version:
     df3 = df2.copy()
 else:
     df3 = df2[df2["Version"].isin(version)]
 
 # Create filter for Battery based on selected Tesla and Version
-battery = st.sidebar.multiselect(":battery: Battery", df3["Battery"].unique())
+battery = st.sidebar.multiselect(":battery: Battery", df3["Battery"].unique(), key="battery")
 
-# Apply combined filters to update the session state
+# Apply filters based on selected Tesla, Version, and Battery
 if not tesla and not version and not battery:
     st.session_state.filtered_df = df.copy()
 else:
@@ -314,13 +316,13 @@ else:
 
 # Create filter for Minimum Age and Maximum Age side by side
 col3, col4 = st.sidebar.columns(2)
-min_age = col3.number_input(":clock630: MIN Age (months)", min_value=0, value=int(st.session_state.filtered_df["Age"].min()))
-max_age = col4.number_input(":clock12: MAX Age (months)", min_value=0, value=int(st.session_state.filtered_df["Age"].max()))
+min_age = col3.number_input(":clock630: MIN Age (months)", min_value=1, value=max(1, int(st.session_state.filtered_df["Age"].min())))
+max_age = col4.number_input(":clock12: MAX Age (months)", min_value=1, value=int(st.session_state.filtered_df["Age"].max()))
 
 # Create filter for Minimum ODO and Maximum ODO side by side
 col5, col6 = st.sidebar.columns(2)
-min_odo = col5.number_input(":arrow_forward: MIN ODO (km)", min_value=0, value=int(st.session_state.filtered_df["Odometer"].min()), step=10000)
-max_odo = col6.number_input(":fast_forward: MAX ODO (km)", min_value=0, value=int(st.session_state.filtered_df["Odometer"].max()), step=10000)
+min_odo = col5.number_input(":arrow_forward: MIN ODO (km)", min_value=1000, value=max(1000, int(st.session_state.filtered_df["Odometer"].min())), step=10000)
+max_odo = col6.number_input(":fast_forward: MAX ODO (km)", min_value=1000, value=int(st.session_state.filtered_df["Odometer"].max()), step=10000)
 
 # Columns layout for Y-axis and X-axis selection
 col7, col8 = st.sidebar.columns(2)
@@ -358,7 +360,7 @@ else:  # 'Cycles'
     x_label = 'Cycles [n]'
 
 # Toggle switch for trend line
-add_trend_line = st.sidebar.checkbox(":chart_with_downwards_trend: Add Trend Line", value=False)
+add_trend_line = st.sidebar.checkbox(":chart_with_downwards_trend: Trend Line", value=False)
 
 # Add a checkbox for Polynomial Regression in the sidebar
 if add_trend_line:
@@ -367,9 +369,15 @@ if add_trend_line:
         ['Linear Regression', 'Logarithmic Regression', 'Polynomial Regression (3rd Degree)']
     )
 
-# Add checkboxes for additional filters
-show_daily_soc_limit = st.sidebar.checkbox(":battery: Set Daily SOC", value=False)
-if show_daily_soc_limit:
+# Add checkboxes for additional filters as a vertical switch
+filter_option = st.sidebar.radio(
+    "Nerdy Options",
+    ["Off", "Daily SOC Limit", "AC/DC Ratio"],
+    index=0
+)
+
+# Apply filters based on the selected option
+if filter_option == "Daily SOC Limit":
     col1, col2 = st.sidebar.columns(2)
     daily_soc_limit_values = st.session_state.filtered_df["Daily SOC Limit"].dropna().astype(float)
     daily_soc_min = col1.number_input("Min SOC Limit", value=float(daily_soc_limit_values.min()), step=10.0, min_value=50.0, max_value=100.0, key="daily_soc_min")
@@ -378,9 +386,7 @@ if show_daily_soc_limit:
         (st.session_state.filtered_df["Daily SOC Limit"].astype(float) >= daily_soc_min) & 
         (st.session_state.filtered_df["Daily SOC Limit"].astype(float) <= daily_soc_max)
     ]
-
-show_dc_ratio = st.sidebar.checkbox(":fuelpump: Set AC/DC Ratio", value=False)
-if show_dc_ratio:
+elif filter_option == "AC/DC Ratio":
     col3, col4 = st.sidebar.columns(2)
     dc_ratio_values = st.session_state.filtered_df["DC Ratio"].dropna().astype(float)
     dc_ratio_min = col3.number_input("Min DC Ratio", value=float(dc_ratio_values.min()), step=25.0, min_value=0.0, max_value=100.0, key="dc_ratio_min")
@@ -479,96 +485,137 @@ filtered_df = st.session_state.filtered_df[(st.session_state.filtered_df[x_colum
 # Sort the filtered_df by the x_column
 filtered_df = filtered_df.sort_values(by=x_column)
 
-# Create the scatter plot
-fig = px.scatter(
-    filtered_df, x=x_column, y=y_column, color='Battery',
-    labels={x_column: x_label, y_column: y_label},
-    color_discrete_sequence=color_sequence,
-    title=""
-)
+##################################################
 
-# Update the layout to move the legend to the top left
+# Define color map for colorbar and invert it
+color_map = "RdBu_r"
+
+# Check if only one battery is selected and if DC Ratio or SOC Limit filter is active
+color_column = None
+if len(battery) == 1 and filter_option != "Off":
+    if filter_option == "Daily SOC Limit":
+        color_column = "Daily SOC Limit"
+    elif filter_option == "AC/DC Ratio":
+        color_column = "DC Ratio"
+
+# Add trend line if selected
+def add_trend_lines(fig, batteries, filtered_df, x_column, y_column, trend_line_type):
+    for battery_type in batteries:
+        battery_df = filtered_df[filtered_df['Battery'] == battery_type]
+        X = battery_df[x_column].values.reshape(-1, 1)
+        y = battery_df[y_column].values.reshape(-1, 1)
+        
+        if trend_line_type == 'Linear Regression':
+            lin_reg = LinearRegression()
+            lin_reg.fit(X, y)
+            x_range = np.linspace(filtered_df[x_column].min(), filtered_df[x_column].max(), 100).reshape(-1, 1)
+            y_pred = lin_reg.predict(x_range)
+        elif trend_line_type == 'Logarithmic Regression':
+            X_log = np.log(X)
+            log_reg = LinearRegression()
+            log_reg.fit(X_log, y)
+            x_range = np.linspace(filtered_df[x_column].min(), filtered_df[x_column].max(), 100)
+            y_pred = log_reg.predict(np.log(x_range).reshape(-1, 1))
+        elif trend_line_type == 'Polynomial Regression (3rd Degree)':
+            poly = PolynomialFeatures(degree=3)
+            X_poly = poly.fit_transform(X)
+            poly_reg = LinearRegression()
+            poly_reg.fit(X_poly, y)
+            x_range = np.linspace(filtered_df[x_column].min(), filtered_df[x_column].max(), 100).reshape(-1, 1)
+            x_range_poly = poly.transform(x_range)
+            y_pred = poly_reg.predict(x_range_poly)
+        
+        # Extract the color of the battery type from the scatter plot
+        battery_color = next(
+            (trace.marker.color for trace in fig.data if trace.name == battery_type),
+            None
+        )
+        
+        # Add the trendline trace
+        trend_trace = go.Scatter(
+            x=x_range.flatten(), y=y_pred.flatten(), mode='lines', name=f"{battery_type} Trendline",
+            line=dict(color=battery_color)
+        )
+        fig.add_trace(trend_trace)
+    return fig
+
+####################################################################################
+
+# Define the data points for the green line (converted from miles to kilometers)
+odometer_miles = np.array([0, 50000, 100000, 150000, 200000])
+battery_retention = np.array([0, -8, -12, -15, -18])  # Ensure the initial point starts at 100%
+odometer_km = odometer_miles * 1.60934  # Convert miles to kilometers
+
+# Create a smooth line for the green line using logarithmic fitting
+odometer_km_log = np.log(odometer_km[1:])  # Remove the zero value for log transformation
+battery_retention_log = battery_retention[1:]  # Corresponding y-values
+
+log_reg = LinearRegression()
+log_reg.fit(odometer_km_log.reshape(-1, 1), battery_retention_log)
+
+odometer_km_smooth = np.linspace(odometer_km[1:].min(), odometer_km.max(), 500)
+battery_retention_smooth = log_reg.predict(np.log(odometer_km_smooth).reshape(-1, 1))
+
+# Insert the initial point back into the smooth curve
+odometer_km_smooth = np.insert(odometer_km_smooth, 0, odometer_km[0])
+battery_retention_smooth = np.insert(battery_retention_smooth, 0, battery_retention[0])
+
+####################################################################################
+
+# Ensure the selected color column is numeric
+if color_column:
+    filtered_df[color_column] = pd.to_numeric(filtered_df[color_column], errors='coerce')
+
+# Create the scatter plot
+if color_column:
+    fig = px.scatter(
+        filtered_df, x=x_column, y=y_column, color=color_column, color_continuous_scale=color_map,
+        labels={x_column: x_label, y_column: y_label, color_column: color_column},
+    )
+else:
+    fig = px.scatter(
+        filtered_df, x=x_column, y=y_column, color='Battery',
+        labels={x_column: x_label, y_column: y_label},
+        color_discrete_sequence=color_sequence,
+    )
+
+# Add battery traces to ensure they appear first in the legend
+batteries = filtered_df['Battery'].unique()
+for battery_type in batteries:
+    battery_color = next(
+        (trace.marker.color for trace in fig.data if trace.name == battery_type),
+        None
+    )
+    if not any(trace.name == battery_type for trace in fig.data):
+        battery_trace = go.Scatter(
+            x=[None], y=[None], mode='markers', marker=dict(color=battery_color),
+            showlegend=True, name=battery_type
+        )
+        fig.add_trace(battery_trace)
+
+# Add trend line if selected
+if add_trend_line:
+    fig = add_trend_lines(fig, batteries, filtered_df, x_column, y_column, trend_line_type)
+
+# Add the green line to the scatter plot if Odometer is selected
+if x_axis_data == 'Odometer':
+    fig.add_trace(go.Scatter(
+        x=odometer_km_smooth, y=battery_retention_smooth,
+        mode='lines', name='Tesla Battery Retention',
+        line=dict(color='rgba(0, 0, 255, 0.6)', width=8)  # Adjust the color to be semi-transparent
+    ))
+
+# Ensure the legend always appears
 fig.update_layout(
+    showlegend=True,
     legend=dict(
         orientation="h",
         yanchor="bottom",
         y=1.02,
-        xanchor="left",  # Align to the left
-        x=0  # Set x position to 0 to align with the left edge
+        xanchor="left",
+        x=0
     )
 )
-
-# Add trend line if selected
-if add_trend_line:
-    if trend_line_type == 'Linear Regression':
-        # Perform linear regression for each battery type
-        batteries = filtered_df['Battery'].unique()
-        for battery in batteries:
-            battery_df = filtered_df[filtered_df['Battery'] == battery]
-            X = battery_df[x_column].values.reshape(-1, 1)
-            y = battery_df[y_column].values.reshape(-1, 1)
-            
-            lin_reg = LinearRegression()
-            lin_reg.fit(X, y)
-            
-            # Generate values for plotting the trendline
-            x_range = np.linspace(filtered_df[x_column].min(), filtered_df[x_column].max(), 100).reshape(-1, 1)
-            y_pred = lin_reg.predict(x_range)
-            
-            # Get the color of the corresponding scatter points
-            battery_color = fig.data[filtered_df['Battery'].unique().tolist().index(battery)].marker.color
-            
-            # Add the trendline trace with the corresponding color
-            battery_trace = go.Scatter(x=x_range.flatten(), y=y_pred.flatten(), mode='lines', name=f"{battery} Linear Trendline", line=dict(color=battery_color))
-            fig.add_trace(battery_trace)
-    elif trend_line_type == 'Logarithmic Regression':
-        # Perform logarithmic regression for each battery type
-        batteries = filtered_df['Battery'].unique()
-        for battery in batteries:
-            battery_df = filtered_df[filtered_df['Battery'] == battery]
-            X = np.log(battery_df[x_column].values.reshape(-1, 1))
-            y = battery_df[y_column].values.reshape(-1, 1)
-            
-            log_reg = LinearRegression()
-            log_reg.fit(X, y)
-            
-            # Generate values for plotting the trendline
-            x_range = np.linspace(filtered_df[x_column].min(), filtered_df[x_column].max(), 100)
-            y_pred = log_reg.predict(np.log(x_range).reshape(-1, 1))
-            
-            # Get the color of the corresponding scatter points
-            battery_color = fig.data[filtered_df['Battery'].unique().tolist().index(battery)].marker.color
-            
-            # Add the trendline trace with the corresponding color
-            battery_trace = go.Scatter(x=x_range.flatten(), y=y_pred.flatten(), mode='lines', name=f"{battery} Logarithmic Trendline", line=dict(color=battery_color))
-            fig.add_trace(battery_trace)
-    elif trend_line_type == 'Polynomial Regression (3rd Degree)':
-        from sklearn.preprocessing import PolynomialFeatures
-        
-        # Perform polynomial regression for each battery type
-        batteries = filtered_df['Battery'].unique()
-        for battery in batteries:
-            battery_df = filtered_df[filtered_df['Battery'] == battery]
-            X = battery_df[x_column].values.reshape(-1, 1)
-            y = battery_df[y_column].values.reshape(-1, 1)
-            
-            poly = PolynomialFeatures(degree=3)
-            X_poly = poly.fit_transform(X)
-            
-            poly_reg = LinearRegression()
-            poly_reg.fit(X_poly, y)
-            
-            # Generate values for plotting the trendline
-            x_range = np.linspace(filtered_df[x_column].min(), filtered_df[x_column].max(), 100).reshape(-1, 1)
-            x_range_poly = poly.transform(x_range)
-            y_pred = poly_reg.predict(x_range_poly)
-            
-            # Get the color of the corresponding scatter points
-            battery_color = fig.data[filtered_df['Battery'].unique().tolist().index(battery)].marker.color
-            
-            # Add the trendline trace with the corresponding color
-            battery_trace = go.Scatter(x=x_range.flatten(), y=y_pred.flatten(), mode='lines', name=f"{battery} 3rd Degree Polynomial Trendline", line=dict(color=battery_color))
-            fig.add_trace(battery_trace)
 
 # Add watermark to the plot
 fig.add_annotation(
@@ -611,6 +658,15 @@ st.session_state.filtered_df['Degradation'] = pd.to_numeric(st.session_state.fil
 st.session_state.filtered_df[denominator_column] = pd.to_numeric(st.session_state.filtered_df[denominator_column], errors='coerce')
 st.session_state.filtered_df = st.session_state.filtered_df.dropna(subset=['Degradation', denominator_column])
 
+# Ensure the 'Cycles' column is numeric
+st.session_state.filtered_df[x_column] = pd.to_numeric(st.session_state.filtered_df[x_column], errors='coerce')
+
+# Filter out non-positive values from the x_column and rows with NaNs in x_column or y_column
+filtered_df = st.session_state.filtered_df[(st.session_state.filtered_df[x_column] > 0) & st.session_state.filtered_df[x_column].notna() & st.session_state.filtered_df[y_column].notna()]
+
+# Sort the filtered_df by the x_column
+filtered_df = filtered_df.sort_values(by=x_column)
+
 # Calculate degradation per selected X-axis value
 st.session_state.filtered_df['DegradationPerX'] = st.session_state.filtered_df['Degradation'] / (st.session_state.filtered_df[denominator_column] / divisor)
 
@@ -618,25 +674,41 @@ st.session_state.filtered_df['DegradationPerX'] = st.session_state.filtered_df['
 st.session_state.filtered_df = st.session_state.filtered_df.replace([np.inf, -np.inf], np.nan).dropna(subset=['DegradationPerX'])
 st.session_state.filtered_df = st.session_state.filtered_df[st.session_state.filtered_df['DegradationPerX'] != 0]
 
-# Group by Battery and calculate the average degradation per selected X-axis value
-avg_degradation_per_x = st.session_state.filtered_df.groupby('Battery')['DegradationPerX'].mean().reset_index()
+if len(battery) == 1:
+    selected_battery = battery[0]
+    version_avg_degradation = st.session_state.filtered_df[st.session_state.filtered_df['Battery'] == selected_battery].groupby('Version')['DegradationPerX'].mean().reset_index()
+    
+    # Sort values from low to high
+    version_avg_degradation = version_avg_degradation.sort_values(by='DegradationPerX', ascending=True)
+    
+    # Create the bar chart
+    bar_fig = px.bar(
+        version_avg_degradation, x='DegradationPerX', y='Version', orientation='h',
+        labels={'DegradationPerX': f'Average Degradation / {x_label}', 'Version': ''},
+        color_discrete_sequence=color_sequence,
+    )
+else:
+    # Group by Battery and calculate the average degradation per selected X-axis value
+    avg_degradation_per_x = st.session_state.filtered_df.groupby('Battery')['DegradationPerX'].mean().reset_index()
+    
+    # Sort values from low to high
+    avg_degradation_per_x = avg_degradation_per_x.sort_values(by='DegradationPerX', ascending=True)
 
-# Sort values from low to high
-avg_degradation_per_x = avg_degradation_per_x.sort_values(by='DegradationPerX', ascending=True)
-
-# Create horizontal bar chart with color sequence
-bar_fig = px.bar(
-    avg_degradation_per_x, x='DegradationPerX', y='Battery', orientation='h',
-    labels={'DegradationPerX': f'Average Degradation / {x_label}'},
-    color_discrete_sequence=color_sequence,
-    title=f'Average Degradation per {x_label}'
-)
+    # Create the bar chart
+    bar_fig = px.bar(
+        avg_degradation_per_x, x='DegradationPerX', y='Battery', orientation='h',
+        labels={'DegradationPerX': f'Average Degradation / {x_label}', 'Battery': ''},
+        color_discrete_sequence=color_sequence,
+    )
 
 # Invert the x-axis
 bar_fig.update_xaxes(autorange='reversed')
 
 # Position the text at the end of each bar and format as percentage
 bar_fig.update_traces(texttemplate='%{x:.2f}%', textposition='outside')
+
+# Remove the y-axis title
+bar_fig.update_layout(yaxis_title=None)
 
 # Add watermark to the bar chart
 bar_fig.add_annotation(
@@ -651,9 +723,14 @@ bar_fig.add_annotation(
     showarrow=False
 )
 
+# Remove the legend title
+bar_fig.update_layout(showlegend=False)
+
 # Plot the bar chart
 st.plotly_chart(bar_fig, use_container_width=True)
 
 # Add download button for the bar chart
 bar_img_bytes = bar_fig.to_image(format="png", engine="kaleido", scale=5)  # Ensure scaling for better resolution
 st.download_button(label="Download Chart", data=bar_img_bytes, file_name="average_degradation_per_x.png", mime="image/png")
+
+########################
