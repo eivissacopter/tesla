@@ -628,6 +628,7 @@ fig.add_annotation(
 st.plotly_chart(fig, use_container_width=True)
 
 ####################################################################################################################
+
 # Perform SOH 70% projection if only one battery is selected
 if len(battery) == 1:
     selected_battery_df = filtered_df[filtered_df["Battery"] == battery[0]]
@@ -651,6 +652,9 @@ if len(battery) == 1:
     elif x_axis_data == 'Odometer':
         predicted_kilometers = predicted_x_value
         kilometers_text = f"{predicted_kilometers[0][0]:.0f} kilometers"
+    elif x_axis_data == 'Cycles':
+        predicted_cycles = predicted_x_value
+        kilometers_text = f"{predicted_cycles[0][0]:.0f} kilometers"
 
     # Calculate projection for years if x_axis_data is not 'Age'
     if x_axis_data != 'Age' and 'Age' in selected_battery_df.columns:
@@ -659,6 +663,13 @@ if len(battery) == 1:
         predicted_age_value = (soh_70_degradation - lin_reg.intercept_) / lin_reg.coef_
         predicted_years_value = predicted_age_value / 12  # Convert months to years
         years_text = f"{predicted_years_value[0][0]:.0f} years"
+
+    # Calculate projection for kilometers regardless of x_axis_data
+    if 'Odometer' in selected_battery_df.columns:
+        X_odo = selected_battery_df['Odometer'].values.reshape(-1, 1)
+        lin_reg.fit(X_odo, y)
+        predicted_odo_value = (soh_70_degradation - lin_reg.intercept_) / lin_reg.coef_
+        kilometers_text = f"{predicted_odo_value[0][0]:.0f} kilometers"
 
     # Prepare the display text
     display_text = f"The <strong>{battery[0]}</strong> is expected to reach 70% State of Health after "
@@ -678,7 +689,7 @@ if len(battery) == 1:
         """,
         unsafe_allow_html=True
     )
-            
+
 ####################################################################################################################
 
 # Determine the denominator column based on the X-axis selection
