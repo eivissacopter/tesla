@@ -57,26 +57,20 @@ def fetch_data():
     spreadsheet = client.open_by_url(url)
     sheet = spreadsheet.worksheet("Database")  # Open the 'Database' worksheet
 
-    # Fetch all data from the sheet, including the header row
+    # Fetch only necessary columns
     data = sheet.get_all_values()
-
-####################################################################################################################
-
-    # Filter out columns with empty headers or headers starting with an underscore
     header = data[0]
     filtered_header = []
     keep_indices = []
     stop_index = None
-    
     for i, col in enumerate(header):
         col = col.strip()
-        if col and not col.startswith('_'):
+        if col and not col.startswith('_') and col not in ['B', 'G', 'H', 'I', 'J', 'O', 'P', 'W', 'X', 'Y', 'AB']:
             filtered_header.append(col)
             keep_indices.append(i)
         if col == "DC Ratio":
             stop_index = i
             break
-
     if stop_index is not None:
         keep_indices = keep_indices[:stop_index + 1]
 
