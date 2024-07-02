@@ -722,6 +722,7 @@ st.plotly_chart(bar_fig, use_container_width=True)
 ########################
 
 # Function to fetch additional battery data from the "Backend" worksheet
+# Function to fetch additional battery data from the "Backend" worksheet
 @st.cache_data(ttl=300)
 def fetch_battery_info():
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
@@ -748,15 +749,24 @@ def fetch_battery_info():
     battery_info.drop(battery_info.columns[[6, 7]], axis=1, inplace=True)
     battery_info = battery_info.applymap(lambda x: x.replace(',', '.') if isinstance(x, str) else x)
     cols = list(battery_info.columns)
-    cols.insert(cols.index("Capacity (new)") + 1, cols.pop(cols.index("Nominal Capacity")))
+    if "Capacity (new)" in cols and "Nominal Capacity" in cols:
+        cols.insert(cols.index("Capacity (new)") + 1, cols.pop(cols.index("Nominal Capacity")))
     battery_info = battery_info[cols]
     battery_info["Capacity (new)"] = battery_info["Capacity (new)"] + " kWh"
     battery_info["Nominal Capacity"] = battery_info["Nominal Capacity"] + " Ah"
-    battery_info.iloc[:, 6] = battery_info.iloc[:, 6] + " km"
+    if len(battery_info.columns) > 6:
+        battery_info.iloc[:, 6] = battery_info.iloc[:, 6] + " km"
     return battery_info
 
 battery_info = fetch_battery_info()
-selected_battery_info = battery_info[battery_info['Battery'].isin(battery)]
+
+# Filter the battery info data based on the selected batteries
+if not battery:
+    selected_battery_info = battery_info
+else:
+    selected_battery_info = battery_info[battery_info['Battery'].isin(battery)]
+
+# Display the selected battery information as a table at the bottom of the app
 st.markdown("### Battery Pack Information")
 st.table(selected_battery_info.style.hide(axis='index'))
 
