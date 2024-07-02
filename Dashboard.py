@@ -734,3 +734,64 @@ bar_img_bytes = bar_fig.to_image(format="png", engine="kaleido", scale=5)  # Ens
 st.download_button(label="Download Chart", data=bar_img_bytes, file_name="average_degradation_per_x.png", mime="image/png")
 
 ########################
+
+# Function to fetch additional battery data from the "Backend" worksheet
+@st.cache_data(ttl=300)  # Cache data for 300 seconds
+def fetch_battery_info():
+    # Google Sheets API setup
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+
+    # Fetching credentials from Streamlit secrets
+    creds_dict = {
+        "type": st.secrets["gcp_service_account"]["type"],
+        "project_id": st.secrets["gcp_service_account"]["project_id"],
+        "private_key_id": st.secrets["gcp_service_account"]["private_key_id"],
+        "private_key": st.secrets["gcp_service_account"]["private_key"].replace("\\n", "\n"),
+        "client_email": st.secrets["gcp_service_account"]["client_email"],
+        "client_id": st.secrets["gcp_service_account"]["client_id"],
+        "auth_uri": st.secrets["gcp_service_account"]["auth_uri"],
+        "token_uri": st.secrets["gcp_service_account"]["token_uri"],
+        "auth_provider_x509_cert_url": st.secrets["gcp_service_account"]["auth_provider_x509_cert_url"],
+        "client_x509_cert_url": st.secrets["gcp_service_account"]["client_x509_cert_url"]
+    }
+
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+    client = gspread.authorize(creds)
+
+    # Define the URL of the Google Sheets
+    url = st.secrets["connections"]["gsheets"]["spreadsheet"]
+    spreadsheet = client.open_by_url(url)
+    sheet = spreadsheet.worksheet("Backend")  # Open the 'Backend' worksheet
+
+    # Fetch data from the range O1:W22
+    data = sheet.get("O1:W22")
+    header = data[0]
+    battery_info = pd.DataFrame(data[1:], columns=header)
+    
+    # Drop columns S and T based on their positions
+    battery_info.drop(battery_info.columns[[6, 7]], axis=1, inplace=True)
+
+    # Replace all commas with dots in the dataframe
+    battery_info = battery_info.applymap(lambda x: x.replace(',', '.') if isinstance(x, str) else x)
+
+    # Reorder columns to move "Nominal Capacity" after "Capacity (new)"
+    cols = list(battery_info.columns)
+    cols.insert(cols.index("Capacity (new)") + 1, cols.pop(cols.index("Nominal Capacity")))
+    battery_info = battery_info[cols]
+
+    # Add units to the "Capacity (new)" and "Nominal Capacity" columns
+    battery_info["Capacity (new)"] = battery_info["Capacity (new)"].astype(str) + " kWh"
+    battery_info["Nominal Capacity"] = battery_info["Nominal Capacity"].astype(str) + " Ah"
+    battery_info.iloc[:, 6] = battery_info.iloc[:, 6].astype(str) + " km"  # Column T is the 7th column (index 6)
+    
+    return battery_info
+
+# Fetch the battery info data
+battery_info = fetch_battery_info()
+
+# Filter the battery info data based on the selected batteries
+selected_battery_info = battery_info[battery_info['Battery'].isin(battery)]
+
+# Display the selected battery information as a table at the bottom of the app
+st.markdown("### Battery Pack Information")
+st.table(selected_battery_info.style.hide(axis='index'))
