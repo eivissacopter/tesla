@@ -629,6 +629,31 @@ st.plotly_chart(fig, use_container_width=True)
 
 ####################################################################################################################
 
+# Add a button for SOH 70% projection if only one battery is selected
+if len(battery) == 1:
+    if st.button("SOH 70% Projection"):
+        selected_battery_df = filtered_df[filtered_df["Battery"] == battery[0]]
+        X = selected_battery_df[x_column].values.reshape(-1, 1)
+        y = selected_battery_df["Degradation"].values.reshape(-1, 1)
+
+        # Fit a Linear Regression model
+        lin_reg = LinearRegression()
+        lin_reg.fit(X, y)
+
+        # Predict when degradation will reach -30%
+        soh_70_degradation = -30
+        predicted_x_value = (soh_70_degradation - lin_reg.intercept_) / lin_reg.coef_
+
+        if x_axis_data == 'Age':
+            predicted_years = predicted_x_value / 12  # Convert months to years
+            st.write(f"Projection: SOH 70% will be reached in approximately {predicted_years[0][0]:.2f} years.")
+        elif x_axis_data == 'Odometer':
+            st.write(f"Projection: SOH 70% will be reached after approximately {predicted_x_value[0][0]:.2f} kilometers.")
+        elif x_axis_data == 'Cycles':
+            st.write(f"Projection: SOH 70% will be reached after approximately {predicted_x_value[0][0]:.2f} cycles.")
+
+####################################################################################################################
+
 # Determine the denominator column based on the X-axis selection
 if x_axis_data == 'Age':
     denominator_column = 'Age'
