@@ -629,9 +629,9 @@ st.plotly_chart(fig, use_container_width=True)
 
 ####################################################################################################################
 
-# Perform SOH 70% projection if only one battery is selected
-if len(battery) == 1:
-    selected_battery_df = filtered_df[filtered_df["Battery"] == battery[0]]
+# Perform SOH 70% projection for each selected battery
+for battery_type in battery:
+    selected_battery_df = filtered_df[filtered_df["Battery"] == battery_type]
     X = selected_battery_df[x_column].values.reshape(-1, 1)
     y = selected_battery_df["Degradation"].values.reshape(-1, 1)
 
@@ -675,7 +675,7 @@ if len(battery) == 1:
         kilometers_text = f"{rounded_kilometers:.0f} kilometers"
 
     # Prepare the display text
-    display_text = f"With these filter settings, the <span style='color:orange; font-weight:bold;'>{battery[0]}</span> is expected to reach <span style='color:orange; font-weight:bold;'>70% SOH</span> after "
+    display_text = f"With these filter settings, the <span style='color:orange; font-weight:bold;'>{battery_type}</span> is expected to reach <span style='color:orange; font-weight:bold;'>70% SOH</span> after "
     if years_text and kilometers_text:
         display_text += f"<span style='color:orange; font-weight:bold;'>{years_text}</span> or <span style='color:orange; font-weight:bold;'>{kilometers_text}</span>."
     elif years_text:
