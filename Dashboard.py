@@ -628,7 +628,6 @@ fig.add_annotation(
 st.plotly_chart(fig, use_container_width=True)
 
 ####################################################################################################################
-
 # Perform SOH 70% projection if only one battery is selected
 if len(battery) == 1:
     selected_battery_df = filtered_df[filtered_df["Battery"] == battery[0]]
@@ -662,7 +661,7 @@ if len(battery) == 1:
         years_text = f"{predicted_years_value[0][0]:.0f} years"
 
     # Prepare the display text
-    display_text = "The <strong>{battery[0]}</strong> is expected to reach 70% State of Health after "
+    display_text = f"The <strong>{battery[0]}</strong> is expected to reach 70% State of Health after "
     if years_text and kilometers_text:
         display_text += f"<span style='color:orange; font-weight:bold;'>{years_text}</span> or <span style='color:orange; font-weight:bold;'>{kilometers_text}</span>."
     elif years_text:
