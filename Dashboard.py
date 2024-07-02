@@ -734,8 +734,6 @@ st.download_button(label="Download Chart", data=bar_img_bytes, file_name="averag
 def fetch_battery_info():
     # Google Sheets API setup
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-
-    # Fetching credentials from Streamlit secrets
     creds_dict = {
         "type": st.secrets["gcp_service_account"]["type"],
         "project_id": st.secrets["gcp_service_account"]["project_id"],
@@ -748,36 +746,24 @@ def fetch_battery_info():
         "auth_provider_x509_cert_url": st.secrets["gcp_service_account"]["auth_provider_x509_cert_url"],
         "client_x509_cert_url": st.secrets["gcp_service_account"]["client_x509_cert_url"]
     }
-
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
-
-    # Define the URL of the Google Sheets
     url = st.secrets["connections"]["gsheets"]["spreadsheet"]
     spreadsheet = client.open_by_url(url)
-    sheet = spreadsheet.worksheet("Backend")  # Open the 'Backend' worksheet
-
-    # Fetch data from the range O1:W22
+    sheet = spreadsheet.worksheet("Backend")
+    # Fetch only necessary columns
     data = sheet.get("O1:W22")
     header = data[0]
     battery_info = pd.DataFrame(data[1:], columns=header)
-    
-    # Drop columns S and T based on their positions
-    battery_info.drop(battery_info.columns[[6, 7]], axis=1, inplace=True)
-
-    # Replace all commas with dots in the dataframe
+    # Drop all columns that are not in O1:W22
+    battery_info = battery_info.iloc[:, :10]  # Ensure only columns O to W are kept
     battery_info = battery_info.applymap(lambda x: x.replace(',', '.') if isinstance(x, str) else x)
-
-    # Reorder columns to move "Nominal Capacity" after "Capacity (new)"
     cols = list(battery_info.columns)
     cols.insert(cols.index("Capacity (new)") + 1, cols.pop(cols.index("Nominal Capacity")))
     battery_info = battery_info[cols]
-
-    # Add units to the "Capacity (new)" and "Nominal Capacity" columns
-    battery_info["Capacity (new)"] = battery_info["Capacity (new)"].astype(str) + " kWh"
-    battery_info["Nominal Capacity"] = battery_info["Nominal Capacity"].astype(str) + " Ah"
-    battery_info.iloc[:, 6] = battery_info.iloc[:, 6].astype(str) + " km"  # Column T is the 7th column (index 6)
-    
+    battery_info["Capacity (new)"] = battery_info["Capacity (new)"] + " kWh"
+    battery_info["Nominal Capacity"] = battery_info["Nominal Capacity"] + " Ah"
+    battery_info.iloc[:, 6] = battery_info.iloc[:, 6] + " km"
     return battery_info
 
 # Fetch the battery info data
