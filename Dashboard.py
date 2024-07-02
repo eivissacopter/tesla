@@ -706,7 +706,7 @@ if battery:  # Check if any battery filter is applied
                     kilometers_text = "unknown"
 
             # Prepare the display text
-            display_text = f"With these filter settings, the <span style='color:orange; font-weight:bold;'>{battery_type}</span> is expected to reach <span style='color:orange; font-weight:bold;'>70% SOH</span> after "
+            display_text = f"<span style='color:orange; font-weight:bold;'>{battery_type}</span> is expected to reach <span style='color:orange; font-weight:bold;'>70% SOH</span> after "
             if years_text != "unknown" and kilometers_text != "unknown":
                 display_text += f"<span style='color:orange; font-weight:bold;'>{years_text}</span> or <span style='color:orange; font-weight:bold;'>{kilometers_text}</span>."
             elif years_text != "unknown":
@@ -718,7 +718,7 @@ if battery:  # Check if any battery filter is applied
         else:
             # Display a message if there is insufficient data
             result_texts.append(
-                f"With these filter settings, there is insufficient data to project the 70% SOH for the <span style='color:orange; font-weight:bold;'>{battery_type}</span>."
+                f"There is insufficient data to project the 70% SOH for the <span style='color:orange; font-weight:bold;'>{battery_type}</span>."
             )
 
     # Display the results below the scatterplot with reduced spacing
