@@ -664,20 +664,20 @@ if battery:  # Check if any battery filter is applied
 
             if x_axis_data == 'Age':
                 predicted_years = predicted_x_value / 12  # Convert months to years
-                if predicted_years[0][0] > 0:
+                if 7 <= predicted_years[0][0] <= 20:
                     years_text = f"{predicted_years[0][0]:.0f} years"
                 else:
                     years_text = "unknown"
             elif x_axis_data == 'Odometer':
                 predicted_kilometers = predicted_x_value
-                if predicted_kilometers[0][0] > 0:
+                if 300000 <= predicted_kilometers[0][0] <= 1500000:
                     rounded_kilometers = round(predicted_kilometers[0][0] / 100000) * 100000
                     kilometers_text = f"{rounded_kilometers:.0f} kilometers"
                 else:
                     kilometers_text = "unknown"
             elif x_axis_data == 'Cycles':
                 predicted_cycles = predicted_x_value
-                if predicted_cycles[0][0] > 0:
+                if 300000 <= predicted_cycles[0][0] <= 1500000:
                     rounded_kilometers = round(predicted_cycles[0][0] / 100000) * 100000
                     kilometers_text = f"{rounded_kilometers:.0f} kilometers"
                 else:
@@ -689,7 +689,7 @@ if battery:  # Check if any battery filter is applied
                 lin_reg.fit(X_age, y)
                 predicted_age_value = (soh_70_degradation - lin_reg.intercept_) / lin_reg.coef_
                 predicted_years_value = predicted_age_value / 12  # Convert months to years
-                if predicted_years_value[0][0] > 0:
+                if 7 <= predicted_years_value[0][0] <= 20:
                     years_text = f"{predicted_years_value[0][0]:.0f} years"
                 else:
                     years_text = "unknown"
@@ -699,7 +699,7 @@ if battery:  # Check if any battery filter is applied
                 X_odo = selected_battery_df['Odometer'].values.reshape(-1, 1)
                 lin_reg.fit(X_odo, y)
                 predicted_odo_value = (soh_70_degradation - lin_reg.intercept_) / lin_reg.coef_
-                if predicted_odo_value[0][0] > 0:
+                if 300000 <= predicted_odo_value[0][0] <= 1500000:
                     rounded_kilometers = round(predicted_odo_value[0][0] / 100000) * 100000
                     kilometers_text = f"{rounded_kilometers:.0f} kilometers"
                 else:
