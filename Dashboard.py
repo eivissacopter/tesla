@@ -651,10 +651,12 @@ if len(battery) == 1:
         years_text = f"{predicted_years[0][0]:.0f} years"
     elif x_axis_data == 'Odometer':
         predicted_kilometers = predicted_x_value
-        kilometers_text = f"{predicted_kilometers[0][0]:.0f} kilometers"
+        rounded_kilometers = round(predicted_kilometers[0][0] / 100000) * 100000
+        kilometers_text = f"{rounded_kilometers:.0f} kilometers"
     elif x_axis_data == 'Cycles':
         predicted_cycles = predicted_x_value
-        kilometers_text = f"{predicted_cycles[0][0]:.0f} kilometers"
+        rounded_kilometers = round(predicted_cycles[0][0] / 100000) * 100000
+        kilometers_text = f"{rounded_kilometers:.0f} kilometers"
 
     # Calculate projection for years if x_axis_data is not 'Age'
     if x_axis_data != 'Age' and 'Age' in selected_battery_df.columns:
@@ -669,10 +671,11 @@ if len(battery) == 1:
         X_odo = selected_battery_df['Odometer'].values.reshape(-1, 1)
         lin_reg.fit(X_odo, y)
         predicted_odo_value = (soh_70_degradation - lin_reg.intercept_) / lin_reg.coef_
-        kilometers_text = f"{predicted_odo_value[0][0]:.0f} kilometers"
+        rounded_kilometers = round(predicted_odo_value[0][0] / 100000) * 100000
+        kilometers_text = f"{rounded_kilometers:.0f} kilometers"
 
     # Prepare the display text
-    display_text = f"The <strong>{battery[0]}</strong> is expected to reach 70% State of Health after "
+    display_text = f"The <strong>{battery[0]}</strong> is expected to reach <span style='color:orange; font-weight:bold;'>70% SOH</span> after "
     if years_text and kilometers_text:
         display_text += f"<span style='color:orange; font-weight:bold;'>{years_text}</span> or <span style='color:orange; font-weight:bold;'>{kilometers_text}</span>."
     elif years_text:
