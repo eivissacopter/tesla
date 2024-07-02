@@ -627,10 +627,6 @@ fig.add_annotation(
 # Plot the figure
 st.plotly_chart(fig, use_container_width=True)
 
-# Add download button for the scatterplot
-img_bytes = fig.to_image(format="png", engine="kaleido", scale=5)  # Ensure scaling for better resolution
-st.download_button(label="Download Chart", data=img_bytes, file_name="tesla_battery_analysis.png", mime="image/png")
-
 ####################################################################################################################
 
 # Determine the denominator column based on the X-axis selection
@@ -723,10 +719,6 @@ bar_fig.update_layout(showlegend=False)
 # Plot the bar chart
 st.plotly_chart(bar_fig, use_container_width=True)
 
-# Add download button for the bar chart
-bar_img_bytes = bar_fig.to_image(format="png", engine="kaleido", scale=5)  # Ensure scaling for better resolution
-st.download_button(label="Download Chart", data=bar_img_bytes, file_name="average_degradation_per_x.png", mime="image/png")
-
 ########################
 
 # Function to fetch additional battery data from the "Backend" worksheet
@@ -755,8 +747,8 @@ def fetch_battery_info():
     data = sheet.get("O1:W22")
     header = data[0]
     battery_info = pd.DataFrame(data[1:], columns=header)
-    # Drop all columns that are not in O1:W22
-    battery_info = battery_info.iloc[:, :10]  # Ensure only columns O to W are kept
+    # Drop all columns that are not in O1:W22 and exclude U and V
+    battery_info = battery_info.drop(columns=["U", "V"])
     battery_info = battery_info.applymap(lambda x: x.replace(',', '.') if isinstance(x, str) else x)
     cols = list(battery_info.columns)
     cols.insert(cols.index("Capacity (new)") + 1, cols.pop(cols.index("Nominal Capacity")))
