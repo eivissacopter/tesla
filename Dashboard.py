@@ -795,3 +795,70 @@ selected_battery_info = battery_info[battery_info['Battery'].isin(battery)]
 # Display the selected battery information as a table at the bottom of the app
 st.markdown("### Battery Pack Information")
 st.table(selected_battery_info.style.hide(axis='index'))
+
+#############################################################
+
+# Function to perform the projection calculation
+def perform_projection_calculation():
+    # Define the unified battery degradation prediction model
+    def unified_degradation_model(age_months, odometer_km):
+        return 0.010953 * (age_months ** 0.345) * (odometer_km ** 0.0786)
+
+    # Determine the projection point for each battery
+    def calculate_projection(model, age, odometer):
+        current_degradation = model(age, odometer)
+        projected_age = age
+        projected_odometer = odometer
+
+        while current_degradation < 30:
+            projected_age += 1
+            projected_odometer += 1500  # Assume 1500 km driven per month
+            current_degradation = model(projected_age, projected_odometer)
+        
+        return projected_age, projected_odometer
+
+    # Apply the projection calculation to each battery
+    df['Projected Age (months)'] = np.nan
+    df['Projected Odometer (km)'] = np.nan
+
+    for idx, row in df.iterrows():
+        age = row['Age']
+        odometer = row['Odometer']
+        
+        if not pd.isna(age) and not pd.isna(odometer):
+            projected_age, projected_odo = calculate_projection(unified_degradation_model, age, odometer)
+            df.at[idx, 'Projected Age (months)'] = projected_age
+            df.at[idx, 'Projected Odometer (km)'] = projected_odo
+
+    # Display the projections table
+    st.markdown("### Projected Degradation to 30% Table")
+
+    # Filter the DataFrame to show only relevant columns for the projection
+    projection_df = df[['Battery', 'Age', 'Odometer', 'Projected Age (months)', 'Projected Odometer (km)']]
+    st.dataframe(projection_df)
+
+# Add the nuclear warning symbol as a button using HTML and JavaScript
+st.sidebar.markdown("""
+    <style>
+    .nuclear-button-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100px;
+        margin-top: 20px;
+    }
+    .nuclear-button {
+        background-color: transparent;
+        border: none;
+        cursor: pointer;
+        font-size: 48px;
+    }
+    </style>
+    <div class='nuclear-button-container'>
+        <button class='nuclear-button' onclick="document.getElementById('calculate-button').click()">☢️</button>
+    </div>
+""", unsafe_allow_html=True)
+
+# Hidden button to trigger the calculation
+if st.sidebar.button('Calculate Projections', key='calculate-button'):
+    perform_projection_calculation()
