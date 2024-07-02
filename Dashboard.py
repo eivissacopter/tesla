@@ -57,26 +57,20 @@ def fetch_data():
     spreadsheet = client.open_by_url(url)
     sheet = spreadsheet.worksheet("Database")  # Open the 'Database' worksheet
 
-    # Fetch all data from the sheet, including the header row
+    # Fetch only necessary columns
     data = sheet.get_all_values()
-
-####################################################################################################################
-
-    # Filter out columns with empty headers or headers starting with an underscore
     header = data[0]
     filtered_header = []
     keep_indices = []
     stop_index = None
-    
     for i, col in enumerate(header):
         col = col.strip()
-        if col and not col.startswith('_'):
+        if col and not col.startswith('_') and col not in ['B', 'G', 'H', 'I', 'J', 'O', 'P', 'W', 'X', 'Y', 'AB']:
             filtered_header.append(col)
             keep_indices.append(i)
         if col == "DC Ratio":
             stop_index = i
             break
-
     if stop_index is not None:
         keep_indices = keep_indices[:stop_index + 1]
 
@@ -633,10 +627,6 @@ fig.add_annotation(
 # Plot the figure
 st.plotly_chart(fig, use_container_width=True)
 
-# Add download button for the scatterplot
-img_bytes = fig.to_image(format="png", engine="kaleido", scale=5)  # Ensure scaling for better resolution
-st.download_button(label="Download Chart", data=img_bytes, file_name="tesla_battery_analysis.png", mime="image/png")
-
 ####################################################################################################################
 
 # Determine the denominator column based on the X-axis selection
@@ -674,38 +664,50 @@ st.session_state.filtered_df['DegradationPerX'] = st.session_state.filtered_df['
 st.session_state.filtered_df = st.session_state.filtered_df.replace([np.inf, -np.inf], np.nan).dropna(subset=['DegradationPerX'])
 st.session_state.filtered_df = st.session_state.filtered_df[st.session_state.filtered_df['DegradationPerX'] != 0]
 
+# Group by the appropriate column and calculate mean and count
 if len(battery) == 1:
     selected_battery = battery[0]
-    version_avg_degradation = st.session_state.filtered_df[st.session_state.filtered_df['Battery'] == selected_battery].groupby('Version')['DegradationPerX'].mean().reset_index()
-    
-    # Sort values from low to high
-    version_avg_degradation = version_avg_degradation.sort_values(by='DegradationPerX', ascending=True)
-    
-    # Create the bar chart
+    version_avg_degradation = st.session_state.filtered_df[st.session_state.filtered_df['Battery'] == selected_battery].groupby('Version')['DegradationPerX'].agg(['mean', 'count']).reset_index()
+    version_avg_degradation['custom_text'] = version_avg_degradation.apply(lambda row: f"n={row['count']}", axis=1)
+    version_avg_degradation['degradation_text'] = version_avg_degradation.apply(lambda row: f"{row['mean']:.2f}%", axis=1)
+    version_avg_degradation = version_avg_degradation.sort_values(by='mean', ascending=True)
     bar_fig = px.bar(
-        version_avg_degradation, x='DegradationPerX', y='Version', orientation='h',
-        labels={'DegradationPerX': f'Average Degradation / {x_label}', 'Version': ''},
+        version_avg_degradation, x='mean', y='Version', orientation='h',
+        labels={'mean': f'Average Degradation / {x_label}', 'Version': ''},
         color_discrete_sequence=color_sequence,
+        text='custom_text'  # Add custom text to bars
     )
 else:
-    # Group by Battery and calculate the average degradation per selected X-axis value
-    avg_degradation_per_x = st.session_state.filtered_df.groupby('Battery')['DegradationPerX'].mean().reset_index()
-    
-    # Sort values from low to high
-    avg_degradation_per_x = avg_degradation_per_x.sort_values(by='DegradationPerX', ascending=True)
-
-    # Create the bar chart
+    avg_degradation_per_x = st.session_state.filtered_df.groupby('Battery')['DegradationPerX'].agg(['mean', 'count']).reset_index()
+    avg_degradation_per_x['custom_text'] = avg_degradation_per_x.apply(lambda row: f"n={row['count']}", axis=1)
+    avg_degradation_per_x['degradation_text'] = avg_degradation_per_x.apply(lambda row: f"{row['mean']:.2f}%", axis=1)
+    avg_degradation_per_x = avg_degradation_per_x.sort_values(by='mean', ascending=True)
     bar_fig = px.bar(
-        avg_degradation_per_x, x='DegradationPerX', y='Battery', orientation='h',
-        labels={'DegradationPerX': f'Average Degradation / {x_label}', 'Battery': ''},
+        avg_degradation_per_x, x='mean', y='Battery', orientation='h',
+        labels={'mean': f'Average Degradation / {x_label}', 'Battery': ''},
         color_discrete_sequence=color_sequence,
+        text='custom_text'  # Add custom text to bars
     )
 
 # Invert the x-axis
 bar_fig.update_xaxes(autorange='reversed')
 
-# Position the text at the end of each bar and format as percentage
-bar_fig.update_traces(texttemplate='%{x:.2f}%', textposition='outside')
+# Position the text inside the bar for counts and outside for average degradation
+bar_fig.update_traces(
+    textposition='inside',
+    insidetextanchor='start',
+    hovertemplate='<b>%{y}</b><br>Degradation: %{x:.2f}%<br>Count: %{text}<extra></extra>',
+)
+
+# Add custom annotations for the average degradation outside the bars
+for i, row in version_avg_degradation.iterrows() if len(battery) == 1 else avg_degradation_per_x.iterrows():
+    bar_fig.add_annotation(
+        x=row['mean'],
+        y=row['Version'] if len(battery) == 1 else row['Battery'],
+        text=row['degradation_text'],
+        showarrow=False,
+        xshift=20
+    )
 
 # Remove the y-axis title
 bar_fig.update_layout(yaxis_title=None)
@@ -729,19 +731,12 @@ bar_fig.update_layout(showlegend=False)
 # Plot the bar chart
 st.plotly_chart(bar_fig, use_container_width=True)
 
-# Add download button for the bar chart
-bar_img_bytes = bar_fig.to_image(format="png", engine="kaleido", scale=5)  # Ensure scaling for better resolution
-st.download_button(label="Download Chart", data=bar_img_bytes, file_name="average_degradation_per_x.png", mime="image/png")
-
 ########################
 
 # Function to fetch additional battery data from the "Backend" worksheet
-@st.cache_data(ttl=300)  # Cache data for 300 seconds
+@st.cache_data(ttl=300)
 def fetch_battery_info():
-    # Google Sheets API setup
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-
-    # Fetching credentials from Streamlit secrets
     creds_dict = {
         "type": st.secrets["gcp_service_account"]["type"],
         "project_id": st.secrets["gcp_service_account"]["project_id"],
@@ -754,43 +749,33 @@ def fetch_battery_info():
         "auth_provider_x509_cert_url": st.secrets["gcp_service_account"]["auth_provider_x509_cert_url"],
         "client_x509_cert_url": st.secrets["gcp_service_account"]["client_x509_cert_url"]
     }
-
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
-
-    # Define the URL of the Google Sheets
     url = st.secrets["connections"]["gsheets"]["spreadsheet"]
     spreadsheet = client.open_by_url(url)
-    sheet = spreadsheet.worksheet("Backend")  # Open the 'Backend' worksheet
-
-    # Fetch data from the range O1:W22
+    sheet = spreadsheet.worksheet("Backend")
     data = sheet.get("O1:W22")
     header = data[0]
     battery_info = pd.DataFrame(data[1:], columns=header)
-    
-    # Drop columns S and T based on their positions
     battery_info.drop(battery_info.columns[[6, 7]], axis=1, inplace=True)
-
-    # Replace all commas with dots in the dataframe
     battery_info = battery_info.applymap(lambda x: x.replace(',', '.') if isinstance(x, str) else x)
-
-    # Reorder columns to move "Nominal Capacity" after "Capacity (new)"
     cols = list(battery_info.columns)
-    cols.insert(cols.index("Capacity (new)") + 1, cols.pop(cols.index("Nominal Capacity")))
+    if "Capacity (new)" in cols and "Nominal Capacity" in cols:
+        cols.insert(cols.index("Capacity (new)") + 1, cols.pop(cols.index("Nominal Capacity")))
     battery_info = battery_info[cols]
-
-    # Add units to the "Capacity (new)" and "Nominal Capacity" columns
-    battery_info["Capacity (new)"] = battery_info["Capacity (new)"].astype(str) + " kWh"
-    battery_info["Nominal Capacity"] = battery_info["Nominal Capacity"].astype(str) + " Ah"
-    battery_info.iloc[:, 6] = battery_info.iloc[:, 6].astype(str) + " km"  # Column T is the 7th column (index 6)
-    
+    battery_info["Capacity (new)"] = battery_info["Capacity (new)"] + " kWh"
+    battery_info["Nominal Capacity"] = battery_info["Nominal Capacity"] + " Ah"
+    if len(battery_info.columns) > 6:
+        battery_info.iloc[:, 6] = battery_info.iloc[:, 6] + " km"
     return battery_info
 
-# Fetch the battery info data
 battery_info = fetch_battery_info()
 
 # Filter the battery info data based on the selected batteries
-selected_battery_info = battery_info[battery_info['Battery'].isin(battery)]
+if not battery:
+    selected_battery_info = battery_info
+else:
+    selected_battery_info = battery_info[battery_info['Battery'].isin(battery)]
 
 # Display the selected battery information as a table at the bottom of the app
 st.markdown("### Battery Pack Information")
