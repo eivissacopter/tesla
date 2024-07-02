@@ -631,54 +631,85 @@ st.plotly_chart(fig, use_container_width=True)
 
 from sklearn.linear_model import LinearRegression
 
-from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import PolynomialFeatures
-import numpy as np
-
-# Function to predict SOH 70% projection using Polynomial Regression
-def predict_soh_70_polynomial(X, y, soh_70_degradation=-30, degree=3):
-    if len(X) > 1 and len(y) > 1:
-        poly = PolynomialFeatures(degree)
-        X_poly = poly.fit_transform(X)
-        poly_reg = LinearRegression()
-        poly_reg.fit(X_poly, y)
-        predicted_x_value = (soh_70_degradation - poly_reg.intercept_) / poly_reg.coef_[0][1]  # Simplified projection using linear term
-        return predicted_x_value
-    return None
-
 # Perform SOH 70% projection for each selected battery
 result_texts = []
 
 for battery_type in battery:
     selected_battery_df = filtered_df[filtered_df["Battery"] == battery_type]
-    
-    # Prepare data for different projections
-    if 'Age' in selected_battery_df.columns:
-        X_age = selected_battery_df['Age'].values.reshape(-1, 1)
-    if 'Odometer' in selected_battery_df.columns:
-        X_odo = selected_battery_df['Odometer'].values.reshape(-1, 1)
+    X = selected_battery_df[x_column].values.reshape(-1, 1)
     y = selected_battery_df["Degradation"].values.reshape(-1, 1)
-    
-    # Predictions
-    predicted_years = predict_soh_70_polynomial(X_age, y) / 12 if 'Age' in selected_battery_df.columns else None
-    predicted_kilometers = predict_soh_70_polynomial(X_odo, y) if 'Odometer' in selected_battery_df.columns else None
-    
-    # Format predictions
-    years_text = f"{predicted_years[0]:.0f} years" if predicted_years is not None and predicted_years[0] > 0 else "unknown"
-    kilometers_text = f"{round(predicted_kilometers[0] / 100000) * 100000:.0f} kilometers" if predicted_kilometers is not None and predicted_kilometers[0] > 0 else "unknown"
-    
-    # Prepare the display text
-    display_text = f"<span style='color:orange; font-weight:bold;'>{battery_type}</span> is expected to reach <span style='color:orange; font-weight:bold;'>70% SOH</span> after "
-    if years_text != "unknown" and kilometers_text != "unknown":
-        display_text += f"<span style='color:orange; font-weight:bold;'>{years_text}</span> or <span style='color:orange; font-weight:bold;'>{kilometers_text}</span>."
-    elif years_text != "unknown":
-        display_text += f"<span style='color:orange; font-weight:bold;'>{years_text}</span>."
-    elif kilometers_text != "unknown":
-        display_text += f"<span style='color:orange; font-weight:bold;'>{kilometers_text}</span>."
+
+    # Only proceed if there is sufficient data to fit the model
+    if len(X) > 1 and len(y) > 1:
+        # Fit a Linear Regression model
+        lin_reg = LinearRegression()
+        lin_reg.fit(X, y)
+
+        # Predict when degradation will reach -30%
+        soh_70_degradation = -30
+        predicted_x_value = (soh_70_degradation - lin_reg.intercept_) / lin_reg.coef_
+
+        years_text = None
+        kilometers_text = None
+
+        if x_axis_data == 'Age':
+            predicted_years = predicted_x_value / 12  # Convert months to years
+            if predicted_years[0][0] > 0:
+                years_text = f"{predicted_years[0][0]:.0f} years"
+            else:
+                years_text = "unknown"
+        elif x_axis_data == 'Odometer':
+            predicted_kilometers = predicted_x_value
+            if predicted_kilometers[0][0] > 0:
+                rounded_kilometers = round(predicted_kilometers[0][0] / 100000) * 100000
+                kilometers_text = f"{rounded_kilometers:.0f} kilometers"
+            else:
+                kilometers_text = "unknown"
+        elif x_axis_data == 'Cycles':
+            predicted_cycles = predicted_x_value
+            if predicted_cycles[0][0] > 0:
+                rounded_kilometers = round(predicted_cycles[0][0] / 100000) * 100000
+                kilometers_text = f"{rounded_kilometers:.0f} kilometers"
+            else:
+                kilometers_text = "unknown"
+
+        # Calculate projection for years if x_axis_data is not 'Age'
+        if x_axis_data != 'Age' and 'Age' in selected_battery_df.columns:
+            X_age = selected_battery_df['Age'].values.reshape(-1, 1)
+            lin_reg.fit(X_age, y)
+            predicted_age_value = (soh_70_degradation - lin_reg.intercept_) / lin_reg.coef_
+            predicted_years_value = predicted_age_value / 12  # Convert months to years
+            if predicted_years_value[0][0] > 0:
+                years_text = f"{predicted_years_value[0][0]:.0f} years"
+            else:
+                years_text = "unknown"
+
+        # Calculate projection for kilometers regardless of x_axis_data
+        if 'Odometer' in selected_battery_df.columns:
+            X_odo = selected_battery_df['Odometer'].values.reshape(-1, 1)
+            lin_reg.fit(X_odo, y)
+            predicted_odo_value = (soh_70_degradation - lin_reg.intercept_) / lin_reg.coef_
+            if predicted_odo_value[0][0] > 0:
+                rounded_kilometers = round(predicted_odo_value[0][0] / 100000) * 100000
+                kilometers_text = f"{rounded_kilometers:.0f} kilometers"
+            else:
+                kilometers_text = "unknown"
+
+        # Prepare the display text
+        display_text = f"With these filter settings, the <span style='color:orange; font-weight:bold;'>{battery_type}</span> is expected to reach <span style='color:orange; font-weight:bold;'>70% SOH</span> after "
+        if years_text != "unknown" and kilometers_text != "unknown":
+            display_text += f"<span style='color:orange; font-weight:bold;'>{years_text}</span> or <span style='color:orange; font-weight:bold;'>{kilometers_text}</span>."
+        elif years_text != "unknown":
+            display_text += f"<span style='color:orange; font-weight:bold;'>{years_text}</span>."
+        elif kilometers_text != "unknown":
+            display_text += f"<span style='color:orange; font-weight:bold;'>{kilometers_text}</span>."
+
+        result_texts.append(display_text)
     else:
-        display_text += "unknown."
-    
-    result_texts.append(display_text)
+        # Display a message if there is insufficient data
+        result_texts.append(
+            f"With these filter settings, there is insufficient data to project the 70% SOH for the <span style='color:orange; font-weight:bold;'>{battery_type}</span>."
+        )
 
 # Display the results below the scatterplot with reduced spacing
 st.markdown(
