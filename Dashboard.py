@@ -647,11 +647,18 @@ if len(battery) == 1:
         if x_axis_data == 'Age':
             predicted_years = predicted_x_value / 12  # Convert months to years
             st.write(f"Projection: SOH 70% will be reached in approximately {predicted_years[0][0]:.2f} years.")
+        
         elif x_axis_data == 'Odometer':
-            st.write(f"Projection: SOH 70% will be reached after approximately {predicted_x_value[0][0]:.2f} kilometers.")
-        elif x_axis_data == 'Cycles':
-            st.write(f"Projection: SOH 70% will be reached after approximately {predicted_x_value[0][0]:.2f} cycles.")
+            st.write(f"Projection: SOH 70% will be reached after approximately {predicted_x_value[0][0]:.0f} kilometers.")
 
+        # Calculate projection for years
+        if 'Age' in selected_battery_df.columns:
+            X_age = selected_battery_df['Age'].values.reshape(-1, 1)
+            lin_reg.fit(X_age, y)
+            predicted_age_value = (soh_70_degradation - lin_reg.intercept_) / lin_reg.coef_
+            predicted_years_value = predicted_age_value / 12  # Convert months to years
+            st.write(f"Projection: SOH 70% will be reached in approximately {predicted_years_value[0][0]:.2f} years.")
+            
 ####################################################################################################################
 
 # Determine the denominator column based on the X-axis selection
