@@ -675,7 +675,7 @@ if len(battery) == 1:
         kilometers_text = f"{rounded_kilometers:.0f} kilometers"
 
     # Prepare the display text
-    display_text = f"The <strong>{battery[0]}</strong> is expected to reach <span style='color:orange; font-weight:bold;'>70% SOH</span> after "
+    display_text = f"With these filter settings, the <span style='color:orange; font-weight:bold;'>{battery[0]}</span> is expected to reach <span style='color:orange; font-weight:bold;'>70% SOH</span> after "
     if years_text and kilometers_text:
         display_text += f"<span style='color:orange; font-weight:bold;'>{years_text}</span> or <span style='color:orange; font-weight:bold;'>{kilometers_text}</span>."
     elif years_text:
