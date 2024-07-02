@@ -747,22 +747,15 @@ def fetch_battery_info():
     data = sheet.get("O1:W22")
     header = data[0]
     battery_info = pd.DataFrame(data[1:], columns=header)
-    # Drop all columns that are not in O1:W22, excluding columns U and V
-    battery_info = battery_info.iloc[:, :6]  # Ensure only columns O to T are kept, excluding U and V
+    # Drop all columns that are not in O1:W22
+    battery_info = battery_info.iloc[:, :10]  # Ensure only columns O to W are kept
     battery_info = battery_info.applymap(lambda x: x.replace(',', '.') if isinstance(x, str) else x)
-    
-    # Check if "Capacity (new)" and "Nominal Capacity" exist before modifying columns
-    if "Capacity (new)" in battery_info.columns and "Nominal Capacity" in battery_info.columns:
-        cols = list(battery_info.columns)
-        cols.insert(cols.index("Capacity (new)") + 1, cols.pop(cols.index("Nominal Capacity")))
-        battery_info = battery_info[cols]
-        battery_info["Capacity (new)"] = battery_info["Capacity (new)"] + " kWh"
-        battery_info["Nominal Capacity"] = battery_info["Nominal Capacity"] + " Ah"
-    
-    # Handle the case where certain columns may not exist
-    if len(battery_info.columns) > 6:
-        battery_info.iloc[:, 6] = battery_info.iloc[:, 6] + " km"
-    
+    cols = list(battery_info.columns)
+    cols.insert(cols.index("Capacity (new)") + 1, cols.pop(cols.index("Nominal Capacity")))
+    battery_info = battery_info[cols]
+    battery_info["Capacity (new)"] = battery_info["Capacity (new)"] + " kWh"
+    battery_info["Nominal Capacity"] = battery_info["Nominal Capacity"] + " Ah"
+    battery_info.iloc[:, 6] = battery_info.iloc[:, 6] + " km"
     return battery_info
 
 # Fetch the battery info data
