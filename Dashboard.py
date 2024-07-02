@@ -706,7 +706,7 @@ for i, row in version_avg_degradation.iterrows() if len(battery) == 1 else avg_d
         y=row['Version'] if len(battery) == 1 else row['Battery'],
         text=row['degradation_text'],
         showarrow=False,
-        xshift=12
+        xshift=15
     )
 
 # Remove the y-axis title
