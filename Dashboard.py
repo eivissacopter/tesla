@@ -643,14 +643,15 @@ if len(battery) == 1:
     soh_70_degradation = -30
     predicted_x_value = (soh_70_degradation - lin_reg.intercept_) / lin_reg.coef_
 
+    years_text = None
+    kilometers_text = None
+
     if x_axis_data == 'Age':
         predicted_years = predicted_x_value / 12  # Convert months to years
         years_text = f"{predicted_years[0][0]:.0f} years"
-        kilometers_text = None  # No need to display kilometers in this case
     elif x_axis_data == 'Odometer':
         predicted_kilometers = predicted_x_value
         kilometers_text = f"{predicted_kilometers[0][0]:.0f} kilometers"
-        years_text = None  # No need to display years in this case
 
     # Calculate projection for years if x_axis_data is not 'Age'
     if x_axis_data != 'Age' and 'Age' in selected_battery_df.columns:
@@ -660,14 +661,20 @@ if len(battery) == 1:
         predicted_years_value = predicted_age_value / 12  # Convert months to years
         years_text = f"{predicted_years_value[0][0]:.0f} years"
 
+    # Prepare the display text
+    display_text = "The <strong>{battery[0]}</strong> is expected to reach 70% State of Health after "
+    if years_text and kilometers_text:
+        display_text += f"<span style='color:orange; font-weight:bold;'>{years_text}</span> or <span style='color:orange; font-weight:bold;'>{kilometers_text}</span>."
+    elif years_text:
+        display_text += f"<span style='color:orange; font-weight:bold;'>{years_text}</span>."
+    elif kilometers_text:
+        display_text += f"<span style='color:orange; font-weight:bold;'>{kilometers_text}</span>."
+
     # Display the result below the scatterplot
     st.markdown(
         f"""
         <div style="text-align:center; font-size:16px; padding:10px; margin-top:20px;">
-            The <strong>{battery[0]}</strong> is expected to reach 70% State of Health after
-            <span style="color:orange; font-weight:bold;">{years_text}</span>
-            { "or" if years_text and kilometers_text else "" }
-            <span style="color:orange; font-weight:bold;">{kilometers_text}</span>.
+            {display_text}
         </div>
         """,
         unsafe_allow_html=True
