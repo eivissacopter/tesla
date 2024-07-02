@@ -8,8 +8,6 @@ from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
 import plotly.graph_objects as go
 import plotly.io as pio
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
 
 # Set page config as the first Streamlit command
 st.set_page_config(page_title="Tesla Battery Analysis", page_icon=":battery:", layout="wide")
@@ -17,16 +15,9 @@ st.set_page_config(page_title="Tesla Battery Analysis", page_icon=":battery:", l
 # Set default Plotly template and color sequence
 pio.templates.default = "plotly"
 color_sequence = [
-    "#0068c9",
-    "#83c9ff",
-    "#ff2b2b",
-    "#ffabab",
-    "#29b09d",
-    "#7defa1",
-    "#ff8700",
-    "#ffd16a",
-    "#6d3fc0",
-    "#d5dae5",
+    "#0068c9", "#83c9ff", "#ff2b2b", "#ffabab",
+    "#29b09d", "#7defa1", "#ff8700", "#ffd16a",
+    "#6d3fc0", "#d5dae5",
 ]
 
 # Function to fetch data from Google Sheets
@@ -34,8 +25,6 @@ color_sequence = [
 def fetch_data():
     # Google Sheets API setup
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    
-    # Fetching credentials from Streamlit secrets
     creds_dict = {
         "type": st.secrets["gcp_service_account"]["type"],
         "project_id": st.secrets["gcp_service_account"]["project_id"],
@@ -48,91 +37,52 @@ def fetch_data():
         "auth_provider_x509_cert_url": st.secrets["gcp_service_account"]["auth_provider_x509_cert_url"],
         "client_x509_cert_url": st.secrets["gcp_service_account"]["client_x509_cert_url"]
     }
-
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
-
-    # Define the URL of the Google Sheets
     url = st.secrets["connections"]["gsheets"]["spreadsheet"]
     spreadsheet = client.open_by_url(url)
     sheet = spreadsheet.worksheet("Database")  # Open the 'Database' worksheet
-
-    # Fetch all data from the sheet, including the header row
+    # Fetch only necessary columns
     data = sheet.get_all_values()
-
-####################################################################################################################
-
-    # Filter out columns with empty headers or headers starting with an underscore
     header = data[0]
     filtered_header = []
     keep_indices = []
     stop_index = None
-    
     for i, col in enumerate(header):
         col = col.strip()
-        if col and not col.startswith('_'):
+        if col and not col.startswith('_') and col not in ['B', 'G', 'H', 'I', 'J', 'O', 'P', 'W', 'X', 'Y', 'AB']:
             filtered_header.append(col)
             keep_indices.append(i)
         if col == "DC Ratio":
             stop_index = i
             break
-
     if stop_index is not None:
         keep_indices = keep_indices[:stop_index + 1]
-
-    # Filter the data based on the kept indices
     filtered_data = [[row[i] for i in keep_indices] for row in data]
-
-    # Fix duplicate headers
     unique_header = []
     for col in filtered_header:
         col = col.strip()  # Trim whitespace
         if col not in unique_header:
             unique_header.append(col)
         else:
-            # Add a suffix to make the header unique
             suffix = 1
             new_col = f"{col}_{suffix}"
             while new_col in unique_header:
                 suffix += 1
                 new_col = f"{col}_{suffix}"
             unique_header.append(new_col)
-
-    # Convert data to DataFrame
     df = pd.DataFrame(filtered_data[1:], columns=unique_header)
-
-    # Handle 'Age' column conversion
-    df['Age'] = df['Age'].str.replace(" Months", "").str.replace(",", ".").replace('', np.nan).astype(float)
-
-    # Clean up the 'Odometer' column to ensure it is numeric
-    df['Odometer'] = df['Odometer'].str.replace(',', '').str.extract('(\d+)').astype(float)
-    
-    # Replace all commas with dots in all columns
+    # Use vectorized operations for data cleaning
+    df['Age'] = pd.to_numeric(df['Age'].str.replace(" Months", "").str.replace(",", "."), errors='coerce')
+    df['Odometer'] = pd.to_numeric(df['Odometer'].str.replace(',', '').str.extract('(\d+)')[0], errors='coerce')
     df = df.apply(lambda x: x.str.replace(',', '.') if x.dtype == "object" else x)
-
-    # Add negative sign to specific columns if they exist
-    columns_to_negate = ['Degradation']
-    for col in columns_to_negate:
-        if col in df.columns:
-            df[col] = '-' + df[col]
-
-    # Replace '0,0%' in 'Degradation' with NaN
-    df['Degradation'] = df['Degradation'].replace('-0.0%', float('NaN'))
-
-    # Clean 'Rated Range' and 'Capacity Net Now' columns
-    df['Rated Range'] = df['Rated Range'].str.replace(' km', '')
-    df['Rated Range'] = pd.to_numeric(df['Rated Range'], errors='coerce')
-
-    df['Capacity Net Now'] = df['Capacity Net Now'].str.replace(' kWh', '').str.replace(',', '.')
-    df['Capacity Net Now'] = pd.to_numeric(df['Capacity Net Now'], errors='coerce')
-
-    # Convert Degradation to numeric
-    df['Degradation'] = pd.to_numeric(df['Degradation'].str.replace('%', ''), errors='coerce')
-
-    # Clean 'Daily SOC Limit' and 'DC Ratio' columns
-    df['Daily SOC Limit'] = df['Daily SOC Limit'].str.replace('%', '').replace('', np.nan).astype(float)
-    df['DC Ratio'] = df['DC Ratio'].str.replace('%', '').replace('', np.nan).astype(float)
-
+    if 'Degradation' in df.columns:
+        df['Degradation'] = '-' + df['Degradation']
+        df['Degradation'] = df['Degradation'].replace('-0.0%', np.nan).str.replace('%', '')
+    df['Rated Range'] = pd.to_numeric(df['Rated Range'].str.replace(' km', ''), errors='coerce')
+    df['Capacity Net Now'] = pd.to_numeric(df['Capacity Net Now'].str.replace(' kWh', '').str.replace(',', '.'), errors='coerce')
+    df['Daily SOC Limit'] = pd.to_numeric(df['Daily SOC Limit'].str.replace('%', ''), errors='coerce')
+    df['DC Ratio'] = pd.to_numeric(df['DC Ratio'].str.replace('%', ''), errors='coerce')
     return df
 
 # Fetch the data and timestamp
