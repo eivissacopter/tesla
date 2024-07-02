@@ -668,7 +668,7 @@ st.session_state.filtered_df = st.session_state.filtered_df[st.session_state.fil
 if len(battery) == 1:
     selected_battery = battery[0]
     version_avg_degradation = st.session_state.filtered_df[st.session_state.filtered_df['Battery'] == selected_battery].groupby('Version')['DegradationPerX'].agg(['mean', 'count']).reset_index()
-    version_avg_degradation['custom_text'] = version_avg_degradation.apply(lambda row: f"N={row['count']}", axis=1)
+    version_avg_degradation['custom_text'] = version_avg_degradation.apply(lambda row: f"n={row['count']}", axis=1)
     version_avg_degradation['degradation_text'] = version_avg_degradation.apply(lambda row: f"{row['mean']:.2f}%", axis=1)
     version_avg_degradation = version_avg_degradation.sort_values(by='mean', ascending=True)
     bar_fig = px.bar(
@@ -679,7 +679,7 @@ if len(battery) == 1:
     )
 else:
     avg_degradation_per_x = st.session_state.filtered_df.groupby('Battery')['DegradationPerX'].agg(['mean', 'count']).reset_index()
-    avg_degradation_per_x['custom_text'] = avg_degradation_per_x.apply(lambda row: f"N={row['count']}", axis=1)
+    avg_degradation_per_x['custom_text'] = avg_degradation_per_x.apply(lambda row: f"n={row['count']}", axis=1)
     avg_degradation_per_x['degradation_text'] = avg_degradation_per_x.apply(lambda row: f"{row['mean']:.2f}%", axis=1)
     avg_degradation_per_x = avg_degradation_per_x.sort_values(by='mean', ascending=True)
     bar_fig = px.bar(
@@ -706,7 +706,7 @@ for i, row in version_avg_degradation.iterrows() if len(battery) == 1 else avg_d
         y=row['Version'] if len(battery) == 1 else row['Battery'],
         text=row['degradation_text'],
         showarrow=False,
-        xshift=10
+        xshift=12
     )
 
 # Remove the y-axis title
