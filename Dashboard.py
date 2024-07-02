@@ -664,38 +664,32 @@ st.session_state.filtered_df['DegradationPerX'] = st.session_state.filtered_df['
 st.session_state.filtered_df = st.session_state.filtered_df.replace([np.inf, -np.inf], np.nan).dropna(subset=['DegradationPerX'])
 st.session_state.filtered_df = st.session_state.filtered_df[st.session_state.filtered_df['DegradationPerX'] != 0]
 
+# Group by the appropriate column and calculate mean and count
 if len(battery) == 1:
     selected_battery = battery[0]
-    version_avg_degradation = st.session_state.filtered_df[st.session_state.filtered_df['Battery'] == selected_battery].groupby('Version')['DegradationPerX'].mean().reset_index()
-    
-    # Sort values from low to high
-    version_avg_degradation = version_avg_degradation.sort_values(by='DegradationPerX', ascending=True)
-    
-    # Create the bar chart
+    version_avg_degradation = st.session_state.filtered_df[st.session_state.filtered_df['Battery'] == selected_battery].groupby('Version')['DegradationPerX'].agg(['mean', 'count']).reset_index()
+    version_avg_degradation['custom_text'] = version_avg_degradation.apply(lambda row: f"{row['mean']:.2f}% (n={row['count']})", axis=1)
     bar_fig = px.bar(
-        version_avg_degradation, x='DegradationPerX', y='Version', orientation='h',
-        labels={'DegradationPerX': f'Average Degradation / {x_label}', 'Version': ''},
+        version_avg_degradation, x='mean', y='Version', orientation='h',
+        labels={'mean': f'Average Degradation / {x_label}', 'Version': ''},
         color_discrete_sequence=color_sequence,
+        text='custom_text'  # Add custom text to bars
     )
 else:
-    # Group by Battery and calculate the average degradation per selected X-axis value
-    avg_degradation_per_x = st.session_state.filtered_df.groupby('Battery')['DegradationPerX'].mean().reset_index()
-    
-    # Sort values from low to high
-    avg_degradation_per_x = avg_degradation_per_x.sort_values(by='DegradationPerX', ascending=True)
-
-    # Create the bar chart
+    avg_degradation_per_x = st.session_state.filtered_df.groupby('Battery')['DegradationPerX'].agg(['mean', 'count']).reset_index()
+    avg_degradation_per_x['custom_text'] = avg_degradation_per_x.apply(lambda row: f"{row['mean']:.2f}% (n={row['count']})", axis=1)
     bar_fig = px.bar(
-        avg_degradation_per_x, x='DegradationPerX', y='Battery', orientation='h',
-        labels={'DegradationPerX': f'Average Degradation / {x_label}', 'Battery': ''},
+        avg_degradation_per_x, x='mean', y='Battery', orientation='h',
+        labels={'mean': f'Average Degradation / {x_label}', 'Battery': ''},
         color_discrete_sequence=color_sequence,
+        text='custom_text'  # Add custom text to bars
     )
 
 # Invert the x-axis
 bar_fig.update_xaxes(autorange='reversed')
 
-# Position the text at the end of each bar and format as percentage
-bar_fig.update_traces(texttemplate='%{x:.2f}%', textposition='outside')
+# Position the text inside the bar
+bar_fig.update_traces(textposition='inside')
 
 # Remove the y-axis title
 bar_fig.update_layout(yaxis_title=None)
@@ -721,7 +715,6 @@ st.plotly_chart(bar_fig, use_container_width=True)
 
 ########################
 
-# Function to fetch additional battery data from the "Backend" worksheet
 # Function to fetch additional battery data from the "Backend" worksheet
 @st.cache_data(ttl=300)
 def fetch_battery_info():
