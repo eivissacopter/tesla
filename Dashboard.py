@@ -747,8 +747,8 @@ def fetch_battery_info():
     data = sheet.get("O1:W22")
     header = data[0]
     battery_info = pd.DataFrame(data[1:], columns=header)
-    # Drop all columns that are not in O1:W22 and exclude U and V
-    battery_info = battery_info.drop(columns=["U", "V"])
+    # Drop all columns that are not in O1:W22, excluding columns U and V
+    battery_info = battery_info.iloc[:, :8]  # Ensure only columns O to T are kept
     battery_info = battery_info.applymap(lambda x: x.replace(',', '.') if isinstance(x, str) else x)
     cols = list(battery_info.columns)
     cols.insert(cols.index("Capacity (new)") + 1, cols.pop(cols.index("Nominal Capacity")))
@@ -767,5 +767,6 @@ selected_battery_info = battery_info[battery_info['Battery'].isin(battery)]
 # Display the selected battery information as a table at the bottom of the app
 st.markdown("### Battery Pack Information")
 st.table(selected_battery_info.style.hide(axis='index'))
+
 
 #############################################################
