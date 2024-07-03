@@ -252,9 +252,8 @@ st.markdown(
 
 st.markdown('<style>div.block-container{padding-top:1rem;}</style>', unsafe_allow_html=True)
 
-# Fetch last three rows below the header, invert the view, and drop the last three columns
-last_three_rows = df_fuel.tail(3).iloc[::-1].iloc[:, :-3]
-st.table(last_three_rows)
+# Get the latest row
+latest_row = df.iloc[-3:][::-4]
 
 # Display the latest row at the top
 st.markdown(
