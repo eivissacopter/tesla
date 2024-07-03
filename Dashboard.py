@@ -253,7 +253,7 @@ st.markdown(
 st.markdown('<style>div.block-container{padding-top:1rem;}</style>', unsafe_allow_html=True)
 
 # Get the latest row
-latest_row = df.iloc[-3:][::-4]
+latest_row = df.iloc[-3:][::-1]
 
 # Display the latest row at the top
 st.markdown(
