@@ -252,13 +252,9 @@ st.markdown(
 
 st.markdown('<style>div.block-container{padding-top:1rem;}</style>', unsafe_allow_html=True)
 
-# Ensure df_fuel is defined before this block
-if 'df_fuel' in locals():
-    # Fetch the last three rows, invert the view, and drop the last four columns
-    latest_three_rows = df_fuel.iloc[-3:].iloc[::-1].iloc[:, :-4]
-    st.table(latest_three_rows)
-else:
-    st.error("Fuel DataFrame (df_fuel) is not defined.")
+# Fetch last three rows below the header, invert the view, and drop the last three columns
+last_three_rows = df_fuel.tail(3).iloc[::-1].iloc[:, :-3]
+st.table(last_three_rows)
 
 # Display the latest row at the top
 st.markdown(
