@@ -592,7 +592,7 @@ if add_trend_line:
     fig = add_trend_lines(fig, batteries, filtered_df, x_column, y_column, trend_line_type)
 
 # Add the green line to the scatter plot if Odometer is selected
-if x_axis_data == 'Odometer':
+if x_axis_data == 'Odometer' and y_axis_data == 'Degradation':
     fig.add_trace(go.Scatter(
         x=odometer_km_smooth, y=battery_retention_smooth,
         mode='lines', name='Tesla Battery Retention',
