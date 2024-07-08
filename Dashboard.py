@@ -29,7 +29,7 @@ color_sequence = [
     "#d5dae5",
 ]
 
-# Function to fetch data from Google Sheets
+# Fetch data from Google Sheets
 @st.cache_data(ttl=300)  # Cache data for 300 seconds
 def fetch_data():
     # Google Sheets API setup
@@ -57,7 +57,7 @@ def fetch_data():
     spreadsheet = client.open_by_url(url)
     sheet = spreadsheet.worksheet("Database")  # Open the 'Database' worksheet
 
-    # Fetch only necessary columns
+    # Fetch only necessary columns including 'Username' (Column AF)
     data = sheet.get_all_values()
     header = data[0]
     filtered_header = []
@@ -73,6 +73,10 @@ def fetch_data():
             break
     if stop_index is not None:
         keep_indices = keep_indices[:stop_index + 1]
+
+    # Add 'Username' to filtered_header and keep_indices
+    filtered_header.append('Username')
+    keep_indices.append(header.index('Username'))
 
     # Filter the data based on the kept indices
     filtered_data = [[row[i] for i in keep_indices] for row in data]
@@ -201,6 +205,13 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
+# Add search field for username
+username = st.text_input("Search by Username:", key="username")
+
+# Filter data based on the username input
+if username:
+    df = df[df["Username"].str.contains(username, case=False, na=False)]
 
 # Add Google Forms logo with text and correctly placed animated arrows with increased spacing
 st.markdown(
