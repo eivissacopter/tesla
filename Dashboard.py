@@ -29,7 +29,7 @@ color_sequence = [
     "#d5dae5",
 ]
 
-# Fetch data from Google Sheets
+# Function to fetch data from Google Sheets
 @st.cache_data(ttl=300)  # Cache data for 300 seconds
 def fetch_data():
     # Google Sheets API setup
@@ -57,9 +57,15 @@ def fetch_data():
     spreadsheet = client.open_by_url(url)
     sheet = spreadsheet.worksheet("Database")  # Open the 'Database' worksheet
 
-    # Fetch only necessary columns including 'Username' (Column AF)
+    # Fetch all values from the sheet
     data = sheet.get_all_values()
     header = data[0]
+
+    # Check if 'Username' is in the header
+    if 'Username' not in header:
+        st.error("The 'Username' column is missing from the Google Sheets data.")
+        return pd.DataFrame()  # Return an empty DataFrame to avoid further errors
+
     filtered_header = []
     keep_indices = []
     stop_index = None
@@ -172,6 +178,13 @@ if "filtered_df" not in st.session_state:
 # Add search field for username
 username = st.text_input("Search by Username:", key="username")
 
+# Fetch the data
+df = fetch_data()
+
+# Filter data based on the username input
+if username:
+    df = df[df["Username"].str.contains(username, case=False, na=False)]
+
 # Add the main header picture with emojis
 st.markdown(
     """
@@ -208,13 +221,6 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
-# Fetch the data
-df = fetch_data()
-
-# Filter data based on the username input
-if username:
-    df = df[df["Username"].str.contains(username, case=False, na=False)]
 
 # Add Google Forms logo with text and correctly placed animated arrows with increased spacing
 st.markdown(
