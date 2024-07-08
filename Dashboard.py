@@ -29,7 +29,7 @@ color_sequence = [
 
 # Function to fetch data from Google Sheets
 @st.cache_data(ttl=300)  # Cache data for 300 seconds
-def fetch_data():
+def fetch_data(username_filter=None):
     # Google Sheets API setup
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     
@@ -135,43 +135,10 @@ def fetch_data():
     df['Daily SOC Limit'] = df['Daily SOC Limit'].str.replace('%', '').replace('', np.nan).astype(float)
     df['DC Ratio'] = df['DC Ratio'].str.replace('%', '').replace('', np.nan).astype(float)
 
+    if username_filter:
+        df = df[df["Username"].str.contains(username_filter, case=False, na=False)]
+
     return df
-
-# Fetch the data and timestamp
-df = fetch_data()
-
-# Define default values for the filters
-default_tesla = []
-default_version = []
-default_battery = []
-default_min_age = int(df["Age"].min())
-default_max_age = int(df["Age"].max())
-default_min_odo = int(df["Odometer"].min())
-default_max_odo = int(df["Odometer"].max())
-default_daily_soc_limit = False
-default_dc_ratio = False
-
-# Initialize filter states in session_state if not already present
-if "filters" not in st.session_state:
-    st.session_state.filters = {
-        "tesla": default_tesla,
-        "version": default_version,
-        "battery": default_battery,
-        "min_age": default_min_age,
-        "max_age": default_max_age,
-        "min_odo": default_min_odo,
-        "max_odo": default_max_odo,
-        "show_daily_soc_limit": default_daily_soc_limit,
-        "show_dc_ratio": default_dc_ratio,
-    }
-
-# Initialize the filtered dataframe
-if "filtered_df" not in st.session_state:
-    st.session_state.filtered_df = df.copy()
-
-####################################################################################################################
-
-# Streamlit app setup
 
 # Add the main header picture with emojis
 st.markdown(
@@ -261,9 +228,8 @@ st.markdown(
 # Add search field for username below the "Add your data here" section
 username = st.text_input("Search by Username:", key="username")
 
-# Filter data based on the username input
-if username:
-    df = df[df["Username"].str.contains(username, case=False, na=False)]
+# Fetch the data
+df = fetch_data(username_filter=username)
 
 # Get the latest row from the filtered DataFrame
 latest_row = df.iloc[-3:][::-1]
