@@ -217,8 +217,9 @@ search_add_container = st.container()
 
 # Add search field for username inside the container
 with search_add_container:
-    col1, col2 = st.columns([1, 3])
+    col1, col2 = st.columns([1, 5])
     with col1:
+        st.markdown('<div style="padding-top: 30px;"></div>', unsafe_allow_html=True)  # Adjust the padding as needed
         username = st.text_input("Search by Username:", key="username")
     with col2:
         st.markdown(
