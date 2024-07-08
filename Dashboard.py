@@ -262,7 +262,14 @@ st.markdown(
 
 st.markdown('<style>div.block-container{padding-top:1rem;}</style>', unsafe_allow_html=True)
 
-# Get the latest row
+# Fetch the data
+df = fetch_data()
+
+# Filter data based on the username input
+if username:
+    df = df[df["Username"].str.contains(username, case=False, na=False)]
+
+# Get the latest row from the filtered DataFrame
 latest_row = df.iloc[-3:][::-1]
 
 # Display the latest row at the top
