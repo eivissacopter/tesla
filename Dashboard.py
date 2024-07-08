@@ -169,7 +169,8 @@ if "filtered_df" not in st.session_state:
 
 # Streamlit app setup
 
-# Streamlit app setup
+# Add search field for username
+username = st.text_input("Search by Username:", key="username")
 
 # Add the main header picture with emojis
 st.markdown(
@@ -208,8 +209,8 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Add search field for username
-username = st.text_input("Search by Username:", key="username")
+# Fetch the data
+df = fetch_data()
 
 # Filter data based on the username input
 if username:
@@ -258,6 +259,21 @@ st.markdown(
         </a>
         <span class="arrow">🡠</span>
         <span>Add your data here</span>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+st.markdown('<style>div.block-container{padding-top:1rem;}</style>', unsafe_allow_html=True)
+
+# Get the latest row from the filtered DataFrame
+latest_row = df.iloc[-3:][::-1]
+
+# Display the latest row at the top
+st.markdown(
+    """
+    <div>
+        Latest Entries
     </div>
     """,
     unsafe_allow_html=True
