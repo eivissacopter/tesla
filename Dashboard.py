@@ -169,6 +169,8 @@ if "filtered_df" not in st.session_state:
 
 # Streamlit app setup
 
+# Streamlit app setup
+
 # Add the main header picture with emojis
 st.markdown(
     """
@@ -256,21 +258,6 @@ st.markdown(
         </a>
         <span class="arrow">🡠</span>
         <span>Add your data here</span>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-st.markdown('<style>div.block-container{padding-top:1rem;}</style>', unsafe_allow_html=True)
-
-# Get the latest row
-latest_row = df.iloc[-3:][::-1]
-
-# Display the latest row at the top
-st.markdown(
-    """
-    <div>
-        Latest Entries
     </div>
     """,
     unsafe_allow_html=True
