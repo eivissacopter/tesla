@@ -646,6 +646,10 @@ result_texts = []
 if battery:  # Check if any battery filter is applied
     for battery_type in battery:
         selected_battery_df = filtered_df[filtered_df["Battery"] == battery_type]
+        
+        # Clean data: drop rows with NaN or infinite values
+        selected_battery_df = selected_battery_df.replace([np.inf, -np.inf], np.nan).dropna(subset=[x_column, "Degradation"])
+
         X = selected_battery_df[x_column].values.reshape(-1, 1)
         y = selected_battery_df["Degradation"].values.reshape(-1, 1)
 
