@@ -8,8 +8,6 @@ from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
 import plotly.graph_objects as go
 import plotly.io as pio
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
 
 # Set page config as the first Streamlit command
 st.set_page_config(page_title="Tesla Battery Analysis", page_icon=":battery:", layout="wide")
@@ -262,9 +260,6 @@ st.markdown(
 
 # Add search field for username below the "Add your data here" section
 username = st.text_input("Search by Username:", key="username")
-
-# Fetch the data
-df = fetch_data()
 
 # Filter data based on the username input
 if username:
