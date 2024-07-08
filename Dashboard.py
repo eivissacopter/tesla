@@ -260,7 +260,8 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.markdown('<style>div.block-container{padding-top:1rem;}</style>', unsafe_allow_html=True)
+# Add search field for username below the "Add your data here" section
+username = st.text_input("Search by Username:", key="username")
 
 # Fetch the data
 df = fetch_data()
