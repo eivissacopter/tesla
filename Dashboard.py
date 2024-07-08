@@ -288,6 +288,13 @@ st.write(latest_row)
 
 # Sidebar setup
 
+# Add search field for username at the top of the sidebar
+username = st.sidebar.text_input("Search by Username:", key="username")
+
+# Filter data based on the username input
+if username:
+    df = df[df["Username"].str.contains(username, case=False, na=False)]
+
 # Create filter for Tesla
 tesla = st.sidebar.multiselect(":red_car: Tesla", df["Tesla"].unique(), key="tesla")
 if not tesla:
