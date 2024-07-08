@@ -8,8 +8,6 @@ from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
 import plotly.graph_objects as go
 import plotly.io as pio
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
 
 # Set page config as the first Streamlit command
 st.set_page_config(page_title="Tesla Battery Analysis", page_icon=":battery:", layout="wide")
@@ -31,7 +29,7 @@ color_sequence = [
 
 # Function to fetch data from Google Sheets
 @st.cache_data(ttl=300)  # Cache data for 300 seconds
-def fetch_data():
+def fetch_data(username_filter=None):
     # Google Sheets API setup
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     
@@ -57,9 +55,15 @@ def fetch_data():
     spreadsheet = client.open_by_url(url)
     sheet = spreadsheet.worksheet("Database")  # Open the 'Database' worksheet
 
-    # Fetch only necessary columns
+    # Fetch all values from the sheet
     data = sheet.get_all_values()
     header = data[0]
+
+    # Check if 'Username' is in the header
+    if 'Username' not in header:
+        st.error("The 'Username' column is missing from the Google Sheets data.")
+        return pd.DataFrame()  # Return an empty DataFrame to avoid further errors
+
     filtered_header = []
     keep_indices = []
     stop_index = None
@@ -73,6 +77,10 @@ def fetch_data():
             break
     if stop_index is not None:
         keep_indices = keep_indices[:stop_index + 1]
+
+    # Add 'Username' to filtered_header and keep_indices
+    filtered_header.append('Username')
+    keep_indices.append(header.index('Username'))
 
     # Filter the data based on the kept indices
     filtered_data = [[row[i] for i in keep_indices] for row in data]
@@ -127,43 +135,10 @@ def fetch_data():
     df['Daily SOC Limit'] = df['Daily SOC Limit'].str.replace('%', '').replace('', np.nan).astype(float)
     df['DC Ratio'] = df['DC Ratio'].str.replace('%', '').replace('', np.nan).astype(float)
 
+    if username_filter:
+        df = df[df["Username"].str.contains(username_filter, case=False, na=False)]
+
     return df
-
-# Fetch the data and timestamp
-df = fetch_data()
-
-# Define default values for the filters
-default_tesla = []
-default_version = []
-default_battery = []
-default_min_age = int(df["Age"].min())
-default_max_age = int(df["Age"].max())
-default_min_odo = int(df["Odometer"].min())
-default_max_odo = int(df["Odometer"].max())
-default_daily_soc_limit = False
-default_dc_ratio = False
-
-# Initialize filter states in session_state if not already present
-if "filters" not in st.session_state:
-    st.session_state.filters = {
-        "tesla": default_tesla,
-        "version": default_version,
-        "battery": default_battery,
-        "min_age": default_min_age,
-        "max_age": default_max_age,
-        "min_odo": default_min_odo,
-        "max_odo": default_max_odo,
-        "show_daily_soc_limit": default_daily_soc_limit,
-        "show_dc_ratio": default_dc_ratio,
-    }
-
-# Initialize the filtered dataframe
-if "filtered_df" not in st.session_state:
-    st.session_state.filtered_df = df.copy()
-
-####################################################################################################################
-
-# Streamlit app setup
 
 # Add the main header picture with emojis
 st.markdown(
@@ -250,9 +225,13 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.markdown('<style>div.block-container{padding-top:1rem;}</style>', unsafe_allow_html=True)
+# Add search field for username below the "Add your data here" section
+username = st.text_input("Search by Username:", key="username")
 
-# Get the latest row
+# Fetch the data
+df = fetch_data(username_filter=username)
+
+# Get the latest row from the filtered DataFrame
 latest_row = df.iloc[-3:][::-1]
 
 # Display the latest row at the top
