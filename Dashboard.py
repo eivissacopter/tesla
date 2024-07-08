@@ -217,57 +217,76 @@ search_add_container = st.container()
 
 # Add search field for username inside the container
 with search_add_container:
-    col1, col2 = st.columns([1, 5])
-    with col1:
-        st.markdown('<div style="padding-top: 30px;"></div>', unsafe_allow_html=True)  # Adjust the padding as needed
-        username = st.text_input("Search by Username:", key="username")
-    with col2:
-        st.markdown(
-            """
-            <style>
-                @keyframes pulse {
-                    0% { transform: scale(1); opacity: 1; }
-                    50% { transform: scale(1.05); opacity: 0.9; }
-                    100% { transform: scale(1); opacity: 1; }
+    st.markdown(
+        """
+        <style>
+            .search-container {
+                display: flex;
+                align-items: center;
+                justify-content: center;  /* Center the container */
+                gap: 20px;  /* Add space between elements */
+                margin-top: 20px;  /* Add some margin to the top */
+            }
+            .search-container .search-field {
+                flex: 0 1 200px; /* Adjust the width as needed */
+            }
+            .search-container .add-data-section {
+                flex: 1;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            .arrow-text {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                font-size: 24px;
+                font-weight: bold;
+            }
+            .arrow {
+                animation: blinker 3s linear infinite;
+                font-size: 24px;
+                margin: 0 10px; /* Adjusted spacing */
+            }
+            .google-form-logo {
+                display: block;
+                width: 300px;  /* Adjust the width of the logo as necessary */
+                height: auto;
+                animation: pulse 2s infinite ease-in-out;
+            }
+            @keyframes pulse {
+                0% { transform: scale(1); opacity: 1; }
+                50% { transform: scale(1.05); opacity: 0.9; }
+                100% { transform: scale(1); opacity: 1; }
+            }
+            @keyframes blinker {
+                50% {
+                    opacity: 0;
                 }
-                .google-form-logo {
-                    display: block;
-                    margin: 0rem auto; /* Centers the logo horizontally below the header */
-                    width: 300px;  /* Adjust the width of the logo as necessary */
-                    height: auto;
-                    animation: pulse 2s infinite ease-in-out;
-                }
-                .arrow-text {
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    font-size: 24px;
-                    font-weight: bold;
-                    margin-top: 20px;
-                }
-                .arrow {
-                    animation: blinker 3s linear infinite;
-                    font-size: 24px;
-                    margin: 0 20px; /* Increased spacing from text */
-                }
-                @keyframes blinker {
-                    50% {
-                        opacity: 0;
-                    }
-                }
-            </style>
-            <div class="arrow-text">
-                <span>Add your data here</span>
-                <span class="arrow">🡢</span>
-                <a href="https://forms.gle/WtFayqANSr9kwKv39" target="_blank">
-                    <img src="https://i.ibb.co/YZvSDRm/google-forms-400x182-removebg-preview.png" class="google-form-logo" alt="Google Forms Survey">
-                </a>
-                <span class="arrow">🡠</span>
-                <span>Add your data here</span>
+            }
+        </style>
+        <div class="search-container">
+            <div class="search-field">
+                <input type="text" id="username" name="username" placeholder="Search by Username:" style="width: 100%;">
             </div>
-            """,
-            unsafe_allow_html=True
-        )
+            <div class="add-data-section">
+                <div class="arrow-text">
+                    <span>Add your data here</span>
+                    <span class="arrow">🡢</span>
+                    <a href="https://forms.gle/WtFayqANSr9kwKv39" target="_blank">
+                        <img src="https://i.ibb.co/YZvSDRm/google-forms-400x182-removebg-preview.png" class="google-form-logo" alt="Google Forms Survey">
+                    </a>
+                    <span class="arrow">🡠</span>
+                    <span>Add your data here</span>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+# Use Streamlit's text_input to get the username value
+username = st.text_input("Search by Username:", key="username", label_visibility="collapsed")
 
 st.markdown('<style>div.block-container{padding-top:1rem;}</style>', unsafe_allow_html=True)
 
@@ -292,6 +311,8 @@ st.markdown(
 )
 
 st.write(latest_row)
+
+# The rest of your code follows here
 
 ####################################################################################################################
 
