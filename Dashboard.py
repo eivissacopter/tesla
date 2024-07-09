@@ -231,8 +231,8 @@ username = st.text_input("Search by Username:", key="username")
 # Fetch the data
 df = fetch_data(username_filter=username)
 
-# Get the latest row from the filtered DataFrame
-latest_row = df.iloc[-3:][::-1]
+# Get the latest row from the filtered DataFrame and hide the last five columns
+latest_row = df.iloc[-3:][::-1].iloc[:, :-5]
 
 # Display the latest row at the top
 st.markdown(
