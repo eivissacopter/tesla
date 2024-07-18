@@ -516,7 +516,7 @@ def add_trend_lines(fig, batteries, filtered_df, x_column, y_column, trend_line_
 
 # Define the data points for the green line (converted from miles to kilometers)
 odometer_miles = np.array([0, 50000, 100000, 150000, 200000])
-battery_retention = np.array([0, -8, -12, -15, -18])  # Ensure the initial point starts at 100%
+battery_retention = np.array([0, -8, -12, -13.5, -15])  # Ensure the initial point starts at 100%
 odometer_km = odometer_miles * 1.60934  # Convert miles to kilometers
 
 # Create a smooth line for the green line using logarithmic fitting
