@@ -379,7 +379,7 @@ if refresh.button("Refresh Data", key="refresh_data"):
     st.cache_data.clear()  # Clear the cache
     st.experimental_rerun()  # Rerun the app to refresh with new data
 
-if reset.button("Reset Filters", key="reset_filters"):
+# if reset.button("Reset Filters", key="reset_filters"):
     # Reset filters to default values
     st.session_state.filters = {
         "tesla": default_tesla,
