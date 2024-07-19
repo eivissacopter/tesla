@@ -379,21 +379,6 @@ if refresh.button("Refresh Data", key="refresh_data"):
     st.cache_data.clear()  # Clear the cache
     st.experimental_rerun()  # Rerun the app to refresh with new data
 
-# if reset.button("Reset Filters", key="reset_filters"):
-    # Reset filters to default values
-    st.session_state.filters = {
-        "tesla": default_tesla,
-        "version": default_version,
-        "battery": default_battery,
-        "min_age": default_min_age,
-        "max_age": default_max_age,
-        "min_odo": default_min_odo,
-        "max_odo": default_max_odo,
-        "show_daily_soc_limit": default_daily_soc_limit,
-        "show_dc_ratio": default_dc_ratio,
-    }
-    st.experimental_rerun()  # Rerun the app to apply reset filters
-
 # Show number of rows in filtered data
 st.sidebar.write(f"Filtered Data Rows: {st.session_state.filtered_df.shape[0]}")
 
