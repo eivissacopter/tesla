@@ -28,6 +28,8 @@ def fetch_and_cache_csv_files(base_url, max_depth=3):
 
     def build_structure(url, parent_structure, depth):
         dirs, files = parse_directory(url, depth)
+        if not dirs and not files:
+            st.warning(f"No directories or files found at {url}.")
         for d in dirs:
             full_path = urllib.parse.urljoin(url, d)
             parent_structure[d] = {}
@@ -57,6 +59,9 @@ directory_structure, csv_files_data = fetch_and_cache_csv_files(BASE_URL)
 st.sidebar.header("Filter Options")
 
 def get_options_from_structure(structure, keys=[]):
+    if not structure:
+        st.error("The directory structure is empty. No options available.")
+        st.stop()
     options = list(structure.keys())
     selected_option = st.sidebar.selectbox("Select " + " > ".join(keys), options)
     if selected_option not in structure:
