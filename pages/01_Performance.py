@@ -242,9 +242,6 @@ if file_info:
 # Set the dark mode style
 plt.style.use('dark_background')
 
-# Add the plotting options for X and Y axes in the sidebar
-st.sidebar.header("Plotting Options")
-
 # Y-Axis selection checkboxes
 st.sidebar.subheader("Select Y-Axis")
 columns_to_plot = {
