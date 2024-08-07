@@ -115,62 +115,43 @@ selected_tuning = st.sidebar.multiselect("Tuning", tunings)
 if selected_tuning:
     selected_filters['tuning'] = selected_tuning
 
-################################################################################################
-
 # Function to fetch CSV headers and first valid values
-def fetch_csv_headers_and_first_valid_values(url):
+def fetch_csv_headers_and_values(url):
     response = requests.get(url)
     content = response.content.decode('utf-8')
     df = pd.read_csv(StringIO(content))
     
-    # Check if the required columns are present
-    if 'SOC' not in df.columns or 'Cell temp mid' not in df.columns:
-        return df.columns.tolist(), None, None
-    
     # Filter out implausible values before filling
-    df = df[(df['SOC'] >= -5) & (df['SOC'] <= 101) | (df['SOC'].isna())]
-    df = df[(df['Cell temp mid'] >= -30) & (df['Cell temp mid'] <= 70) | (df['Cell temp mid'].isna())]
+    df = df[(df['SOC'].between(0, 100)) & (df['Cell temp mid'].between(-30, 70))]
     
-    # Apply forward and backward fill to handle NaN values
+    # Fill missing values
     df = df.fillna(method='ffill').fillna(method='bfill')
     
-    # Find the first valid values
-    for index, row in df.iterrows():
-        soc_value = row['SOC']
-        cell_temp_mid_value = row['Cell temp mid']
-        if pd.notna(soc_value) and pd.notna(cell_temp_mid_value):
-            return df.columns.tolist(), round(soc_value), round(cell_temp_mid_value)
+    # Check if necessary columns exist
+    if 'SOC' in df.columns and 'Cell temp mid' in df.columns:
+        soc_value = df['SOC'].iloc[0] if not pd.isna(df['SOC'].iloc[0]) else None
+        temp_value = df['Cell temp mid'].iloc[0] if not pd.isna(df['Cell temp mid'].iloc[0]) else None
+    else:
+        soc_value = None
+        temp_value = None
     
-    return df.columns.tolist(), None, None
-
-# Filter folders based on selections
-filtered_folders = [f for f in classified_folders if
-                    all(f[k] in v for k, v in selected_filters.items())]
-
-# Initialize an empty list to collect file information
-file_info = []
+    return df.columns.tolist(), soc_value, temp_value
 
 # Collect SOC and Cell temp mid values
-if filtered_folders:
-    for folder in filtered_folders:
-        st.write(f"Processing directory: {folder['path']}")
+file_info = []
+for folder in classified_folders:
+    if all(folder[k] in v for k, v in selected_filters.items()):
         response = requests.get(folder['path'])
         soup = BeautifulSoup(response.content, 'html.parser')
         files = [a['href'] for a in soup.find_all('a', href=True) if a['href'].endswith('.csv')]
-        st.write(f"Found files: {files}")
         for file in files:
             file_url = urllib.parse.urljoin(folder['path'], file)
-            st.write(f"Processing file: {file_url}")
-            headers, soc_value, cell_temp_mid_value = fetch_csv_headers_and_first_valid_values(file_url)
-            if 'SOC' not in headers or 'Cell temp mid' not in headers:
-                continue  # Skip the file if it doesn't have the required columns
-            st.write(f"Headers: {headers}")
-            st.write(f"SOC: {soc_value}, Cell temp mid: {cell_temp_mid_value}")
-            if soc_value is not None and cell_temp_mid_value is not None:
+            headers, soc_value, temp_value = fetch_csv_headers_and_values(file_url)
+            if soc_value is not None and temp_value is not None:
                 file_info.append({
                     'path': file_url,
-                    'SOC': soc_value,
-                    'Cell temp mid': cell_temp_mid_value
+                    'SOC': round(soc_value),
+                    'Cell temp mid': round(temp_value)
                 })
 
 # Sidebar sliders for SOC and Cell temp mid
