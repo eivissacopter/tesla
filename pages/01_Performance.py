@@ -186,11 +186,16 @@ if file_info:
         and selected_temp_range[0] <= info['Cell temp mid'] <= selected_temp_range[1]
     ]
 
-# Sidebar options for X-axis and Y-axis selection
+import matplotlib.pyplot as plt
+
+# Add the plotting options for X and Y axes in the sidebar
 st.sidebar.header("Plotting Options")
 
-# X-axis selection
-st.sidebar.subheader("Select X-axis")
+# X-Axis selection with checkboxes
+x_axis_options = ["Speed", "Time"]
+selected_x_axis = st.sidebar.radio("Select X-Axis", x_axis_options)
+
+# Y-Axis selection checkboxes
 columns_to_plot = {
     "Max Discharge Power": "Max discharge power",
     "Battery Power": "Battery power",
@@ -203,12 +208,28 @@ columns_to_plot = {
     "Battery Current": "Battery current",
     "Battery Voltage": "Battery voltage"
 }
+selected_columns = st.sidebar.multiselect("Select Columns to Plot (Y-Axis)", list(columns_to_plot.keys()))
 
-selected_x_column = None
-for label, column in columns_to_plot.items():
-    if st.sidebar.checkbox(label, key=f"x_{label}"):
-        selected_x_column = column
-        break
+# Only plot if at least one column is selected for X-Axis
+if selected_x_axis and selected_columns:
+    fig, ax = plt.subplots(figsize=(10, 6))
+    for file in filtered_file_info:
+        df = pd.read_csv(file['path'])
+        df = df.fillna(method='ffill').fillna(method='bfill')
+        df = df[(df['SOC'] >= -5) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= -30) & (df['Cell temp mid'] <= 70)]
+        
+        for col in selected_columns:
+            y_col = columns_to_plot[col]
+            if isinstance(y_col, list):
+                df['Combined'] = df[y_col[0]] + df[y_col[1]]
+                y_col = 'Combined'
+            ax.plot(df[selected_x_axis], df[y_col], label=f"{file['name']} - {col}")
+
+    ax.set_xlabel(selected_x_axis)
+    ax.set_ylabel("Values")
+    ax.set_title("Performance Data Plot")
+    ax.legend(loc='best')
+    st.pyplot(fig)
 
 # Y-axis selection
 st.sidebar.subheader("Select Y-axis")
