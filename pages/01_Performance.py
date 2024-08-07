@@ -233,12 +233,11 @@ columns_to_plot = {
     "Max Discharge Power": "Max discharge power",
     "Battery Power": "Battery power",
     "Battery Current": "Battery current",
-    "Battery Voltage": "Battery voltage"
+    "Battery Voltage": "Battery voltage",
     "Front/Rear Motor Power": ["F power", "R power"],
     "Combined Motor Power": ["F power", "R power"],
     "Front/Rear Motor Torque": ["F torque", "R torque"],
-    "Combined Motor Torque": ["F torque", "R torque"],
-
+    "Combined Motor Torque": ["F torque", "R torque"]
 }
 selected_columns = []
 for label in columns_to_plot.keys():
