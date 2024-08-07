@@ -212,10 +212,9 @@ for label in columns_to_plot.keys():
     if st.sidebar.checkbox(label, key=f"y_{label}"):
         selected_columns.append(label)
 
-# X-Axis selection with radio buttons
-st.sidebar.subheader("Select X-Axis")
+# X-Axis selection with radio buttons with a label
 x_axis_options = ["Speed", "Time"]
-selected_x_axis = st.sidebar.radio("", x_axis_options, index=0)
+selected_x_axis = st.sidebar.radio("Select X-Axis", x_axis_options, index=0)
 
 # Additional options
 st.sidebar.subheader("Additional Options")
