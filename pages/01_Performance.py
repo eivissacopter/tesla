@@ -269,24 +269,24 @@ show_legend = st.sidebar.checkbox("Show Legend", value=False)
 st.markdown(
     """
     <style>
-    .reportview-container .main .block-container {
+    .main .block-container {
         padding-top: 0rem;
         padding-right: 1rem;
         padding-left: 1rem;
         padding-bottom: 0rem;
     }
-    .reportview-container .main {
-        flex: 1 1 auto;
+    .main {
+        display: flex;
+        flex-direction: column;
         height: 100vh;
         overflow: hidden;
-        padding: 0;
     }
-    .reportview-container .main .element-container {
-        padding: 0;
+    .element-container {
+        flex: 1;
         height: 100%;
     }
-    .reportview-container .main .stPlotlyChart {
-        height: calc(100vh - 60px) !important;
+    .stPlotlyChart {
+        height: 100% !important;
     }
     </style>
     """,
@@ -346,6 +346,7 @@ if selected_x_axis and selected_columns and filtered_file_info:
         fig.update_yaxes(automargin=True)
         fig.update_xaxes(automargin=True)
 
-        st.plotly_chart(fig, use_container_width=True, height='100vh')
+        st.plotly_chart(fig, use_container_width=True, height=800)  # Adjust height here if needed
 else:
     st.write("Please select an X-axis and at least one column to plot.")
+
