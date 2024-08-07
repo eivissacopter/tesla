@@ -1,9 +1,6 @@
 import streamlit as st
-import pandas as pd
-import plotly.express as px
 import requests
 from bs4 import BeautifulSoup
-from io import StringIO
 import urllib.parse
 import re
 
@@ -37,7 +34,6 @@ def scan_and_classify_folders(base_url):
         else:
             return None
 
-    root_structure = {}
     classified_folders = []
     dirs = parse_directory(base_url)
     st.write(f"Found directories: {dirs}")
@@ -137,7 +133,7 @@ if filtered_folders:
 else:
     st.sidebar.write("No folders match the selected filters.")
 
-# Fetch and process CSV files based on filtered folders
+# Fetch and list CSV files based on filtered folders
 dfs = []
 for folder in filtered_folders:
     response = requests.get(folder['path'])
@@ -145,74 +141,4 @@ for folder in filtered_folders:
     files = [a['href'] for a in soup.find_all('a', href=True) if a['href'].endswith('.csv')]
     for file in files:
         file_url = urllib.parse.urljoin(folder['path'], file)
-        try:
-            response = requests.get(file_url)
-            csv_content = response.content.decode('utf-8')
-            df = pd.read_csv(StringIO(csv_content))
-            df = df.fillna(method='ffill', limit=100)
-            df = df.fillna(method='bfill', limit=100)
-            if 'Accelerator Pedal' in df.columns:
-                df = df[df['Accelerator Pedal'] == 100]
-            dfs.append(df)
-        except Exception as e:
-            st.error(f"Error fetching {file_url}: {e}")
-
-# Concatenate all dataframes
-if dfs:
-    data = pd.concat(dfs, ignore_index=True)
-    st.write(data.head())
-else:
-    st.write("No CSV files found or no data available after filtering.")
-
-# Ensure required columns are available for plotting
-if 'SOC' in data.columns and 'pdelta' in data.columns and 'Cell temp mid' in data.columns:
-    # Plot the data
-    fig = px.scatter(
-        data,
-        x='SOC',
-        y='pdelta',
-        color='Cell temp mid',
-        color_continuous_scale='bwr',
-        labels={'SOC': 'SOC [%]', 'pdelta': 'Pdelta [kW]', 'Cell temp mid': 'Cell Temp'},
-        title='Panasonic 3L 82kWh - Pdelta'
-    )
-
-    fig.update_layout(
-        coloraxis_colorbar=dict(
-            title="Cell Temp"
-        ),
-        xaxis=dict(
-            autorange='reversed'
-        ),
-        template="plotly_dark"
-    )
-
-    # Add watermark
-    fig.add_annotation(
-        text="@eivissacopter",
-        font=dict(size=50, color="gray"),
-        align="center",
-        xref="paper",
-        yref="paper",
-        x=0.5,
-        y=0.5,
-        opacity=0.2,
-        showarrow=False
-    )
-
-    # Plot the figure
-    st.plotly_chart(fig, use_container_width=True)
-else:
-    st.error("Required columns are missing in the data.")
-
-# Placeholder for performance meter screenshots
-st.sidebar.header("Performance Meter Screenshots")
-performance_meter_images = st.sidebar.file_uploader("Upload Performance Meter Screenshots", type=['jpg', 'jpeg', 'png'], accept_multiple_files=True)
-
-# Display performance meter screenshots
-if performance_meter_images:
-    st.header("Performance Meter Screenshots")
-    cols = st.columns(len(performance_meter_images))
-    for i, image in enumerate(performance_meter_images):
-        with cols[i]:
-            st.image(image, use_column_width=True)
+        st.write(file_url)
