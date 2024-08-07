@@ -115,6 +115,8 @@ selected_tuning = st.sidebar.multiselect("Tuning", tunings)
 if selected_tuning:
     selected_filters['tuning'] = selected_tuning
 
+#################################################################################################################
+
 # Function to fetch CSV headers and first valid values
 def fetch_csv_headers_and_first_valid_values(url):
     response = requests.get(url)
@@ -132,11 +134,11 @@ def fetch_csv_headers_and_first_valid_values(url):
     df = df[(df['SOC'] >= -5) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= -30) & (df['Cell temp mid'] <= 70)]
     
     # Find the first valid values
-    if not df.empty:
-        first_valid_row = df.iloc[0]
-        soc_value = round(first_valid_row['SOC'])
-        cell_temp_mid_value = round(first_valid_row['Cell temp mid'])
-        return df.columns.tolist(), soc_value, cell_temp_mid_value
+    for index, row in df.iterrows():
+        soc_value = row['SOC']
+        cell_temp_mid_value = row['Cell temp mid']
+        if pd.notna(soc_value) and pd.notna(cell_temp_mid_value):
+            return df.columns.tolist(), round(soc_value), round(cell_temp_mid_value)
     
     return df.columns.tolist(), None, None
 
@@ -159,6 +161,8 @@ if filtered_folders:
             file_url = urllib.parse.urljoin(folder['path'], file)
             st.write(f"Processing file: {file_url}")
             headers, soc_value, cell_temp_mid_value = fetch_csv_headers_and_first_valid_values(file_url)
+            if 'SOC' not in headers or 'Cell temp mid' not in headers:
+                continue  # Skip the file if it doesn't have the required columns
             st.write(f"Headers: {headers}")
             st.write(f"SOC: {soc_value}, Cell temp mid: {cell_temp_mid_value}")
             if soc_value is not None and cell_temp_mid_value is not None:
