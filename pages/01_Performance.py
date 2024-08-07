@@ -1,8 +1,10 @@
 import streamlit as st
 import requests
 from bs4 import BeautifulSoup
+import pandas as pd
 import urllib.parse
 import re
+from io import StringIO
 
 # Set page config
 st.set_page_config(page_title="Tesla Performance Analysis", page_icon=":racing_car:", layout="wide")
@@ -113,20 +115,56 @@ selected_tuning = st.sidebar.multiselect("Tuning", tunings)
 if selected_tuning:
     selected_filters['tuning'] = selected_tuning
 
+# Fetch and list CSV files based on filtered folders
+def fetch_csv_headers_and_values(url):
+    response = requests.get(url)
+    content = response.content.decode('utf-8')
+    df = pd.read_csv(StringIO(content), nrows=1)  # Read only the first row
+    return df.columns.tolist(), df.iloc[0].to_dict()
+
 # Filter folders based on selections
 filtered_folders = [f for f in classified_folders if
                     all(f[k] in v for k, v in selected_filters.items())]
 
-# Display filtered paths and list files
-if filtered_folders:
-    st.write("Filtered Directories and Files:")
-    for folder in filtered_folders:
-        st.write(f"**Directory**: {folder['path']}")
-        response = requests.get(folder['path'])
-        soup = BeautifulSoup(response.content, 'html.parser')
-        files = [a['href'] for a in soup.find_all('a', href=True) if a['href'].endswith('.csv')]
-        for file in files:
-            file_url = urllib.parse.urljoin(folder['path'], file)
-            st.write(f"- {file_url}")
+# Collect SOC and Cell temp mid values
+file_info = []
+for folder in filtered_folders:
+    response = requests.get(folder['path'])
+    soup = BeautifulSoup(response.content, 'html.parser')
+    files = [a['href'] for a in soup.find_all('a', href=True) if a['href'].endswith('.csv')]
+    for file in files:
+        file_url = urllib.parse.urljoin(folder['path'], file)
+        headers, values = fetch_csv_headers_and_values(file_url)
+        if 'SOC' in values and 'Cell temp mid' in values:
+            file_info.append({
+                'path': file_url,
+                'SOC': values['SOC'],
+                'Cell temp mid': values['Cell temp mid']
+            })
+
+# Sidebar sliders for SOC and Cell temp mid
+if file_info:
+    min_soc = min(info['SOC'] for info in file_info)
+    max_soc = max(info['SOC'] for info in file_info)
+    min_temp = min(info['Cell temp mid'] for info in file_info)
+    max_temp = max(info['Cell temp mid'] for info in file_info)
+
+    selected_soc_range = st.sidebar.slider("Select SOC Range", min_soc, max_soc, (min_soc, max_soc))
+    selected_temp_range = st.sidebar.slider("Select Cell Temp Range", min_temp, max_temp, (min_temp, max_temp))
+
+    # Filter files based on selected ranges
+    filtered_file_info = [
+        info for info in file_info
+        if selected_soc_range[0] <= info['SOC'] <= selected_soc_range[1]
+        and selected_temp_range[0] <= info['Cell temp mid'] <= selected_temp_range[1]
+    ]
+
+    # Display filtered files
+    if filtered_file_info:
+        st.write("Filtered Files:")
+        for info in filtered_file_info:
+            st.write(f"File: {info['path']} | SOC: {info['SOC']} | Cell Temp: {info['Cell temp mid']}")
+    else:
+        st.write("No files match the selected SOC and Cell Temp range.")
 else:
-    st.write("No directories match the selected filters.")
+    st.write("No CSV files found in the filtered folders.")
