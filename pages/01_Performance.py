@@ -98,12 +98,6 @@ selected_battery = st.sidebar.multiselect("Battery", batteries)
 if selected_battery:
     selected_filters['battery'] = selected_battery
 
-# Front Motor filter
-# front_motors = get_unique_values(classified_folders, 'front_motor', selected_filters)
-# selected_front_motor = st.sidebar.multiselect("Front Motor", front_motors)
-# if selected_front_motor:
-#    selected_filters['front_motor'] = selected_front_motor
-
 # Rear Motor filter
 rear_motors = get_unique_values(classified_folders, 'rear_motor', selected_filters)
 selected_rear_motor = st.sidebar.multiselect("Rear Motor", rear_motors)
@@ -186,9 +180,6 @@ if file_info:
         and selected_temp_range[0] <= info['Cell temp mid'] <= selected_temp_range[1]
     ]
 
-import matplotlib.pyplot as plt
-import matplotlib.pyplot as plt
-
 # Add the plotting options for X and Y axes in the sidebar
 st.sidebar.header("Plotting Options")
 
@@ -210,6 +201,9 @@ columns_to_plot = {
     "Battery Voltage": "Battery voltage"
 }
 selected_columns = st.sidebar.multiselect("Select Columns to Plot (Y-Axis)", list(columns_to_plot.keys()))
+
+# Show legend option
+show_legend = st.sidebar.checkbox("Show Legend", value=True)
 
 # Function to fetch and process data with caching
 @st.cache_data(ttl=3600)
