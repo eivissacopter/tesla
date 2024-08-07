@@ -115,12 +115,25 @@ selected_tuning = st.sidebar.multiselect("Tuning", tunings)
 if selected_tuning:
     selected_filters['tuning'] = selected_tuning
 
-# Function to fetch CSV headers and values
-def fetch_csv_headers_and_values(url):
+# Function to fetch CSV headers and first valid values
+def fetch_csv_headers_and_first_valid_values(url):
     response = requests.get(url)
     content = response.content.decode('utf-8')
-    df = pd.read_csv(StringIO(content), nrows=1)  # Read only the first row
-    return df.columns.tolist(), df.iloc[0].to_dict()
+    df = pd.read_csv(StringIO(content))
+    
+    # Check if the required columns are present
+    if 'SOC' not in df.columns or 'Cell temp mid' not in df.columns:
+        return df.columns.tolist(), None, None
+    
+    # Fill forward and backward to handle NaN values
+    df = df.fillna(method='ffill').fillna(method='bfill')
+    
+    # Find the first valid values
+    first_valid_row = df.iloc[0]
+    soc_value = first_valid_row['SOC']
+    cell_temp_mid_value = first_valid_row['Cell temp mid']
+    
+    return df.columns.tolist(), soc_value, cell_temp_mid_value
 
 # Filter folders based on selections
 filtered_folders = [f for f in classified_folders if
@@ -139,19 +152,16 @@ if filtered_folders:
         st.write(f"Found files: {files}")
         for file in files:
             file_url = urllib.parse.urljoin(folder['path'], file)
-            headers, values = fetch_csv_headers_and_values(file_url)
-            if 'SOC' in values and 'Cell temp mid' in values:
-                try:
-                    soc_value = float(values['SOC'])
-                    temp_value = float(values['Cell temp mid'])
-                    if not (pd.isna(soc_value) or pd.isna(temp_value)):
-                        file_info.append({
-                            'path': file_url,
-                            'SOC': soc_value,
-                            'Cell temp mid': temp_value
-                        })
-                except ValueError:
-                    continue
+            st.write(f"Processing file: {file_url}")
+            headers, soc_value, cell_temp_mid_value = fetch_csv_headers_and_first_valid_values(file_url)
+            st.write(f"Headers: {headers}")
+            st.write(f"SOC: {soc_value}, Cell temp mid: {cell_temp_mid_value}")
+            if soc_value is not None and cell_temp_mid_value is not None:
+                file_info.append({
+                    'path': file_url,
+                    'SOC': soc_value,
+                    'Cell temp mid': cell_temp_mid_value
+                })
 
 # Sidebar sliders for SOC and Cell temp mid
 if file_info:
@@ -174,8 +184,4 @@ if file_info:
     if filtered_file_info:
         st.write("Filtered Files:")
         for info in filtered_file_info:
-            st.write(f"File: {info['path']} | SOC: {info['SOC']} | Cell Temp: {info['Cell temp mid']}")
-    else:
-        st.write("No files match the selected SOC and Cell Temp range.")
-else:
-    st.write("No CSV files found in the filtered folders.")
+            st.write(f"File: {info['path']} | SOC: {info['SOC &#8203;:citation[oaicite:0]{index=0}&#8203;
