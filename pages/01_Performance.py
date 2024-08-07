@@ -115,8 +115,6 @@ selected_tuning = st.sidebar.multiselect("Tuning", tunings)
 if selected_tuning:
     selected_filters['tuning'] = selected_tuning
 
-#################################################################################################################
-
 # Function to fetch CSV headers and first valid values
 def fetch_csv_headers_and_first_valid_values(url):
     response = requests.get(url)
