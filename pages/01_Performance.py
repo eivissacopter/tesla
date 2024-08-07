@@ -115,16 +115,12 @@ selected_tuning = st.sidebar.multiselect("Tuning", tunings)
 if selected_tuning:
     selected_filters['tuning'] = selected_tuning
 
-# Fetch and list CSV files based on filtered folders
+# Function to fetch CSV headers and values
 def fetch_csv_headers_and_values(url):
     response = requests.get(url)
     content = response.content.decode('utf-8')
     df = pd.read_csv(StringIO(content), nrows=1)  # Read only the first row
     return df.columns.tolist(), df.iloc[0].to_dict()
-
-# Filter folders based on selections
-filtered_folders = [f for f in classified_folders if
-                    all(f[k] in v for k, v in selected_filters.items())]
 
 # Collect SOC and Cell temp mid values
 file_info = []
@@ -136,11 +132,17 @@ for folder in filtered_folders:
         file_url = urllib.parse.urljoin(folder['path'], file)
         headers, values = fetch_csv_headers_and_values(file_url)
         if 'SOC' in values and 'Cell temp mid' in values:
-            file_info.append({
-                'path': file_url,
-                'SOC': values['SOC'],
-                'Cell temp mid': values['Cell temp mid']
-            })
+            try:
+                soc_value = float(values['SOC'])
+                temp_value = float(values['Cell temp mid'])
+                if not (pd.isna(soc_value) or pd.isna(temp_value)):
+                    file_info.append({
+                        'path': file_url,
+                        'SOC': soc_value,
+                        'Cell temp mid': temp_value
+                    })
+            except ValueError:
+                continue
 
 # Sidebar sliders for SOC and Cell temp mid
 if file_info:
