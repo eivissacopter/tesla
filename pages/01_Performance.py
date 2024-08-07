@@ -188,14 +188,17 @@ if file_info:
         and selected_temp_range[0] <= info['Cell temp mid'] <= selected_temp_range[1]
     ]
 
+#####################################################################################
+
 # Add the plotting options for X and Y axes in the sidebar
 st.sidebar.header("Plotting Options")
 
 # X-Axis selection with checkboxes
 x_axis_options = ["Speed", "Time"]
-selected_x_axis = st.sidebar.radio("Select X-Axis", x_axis_options)
+selected_x_axis = st.sidebar.radio("Select X-Axis", x_axis_options, index=0)
 
 # Y-Axis selection checkboxes
+st.sidebar.subheader("Select Y-Axis")
 columns_to_plot = {
     "Max Discharge Power": "Max discharge power",
     "Battery Power": "Battery power",
@@ -208,48 +211,40 @@ columns_to_plot = {
     "Battery Current": "Battery current",
     "Battery Voltage": "Battery voltage"
 }
-selected_columns = []
-for label, column in columns_to_plot.items():
-    if st.sidebar.checkbox(label, key=f"y_{label}"):
-        selected_columns.append(column)
+selected_columns = st.sidebar.multiselect("Select Columns to Plot (Y-Axis)", list(columns_to_plot.keys()), default=[])
 
-# Checkbox for showing legend
-show_legend = st.sidebar.checkbox("Show Legend", value=True)
-
-# Function to fetch and process data with caching
-@st.cache_data
-def fetch_and_process_data(file_url):
-    response = requests.get(file_url)
-    content = response.content.decode('utf-8')
-    df = pd.read_csv(StringIO(content))
-
-    # Fill forward and backward to handle NaN values
-    df = df.fillna(method='ffill').fillna(method='bfill')
-
-    # Filter invalid values
-    df = df[(df['SOC'] >= -5) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= -30) & (df['Cell temp mid'] <= 70)]
-
-    # Filter by accelerator pedal value if column exists
-    if 'Accelerator Pedal' in df.columns:
-        df = df[df['Accelerator Pedal'] == 100]
-
-    return df
+# Additional options
+st.sidebar.subheader("Additional Options")
+show_legend = st.sidebar.checkbox("Show Legend", value=False)
 
 # Plotting the data
 if selected_x_axis and selected_columns and filtered_file_info:
     fig, ax = plt.subplots(figsize=(10, 6))
 
     for info in filtered_file_info:
-        df = fetch_and_process_data(info['path'])
+        response = requests.get(info['path'])
+        content = response.content.decode('utf-8')
+        df = pd.read_csv(StringIO(content))
+
+        # Fill forward and backward to handle NaN values
+        df = df.fillna(method='ffill').fillna(method='bfill')
+
+        # Filter invalid values
+        df = df[(df['SOC'] >= -5) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= -30) & (df['Cell temp mid'] <= 70)]
+        
+        # Filter rows where Accelerator Pedal is 100, if exists
+        if 'Accelerator Pedal' in df.columns:
+            df = df[df['Accelerator Pedal'] == 100]
 
         # Plot selected columns
         for column in selected_columns:
-            if isinstance(column, list):
-                combined_column_name = ' + '.join(column)
-                df[combined_column_name] = df[column[0]] + df[column[1]]
+            y_col = columns_to_plot[column]
+            if isinstance(y_col, list):
+                combined_column_name = 'Combined ' + ' + '.join(y_col)
+                df[combined_column_name] = df[y_col[0]] + df[y_col[1]]
                 ax.plot(df[selected_x_axis], df[combined_column_name], label=f"{info['name']} - {combined_column_name}")
             else:
-                ax.plot(df[selected_x_axis], df[column], label=f"{info['name']} - {column}")
+                ax.plot(df[selected_x_axis], df[y_col], label=f"{info['name']} - {y_col}")
 
     ax.set_xlabel(selected_x_axis)
     ax.set_ylabel("Values")
@@ -260,4 +255,3 @@ if selected_x_axis and selected_columns and filtered_file_info:
     st.pyplot(fig)
 else:
     st.write("Please select an X-axis and at least one column to plot.")
-
