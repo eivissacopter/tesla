@@ -11,7 +11,7 @@ import os
 import json
 
 # Set page config
-st.set_page_config(page_title="Tesla Performance", page_icon=":racing_car:", layout="wide")
+st.set_page_config(page_title="Tesla Performance Analysis", page_icon=":racing_car:", layout="wide")
 
 # Metadata cache file
 METADATA_FILE = "metadata_cache.json"
@@ -148,8 +148,8 @@ if selected_tuning:
 
 # Acceleration Mode filter with custom order
 acceleration_modes = get_unique_values(classified_folders, 'acceleration_mode', selected_filters)
-acceleration_modes = ["Chill", "Standard", "Sport"]
-selected_acceleration_mode = st.sidebar.multiselect("Acceleration Mode", acceleration_modes, default=acceleration_modes if len(acceleration_modes) == 1 else [])
+acceleration_modes_ordered = ["Chill", "Standard", "Sport"]
+selected_acceleration_mode = st.sidebar.multiselect("Acceleration Mode", acceleration_modes_ordered, default=acceleration_modes_ordered if len(acceleration_modes_ordered) == 1 else [])
 if selected_acceleration_mode:
     selected_filters['acceleration_mode'] = selected_acceleration_mode
 
