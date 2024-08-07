@@ -184,4 +184,8 @@ if file_info:
     if filtered_file_info:
         st.write("Filtered Files:")
         for info in filtered_file_info:
-            st.write(f"File: {info['path']} | SOC: {info['SOC &#8203;:citation[oaicite:0]{index=0}&#8203;
+            st.write(f"File: {info['path']} | SOC: {info['SOC']} | Cell Temp: {info['Cell temp mid']}")
+    else:
+        st.write("No files match the selected SOC and Cell Temp range.")
+else:
+    st.write("No CSV files found in the filtered folders.")
