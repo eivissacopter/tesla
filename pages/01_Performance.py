@@ -311,16 +311,25 @@ if selected_x_axis and selected_columns and filtered_file_info:
             xaxis_title=selected_x_axis,
             yaxis_title="Values" if len(selected_columns) > 1 else selected_columns[0],
             autosize=True,
-            height=None,
-            margin=dict(l=20, r=20, t=30, b=20),
-            modebar=dict(orientation='v')
+            height=None
         )
-        fig.update_yaxes(automargin=True)
-        fig.update_xaxes(automargin=True)
+        if show_legend:
+            fig.update_layout(showlegend=True)
+        else:
+            fig.update_layout(showlegend=False)
+
+        # Set the Plotly chart to be responsive
+        fig.update_layout(
+            margin=dict(l=20, r=20, t=30, b=20),
+            modebar=dict(orientation='v'),
+            autosize=True,
+            height=None
+        )
 
         st.plotly_chart(fig, use_container_width=True)
 else:
     st.write("Please select an X-axis and at least one column to plot.")
+
 
 
 
