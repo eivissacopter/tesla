@@ -187,6 +187,7 @@ if file_info:
     ]
 
 import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 # Add the plotting options for X and Y axes in the sidebar
 st.sidebar.header("Plotting Options")
@@ -210,38 +211,34 @@ columns_to_plot = {
 }
 selected_columns = st.sidebar.multiselect("Select Columns to Plot (Y-Axis)", list(columns_to_plot.keys()))
 
+# Function to fetch and process data with caching
+@st.cache_data(ttl=3600)
+def fetch_and_process_data(url):
+    response = requests.get(url)
+    content = response.content.decode('utf-8')
+    df = pd.read_csv(StringIO(content))
+    df = df.fillna(method='ffill').fillna(method='bfill')
+    df = df[(df['SOC'] >= -5) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= -30) & (df['Cell temp mid'] <= 70)]
+    return df
+
 # Only plot if at least one column is selected for X-Axis
 if selected_x_axis and selected_columns:
     fig, ax = plt.subplots(figsize=(10, 6))
     for file in filtered_file_info:
-        df = pd.read_csv(file['path'])
-        df = df.fillna(method='ffill').fillna(method='bfill')
-        df = df[(df['SOC'] >= -5) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= -30) & (df['Cell temp mid'] <= 70)]
+        df = fetch_and_process_data(file['path'])
         
         for col in selected_columns:
             y_col = columns_to_plot[col]
             if isinstance(y_col, list):
                 df['Combined'] = df[y_col[0]] + df[y_col[1]]
                 y_col = 'Combined'
-            ax.plot(df[selected_x_axis], df[y_col], label=f"{file['name']} - {col}")
+            ax.plot(df[selected_x_axis], df[y_col], label=f"{file['name']} - {col.split()[0]}")
 
     ax.set_xlabel(selected_x_axis)
     ax.set_ylabel("Values")
     ax.set_title("Performance Data Plot")
     ax.legend(loc='best')
     st.pyplot(fig)
-
-# Y-axis selection
-st.sidebar.subheader("Select Y-axis")
-y_axis_options = ["Speed", "Time"]
-selected_y_column = st.sidebar.radio("Y-axis", y_axis_options)
-
-# Checkbox options for additional plotting
-st.sidebar.subheader("Select additional columns to plot")
-selected_columns = []
-for label, column in columns_to_plot.items():
-    if st.sidebar.checkbox(label, key=f"y_{label}"):
-        selected_columns.append(column)
 
 # Plotting the data
 if selected_x_column and selected_columns and filtered_file_info:
