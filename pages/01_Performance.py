@@ -36,16 +36,12 @@ def scan_and_classify_folders(base_url):
 
     classified_folders = []
     dirs = parse_directory(base_url)
-    st.write(f"Found directories: {dirs}")
     for d in dirs:
         full_path = urllib.parse.urljoin(base_url, d)
-        st.write(f"Processing directory: {full_path}")
         classification = classify_folder(d.strip('/'))
         if classification:
             classification['path'] = full_path
             classified_folders.append(classification)
-        else:
-            st.write(f"Skipping directory: {d} (does not match expected pattern)")
     return classified_folders
 
 # Base URL for scanning the root folder
@@ -73,21 +69,15 @@ selected_filters = {}
 # Sidebar filters
 st.sidebar.header("Filter Options")
 
-# Manufacturer filter
-manufacturers = get_unique_values(classified_folders, 'manufacturer')
-selected_manufacturer = st.sidebar.multiselect("Manufacturer", manufacturers)
-if selected_manufacturer:
-    selected_filters['manufacturer'] = selected_manufacturer
-
 # Model filter
-models = get_unique_values(classified_folders, 'model', selected_filters)
+models = get_unique_values(classified_folders, 'model')
 selected_model = st.sidebar.multiselect("Model", models)
 if selected_model:
     selected_filters['model'] = selected_model
 
 # Variant filter
 variants = get_unique_values(classified_folders, 'variant', selected_filters)
-selected_variant = st.sidebar.multiselect("Variant", variants)
+selected_variant = st.sidebar.multiselect("Version", variants)
 if selected_variant:
     selected_filters['variant'] = selected_variant
 
@@ -125,23 +115,16 @@ if selected_tuning:
 filtered_folders = [f for f in classified_folders if
                     all(f[k] in v for k, v in selected_filters.items())]
 
-# Display selected paths
+# Display filtered paths and list files
 if filtered_folders:
-    st.sidebar.write("Filtered Paths:")
+    st.write("Filtered Directories and Files:")
     for folder in filtered_folders:
-        st.sidebar.write(folder['path'])
-else:
-    st.sidebar.write("No folders match the selected filters.")
-
-# Fetch and list CSV files based on filtered folders
-if filtered_folders:
-    st.write("Filtered Files:")
-    for folder in filtered_folders:
+        st.write(f"**Directory**: {folder['path']}")
         response = requests.get(folder['path'])
         soup = BeautifulSoup(response.content, 'html.parser')
         files = [a['href'] for a in soup.find_all('a', href=True) if a['href'].endswith('.csv')]
         for file in files:
             file_url = urllib.parse.urljoin(folder['path'], file)
-            st.write(file_url)
+            st.write(f"- {file_url}")
 else:
-    st.write("No CSV files found in the filtered folders.")
+    st.write("No directories match the selected filters.")
