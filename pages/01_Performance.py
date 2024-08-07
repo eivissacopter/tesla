@@ -11,7 +11,7 @@ import os
 import json
 
 # Set page config
-st.set_page_config(page_title="Tesla Performance Analysis", page_icon=":racing_car:", layout="wide")
+st.set_page_config(page_title="Tesla Performance", page_icon=":racing_car:", layout="wide")
 
 # Metadata cache file
 METADATA_FILE = "metadata_cache.json"
@@ -170,9 +170,6 @@ def fetch_csv_headers_and_first_valid_values(url):
         headers = df.columns.tolist()
         metadata_cache[url] = {'headers': headers, 'SOC': None, 'Cell temp mid': None}
         return headers, None, None
-    
-    # Fill forward and backward to handle NaN values
-    df = df.fillna(method='ffill').fillna(method='bfill')
     
     # Filter invalid values
     df = df[(df['SOC'] >= -5) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= -30) & (df['Cell temp mid'] <= 70)]
