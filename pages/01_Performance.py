@@ -151,19 +151,14 @@ file_info = []
 # Collect SOC and Cell temp mid values
 if filtered_folders:
     for folder in filtered_folders:
-        st.write(f"Processing directory: {folder['path']}")
         response = requests.get(folder['path'])
         soup = BeautifulSoup(response.content, 'html.parser')
         files = [a['href'] for a in soup.find_all('a', href=True) if a['href'].endswith('.csv')]
-        st.write(f"Found files: {files}")
         for file in files:
             file_url = urllib.parse.urljoin(folder['path'], file)
-            st.write(f"Processing file: {file_url}")
             headers, soc_value, cell_temp_mid_value = fetch_csv_headers_and_first_valid_values(file_url)
             if 'SOC' not in headers or 'Cell temp mid' not in headers:
                 continue  # Skip the file if it doesn't have the required columns
-            st.write(f"Headers: {headers}")
-            st.write(f"SOC: {soc_value}, Cell temp mid: {cell_temp_mid_value}")
             if soc_value is not None and cell_temp_mid_value is not None:
                 file_info.append({
                     'path': file_url,
@@ -221,7 +216,7 @@ for label, column in columns_to_plot.items():
 # Plotting the data
 if selected_columns and filtered_file_info:
     fig, ax = plt.subplots(figsize=(10, 6))
-   
+
     for info in filtered_file_info:
         response = requests.get(info['path'])
         content = response.content.decode('utf-8')
@@ -249,5 +244,3 @@ if selected_columns and filtered_file_info:
     st.pyplot(fig)
 else:
     st.write("No columns selected or no files match the selected SOC and Cell Temp range.")
-
-    
