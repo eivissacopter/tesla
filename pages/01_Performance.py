@@ -13,8 +13,10 @@ st.set_page_config(page_title="Tesla Performance Analysis", page_icon=":racing_c
 
 # Function to fetch directory structure and CSV files from the given URL
 @st.cache_data(ttl=600)
-def fetch_and_cache_csv_files(base_url):
-    def parse_directory(url):
+def fetch_and_cache_csv_files(base_url, max_depth=3):
+    def parse_directory(url, depth):
+        if depth > max_depth:
+            return [], []
         response = requests.get(url)
         soup = BeautifulSoup(response.content, 'html.parser')
         dirs = [a['href'] for a in soup.find_all('a', href=True) if a['href'].endswith('/')]
@@ -24,22 +26,25 @@ def fetch_and_cache_csv_files(base_url):
     directory_structure = {}
     csv_files_data = {}
 
-    def build_structure(url, parent_structure):
-        dirs, files = parse_directory(url)
+    def build_structure(url, parent_structure, depth):
+        dirs, files = parse_directory(url, depth)
         for d in dirs:
             full_path = urllib.parse.urljoin(url, d)
             parent_structure[d] = {}
-            build_structure(full_path, parent_structure[d])
+            build_structure(full_path, parent_structure[d], depth + 1)
         for f in files:
             full_path = urllib.parse.urljoin(url, f)
             parent_structure[f] = full_path
             # Download and cache the CSV file
-            response = requests.get(full_path)
-            csv_content = response.content.decode('utf-8')
-            csv_files_data[full_path] = pd.read_csv(StringIO(csv_content))
+            try:
+                response = requests.get(full_path)
+                csv_content = response.content.decode('utf-8')
+                csv_files_data[full_path] = pd.read_csv(StringIO(csv_content))
+            except Exception as e:
+                st.error(f"Error fetching {full_path}: {e}")
 
     base_url = base_url if base_url.endswith('/') else base_url + '/'
-    build_structure(base_url, directory_structure)
+    build_structure(base_url, directory_structure, 0)
     return directory_structure, csv_files_data
 
 # Base URL for CSV files
