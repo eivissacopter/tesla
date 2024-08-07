@@ -238,6 +238,7 @@ columns_to_plot = {
     "Combined Motor Power": ["F power", "R power"],
     "Front/Rear Motor Torque": ["F torque", "R torque"],
     "Combined Motor Torque": ["F torque", "R torque"],
+
 }
 selected_columns = []
 for label in columns_to_plot.keys():
