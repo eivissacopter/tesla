@@ -222,7 +222,12 @@ if file_info:
     max_temp = max(info['Cell temp mid'] for info in file_info)
 
     selected_soc_range = st.sidebar.slider("Select SOC Range", min_soc, max_soc, (min_soc, max_soc))
-    selected_temp_range = st.sidebar.slider("Select Cell Temp Range", min_temp, max_temp, (min_temp, max_temp))
+
+    # Ensure min_temp and max_temp are not None
+    if min_temp is None or max_temp is None:
+        st.error("Error: Unable to determine the min and max temperature for slider.")
+    else:
+        selected_temp_range = st.sidebar.slider("Select Cell Temp Range", min_temp, max_temp, (min_temp, max_temp))
 
     # Filter files based on selected ranges
     filtered_file_info = [
