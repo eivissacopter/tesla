@@ -15,6 +15,9 @@ st.set_page_config(page_title="Tesla Performance Analysis", page_icon=":racing_c
 def scan_and_classify_folders(base_url):
     def parse_directory(url):
         response = requests.get(url)
+        if response.status_code != 200:
+            st.error(f"Failed to access {url}")
+            return []
         soup = BeautifulSoup(response.content, 'html.parser')
         dirs = [a['href'] for a in soup.find_all('a', href=True) if a['href'].endswith('/')]
         return dirs
@@ -37,12 +40,16 @@ def scan_and_classify_folders(base_url):
     root_structure = {}
     classified_folders = []
     dirs = parse_directory(base_url)
+    st.write(f"Found directories: {dirs}")
     for d in dirs:
         full_path = urllib.parse.urljoin(base_url, d)
-        classification = classify_folder(d)
+        st.write(f"Processing directory: {full_path}")
+        classification = classify_folder(d.strip('/'))
         if classification:
             classification['path'] = full_path
             classified_folders.append(classification)
+        else:
+            st.write(f"Skipping directory: {d} (does not match expected pattern)")
     return classified_folders
 
 # Base URL for scanning the root folder
@@ -50,6 +57,11 @@ BASE_URL = "https://nginx.eivissacopter.com/smt/"
 
 # Scan and classify folders
 classified_folders = scan_and_classify_folders(BASE_URL)
+
+# Check if any classified folders were found
+if not classified_folders:
+    st.error("The directory structure is empty. No options available.")
+    st.stop()
 
 # Create dynamic filters based on the classified information
 def get_unique_values(classified_folders, key, filters={}):
