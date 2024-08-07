@@ -265,34 +265,6 @@ show_legend = st.sidebar.checkbox("Show Legend", value=False)
 
 ####################################################################################################
 
-# Add custom CSS to control the layout
-st.markdown(
-    """
-    <style>
-    .main .block-container {
-        padding-top: 0rem;
-        padding-right: 1rem;
-        padding-left: 1rem;
-        padding-bottom: 0rem;
-    }
-    .main {
-        display: flex;
-        flex-direction: column;
-        height: 100vh;
-        overflow: hidden;
-    }
-    .element-container {
-        flex: 1;
-        height: 100%;
-    }
-    .stPlotlyChart {
-        height: 100% !important;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
 # Plotting the data using Plotly
 if selected_x_axis and selected_columns and filtered_file_info:
     plot_data = []
@@ -346,7 +318,8 @@ if selected_x_axis and selected_columns and filtered_file_info:
         fig.update_yaxes(automargin=True)
         fig.update_xaxes(automargin=True)
 
-        st.plotly_chart(fig, use_container_width=True, height=800)  # Adjust height here if needed
+        st.plotly_chart(fig, use_container_width=True, height='100vh')
 else:
     st.write("Please select an X-axis and at least one column to plot.")
+
 
