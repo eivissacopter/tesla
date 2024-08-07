@@ -160,10 +160,13 @@ if filtered_folders:
             if 'SOC' not in headers or 'Cell temp mid' not in headers:
                 continue  # Skip the file if it doesn't have the required columns
             if soc_value is not None and cell_temp_mid_value is not None:
+                # Create a short name for the file
+                short_name = file.split('/')[-1].replace('.csv', '')
                 file_info.append({
                     'path': file_url,
                     'SOC': soc_value,
-                    'Cell temp mid': cell_temp_mid_value
+                    'Cell temp mid': cell_temp_mid_value,
+                    'name': short_name  # Add short name here
                 })
 
 # Sidebar sliders for SOC and Cell temp mid
@@ -223,9 +226,9 @@ if selected_columns and filtered_file_info:
             if isinstance(column, list):
                 combined_column_name = ' + '.join(column)
                 df[combined_column_name] = df[column[0]] + df[column[1]]
-                ax.plot(df['Speed'], df[combined_column_name], label=f"{info['path']} - {combined_column_name}")
+                ax.plot(df['Speed'], df[combined_column_name], label=f"{info['name']} - {combined_column_name}")
             else:
-                ax.plot(df['Speed'], df[column], label=f"{info['path']} - {column}")
+                ax.plot(df['Speed'], df[column], label=f"{info['name']} - {column}")
 
     ax.set_xlabel("Speed")
     ax.set_ylabel("Value")
@@ -234,3 +237,4 @@ if selected_columns and filtered_file_info:
     st.pyplot(fig)
 else:
     st.write("No columns selected or no files match the selected SOC and Cell Temp range.")
+
