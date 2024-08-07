@@ -129,8 +129,12 @@ def fetch_csv_headers_and_values(url):
         # Fill missing values
         df = df.fillna(method='ffill').fillna(method='bfill')
         
-        soc_value = df['SOC'].iloc[0] if not pd.isna(df['SOC'].iloc[0]) else None
-        temp_value = df['Cell temp mid'].iloc[0] if not pd.isna(df['Cell temp mid'].iloc[0]) else None
+        if not df.empty:
+            soc_value = df['SOC'].iloc[0] if not pd.isna(df['SOC'].iloc[0]) else None
+            temp_value = df['Cell temp mid'].iloc[0] if not pd.isna(df['Cell temp mid'].iloc[0]) else None
+        else:
+            soc_value = None
+            temp_value = None
     else:
         soc_value = None
         temp_value = None
