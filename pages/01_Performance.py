@@ -214,24 +214,21 @@ if filtered_folders:
 # Save metadata cache
 save_metadata_cache(metadata_cache)
 
+#############################################################################
+
 # Sidebar sliders for SOC and Cell temp mid
 if file_info:
     min_soc = min(info['SOC'] for info in file_info)
     max_soc = max(info['SOC'] for info in file_info)
-    min_temp = min(info['Cell temp mid'] for info in file_info)
-    max_temp = max(info['Cell temp mid'] for info in file_info)
+    min_temp = min(info['Cell temp mid'] for info in file_info if info['Cell temp mid'] is not None)
+    max_temp = max(info['Cell temp mid'] for info in file_info if info['Cell temp mid'] is not None)
 
     selected_soc_range = st.sidebar.slider("Select SOC Range", min_soc, max_soc, (min_soc, max_soc))
 
-    # Ensure min_temp and max_temp are not None and are numeric
-    if min_temp is None or max_temp is None:
+    if min_temp is not None and max_temp is not None:
+        selected_temp_range = st.sidebar.slider("Select Cell Temp Range", min_temp, max_temp, (min_temp, max_temp))
+    else:
         st.error("Error: Unable to determine the min and max temperature for slider.")
-        min_temp, max_temp = -30, 70  # Default values in case of error
-    elif not (isinstance(min_temp, (int, float)) and isinstance(max_temp, (int, float))):
-        st.error("Error: Temperature values are not numeric.")
-        min_temp, max_temp = -30, 70  # Default values in case of error
-
-    selected_temp_range = st.sidebar.slider("Select Cell Temp Range", min_temp, max_temp, (min_temp, max_temp))
 
     # Filter files based on selected ranges
     filtered_file_info = [
@@ -239,6 +236,8 @@ if file_info:
         if selected_soc_range[0] <= info['SOC'] <= selected_soc_range[1]
         and selected_temp_range[0] <= info['Cell temp mid'] <= selected_temp_range[1]
     ]
+
+####################################################################################
 
 # Set the dark mode style
 plt.style.use('dark_background')
