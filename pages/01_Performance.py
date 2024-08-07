@@ -6,6 +6,7 @@ import urllib.parse
 import re
 from io import StringIO
 import matplotlib.pyplot as plt
+from scipy.ndimage import uniform_filter1d
 import os
 import json
 
@@ -49,11 +50,13 @@ def scan_and_classify_folders(base_url):
                              r"(?P<battery>[^_]+)_"
                              r"(?P<front_motor>[^_]+)_"
                              r"(?P<rear_motor>[^_]+)_"
-                             r"(?P<tuning>[^/]+)")
+                             r"(?P<tuning>[^_]+)_"
+                             r"(?P<acceleration_mode>[^/]+)")
         match = pattern.match(folder_name)
         if match:
             classified = match.groupdict()
             classified['tuning'] = urllib.parse.unquote(classified['tuning'])
+            classified['acceleration_mode'] = urllib.parse.unquote(classified['acceleration_mode'])
             return classified
         else:
             return None
@@ -83,8 +86,8 @@ if not classified_folders:
 def get_unique_values(classified_folders, key, filters={}):
     values = set()
     for folder in classified_folders:
-        match = all(folder[k] in v for k, v in filters.items())
-        if match:
+        match = all(folder[k] in v for k, v in filters.items() if k in folder)
+        if match and key in folder:
             values.add(folder[key])
     return sorted(values)
 
@@ -135,26 +138,6 @@ selected_acceleration_mode = st.sidebar.multiselect("Acceleration Mode", acceler
 if selected_acceleration_mode:
     selected_filters['acceleration_mode'] = selected_acceleration_mode
 
-# Function to classify folder names including Acceleration Mode
-def classify_folder(folder_name):
-    pattern = re.compile(r"(?P<manufacturer>[^_]+)_"
-                         r"(?P<model>[^_]+)_"
-                         r"(?P<variant>[^_]+)_"
-                         r"(?P<model_year>\d+)_"
-                         r"(?P<battery>[^_]+)_"
-                         r"(?P<front_motor>[^_]+)_"
-                         r"(?P<rear_motor>[^_]+)_"
-                         r"(?P<tuning>[^_]+)_"
-                         r"(?P<acceleration_mode>[^/]+)")
-    match = pattern.match(folder_name)
-    if match:
-        classified = match.groupdict()
-        classified['tuning'] = urllib.parse.unquote(classified['tuning'])
-        classified['acceleration_mode'] = urllib.parse.unquote(classified['acceleration_mode'])
-        return classified
-    else:
-        return None
-
 # Function to fetch CSV headers and first valid values
 def fetch_csv_headers_and_first_valid_values(url):
     # Use cached metadata if available
@@ -174,9 +157,8 @@ def fetch_csv_headers_and_first_valid_values(url):
     # Fill forward and backward to handle NaN values
     df = df.fillna(method='ffill').fillna(method='bfill')
     
-# Filter invalid values
-    df = df[(df['SOC'] >= -5) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= -30) & (df['Cell temp mid'] <= 70
-    )]
+    # Filter invalid values
+    df = df[(df['SOC'] >= -5) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= -30) & (df['Cell temp mid'] <= 70)]
     
     # Find the first valid values
     for index, row in df.iterrows():
@@ -193,7 +175,7 @@ def fetch_csv_headers_and_first_valid_values(url):
 
 # Filter folders based on selections
 filtered_folders = [f for f in classified_folders if
-                    all(f[k] in v for k, v in selected_filters.items())]
+                    all(f[k] in v for k, v in selected_filters.items() if k in f)]
 
 # Initialize an empty list to collect file information
 file_info = []
@@ -238,9 +220,6 @@ if file_info:
         if selected_soc_range[0] <= info['SOC'] <= selected_soc_range[1]
         and selected_temp_range[0] <= info['Cell temp mid'] <= selected_temp_range[1]
     ]
-
-import matplotlib.pyplot as plt
-from scipy.ndimage import uniform_filter1d
 
 # Set the dark mode style
 plt.style.use('dark_background')
@@ -314,4 +293,3 @@ if selected_x_axis and selected_columns and filtered_file_info:
     st.pyplot(fig)
 else:
     st.write("Please select an X-axis and at least one column to plot.")
-
