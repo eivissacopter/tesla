@@ -171,6 +171,10 @@ def fetch_csv_headers_and_first_valid_values(url):
         metadata_cache[url] = {'headers': headers, 'SOC': None, 'Cell temp mid': None}
         return headers, None, None
     
+    # Fill forward and backward to handle NaN values
+    df['SOC'] = df['SOC'].fillna(method='ffill').fillna(method='bfill')
+    df['Cell temp mid'] = df['Cell temp mid'].fillna(method='ffill').fillna(method='bfill')
+    
     # Filter invalid values
     df = df[(df['SOC'] >= -5) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= -30) & (df['Cell temp mid'] <= 70)]
     
@@ -224,31 +228,22 @@ save_metadata_cache(metadata_cache)
 if file_info:
     min_soc = min(info['SOC'] for info in file_info)
     max_soc = max(info['SOC'] for info in file_info)
-    
-    valid_temp_values = [info['Cell temp mid'] for info in file_info if info['Cell temp mid'] is not None]
-    if valid_temp_values:
-        min_temp = min(valid_temp_values)
-        max_temp = max(valid_temp_values)
-    else:
-        min_temp = None
-        max_temp = None
+    min_temp = min(info['Cell temp mid'] for info in file_info if info['Cell temp mid'] is not None)
+    max_temp = max(info['Cell temp mid'] for info in file_info if info['Cell temp mid'] is not None)
 
     selected_soc_range = st.sidebar.slider("Select SOC Range", min_soc, max_soc, (min_soc, max_soc))
 
-    if min_temp is not None and max_temp is not None and min_temp < max_temp:
+    if min_temp is not None and max_temp is not None:
         selected_temp_range = st.sidebar.slider("Select Cell Temp Range", min_temp, max_temp, (min_temp, max_temp))
-        # Filter files based on selected ranges
-        filtered_file_info = [
-            info for info in file_info
-            if selected_soc_range[0] <= info['SOC'] <= selected_soc_range[1]
-            and selected_temp_range[0] <= info['Cell temp mid'] <= selected_temp_range[1]
-        ]
     else:
-        st.error("Error: Unable to determine the min and max temperature for slider. Ensure temperature data is valid.")
-        filtered_file_info = [
-            info for info in file_info
-            if selected_soc_range[0] <= info['SOC'] <= selected_soc_range[1]
-        ]
+        st.error("Error: Unable to determine the min and max temperature for slider.")
+
+    # Filter files based on selected ranges
+    filtered_file_info = [
+        info for info in file_info
+        if selected_soc_range[0] <= info['SOC'] <= selected_soc_range[1]
+        and (min_temp is None or selected_temp_range[0] <= info['Cell temp mid'] <= selected_temp_range[1])
+    ]
 
 ####################################################################################
 
