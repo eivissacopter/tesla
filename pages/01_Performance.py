@@ -132,9 +132,11 @@ file_info = []
 # Collect SOC and Cell temp mid values
 if filtered_folders:
     for folder in filtered_folders:
+        st.write(f"Processing directory: {folder['path']}")
         response = requests.get(folder['path'])
         soup = BeautifulSoup(response.content, 'html.parser')
         files = [a['href'] for a in soup.find_all('a', href=True) if a['href'].endswith('.csv')]
+        st.write(f"Found files: {files}")
         for file in files:
             file_url = urllib.parse.urljoin(folder['path'], file)
             headers, values = fetch_csv_headers_and_values(file_url)
