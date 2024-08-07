@@ -5,8 +5,7 @@ import pandas as pd
 import urllib.parse
 import re
 from io import StringIO
-import matplotlib.pyplot as plt
-from scipy.ndimage import uniform_filter1d
+import plotly.express as px
 import os
 import json
 
@@ -274,9 +273,9 @@ selected_x_axis = "Speed"
 st.sidebar.subheader("Additional Options")
 show_legend = st.sidebar.checkbox("Show Legend", value=False)
 
-# Plotting the data
+# Plotting the data using Plotly
 if selected_x_axis and selected_columns and filtered_file_info:
-    fig, ax = plt.subplots(figsize=(10, 6))
+    plot_data = []
 
     for info in filtered_file_info:
         response = requests.get(info['path'])
@@ -299,17 +298,28 @@ if selected_x_axis and selected_columns and filtered_file_info:
             if isinstance(y_col, list):
                 for sub_col in y_col:
                     smoothed_y = uniform_filter1d(df[sub_col], size=15)
-                    ax.plot(df[selected_x_axis], smoothed_y, label=f"{info['name']} - {sub_col}")
+                    plot_data.append(pd.DataFrame({
+                        'X': df[selected_x_axis],
+                        'Y': smoothed_y,
+                        'Label': f"{info['name']} - {sub_col}"
+                    }))
             else:
                 smoothed_y = uniform_filter1d(df[y_col], size=15)
-                ax.plot(df[selected_x_axis], smoothed_y, label=f"{info['name']} - {column}")
+                plot_data.append(pd.DataFrame({
+                    'X': df[selected_x_axis],
+                    'Y': smoothed_y,
+                    'Label': f"{info['name']} - {column}"
+                }))
 
-    ax.set_xlabel(selected_x_axis)
-    ax.set_ylabel("Values" if len(selected_columns) > 1 else selected_columns[0])
-    ax.set_title("Performance Data Plot")
-    if show_legend:
-        ax.legend(loc='best')
-    ax.grid(True)
-    st.pyplot(fig)
+    if plot_data:
+        plot_df = pd.concat(plot_data)
+        fig = px.line(plot_df, x='X', y='Y', color='Label', labels={'X': selected_x_axis, 'Y': 'Values'})
+        fig.update_layout(title="Performance Data Plot", xaxis_title=selected_x_axis, yaxis_title="Values" if len(selected_columns) > 1 else selected_columns[0])
+        if show_legend:
+            fig.update_layout(showlegend=True)
+        else:
+            fig.update_layout(showlegend=False)
+
+        st.plotly_chart(fig, use_container_width=True)
 else:
     st.write("Please select an X-axis and at least one column to plot.")
