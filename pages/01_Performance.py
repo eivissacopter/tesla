@@ -246,9 +246,6 @@ if file_info:
 
 ####################################################################################
 
-# Set the dark mode style
-plt.style.use('dark_background')
-
 # Y-Axis selection checkboxes
 st.sidebar.subheader("Select Y-Axis")
 columns_to_plot = {
