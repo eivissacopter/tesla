@@ -30,11 +30,13 @@ def scan_and_classify_folders(base_url):
                              r"(?P<battery>[^_]+)_"
                              r"(?P<front_motor>[^_]+)_"
                              r"(?P<rear_motor>[^_]+)_"
-                             r"(?P<tuning>[^/]+)")
+                             r"(?P<tuning>[^_]+)_"
+                             r"(?P<acceleration_mode>[^/]+)")
         match = pattern.match(folder_name)
         if match:
             classified = match.groupdict()
             classified['tuning'] = urllib.parse.unquote(classified['tuning'])
+            classified['acceleration_mode'] = urllib.parse.unquote(classified['acceleration_mode'])
             return classified
         else:
             return None
@@ -109,6 +111,12 @@ tunings = get_unique_values(classified_folders, 'tuning', selected_filters)
 selected_tuning = st.sidebar.multiselect("Tuning", tunings)
 if selected_tuning:
     selected_filters['tuning'] = selected_tuning
+
+# Acceleration Mode filter
+acceleration_modes = get_unique_values(classified_folders, 'acceleration_mode', selected_filters)
+selected_acceleration_mode = st.sidebar.multiselect("Acceleration Mode", acceleration_modes)
+if selected_acceleration_mode:
+    selected_filters['acceleration_mode'] = selected_acceleration_mode
 
 # Function to fetch CSV headers and first valid values
 def fetch_csv_headers_and_first_valid_values(url):
@@ -200,19 +208,31 @@ columns_to_plot = {
     "Battery Current": "Battery current",
     "Battery Voltage": "Battery voltage"
 }
-selected_columns = st.sidebar.multiselect("Select Columns to Plot (Y-Axis)", list(columns_to_plot.keys()))
+selected_columns = []
+for label, column in columns_to_plot.items():
+    if st.sidebar.checkbox(label, key=f"y_{label}"):
+        selected_columns.append(column)
 
-# Show legend option
+# Checkbox for showing legend
 show_legend = st.sidebar.checkbox("Show Legend", value=True)
 
 # Function to fetch and process data with caching
-@st.cache_data(ttl=3600)
-def fetch_and_process_data(url):
-    response = requests.get(url)
+@st.cache_data
+def fetch_and_process_data(file_url):
+    response = requests.get(file_url)
     content = response.content.decode('utf-8')
     df = pd.read_csv(StringIO(content))
+
+    # Fill forward and backward to handle NaN values
     df = df.fillna(method='ffill').fillna(method='bfill')
+
+    # Filter invalid values
     df = df[(df['SOC'] >= -5) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= -30) & (df['Cell temp mid'] <= 70)]
+
+    # Filter by accelerator pedal value if column exists
+    if 'Accelerator Pedal' in df.columns:
+        df = df[df['Accelerator Pedal'] == 100]
+
     return df
 
 # Plotting the data
@@ -223,12 +243,13 @@ if selected_x_axis and selected_columns and filtered_file_info:
         df = fetch_and_process_data(info['path'])
 
         # Plot selected columns
-        for col in selected_columns:
-            y_col = columns_to_plot[col]
-            if isinstance(y_col, list):
-                df['Combined'] = df[y_col[0]] + df[y_col[1]]
-                y_col = 'Combined'
-            ax.plot(df[selected_x_axis], df[y_col], label=f"{info['name']} - {col}")
+        for column in selected_columns:
+            if isinstance(column, list):
+                combined_column_name = ' + '.join(column)
+                df[combined_column_name] = df[column[0]] + df[column[1]]
+                ax.plot(df[selected_x_axis], df[combined_column_name], label=f"{info['name']} - {combined_column_name}")
+            else:
+                ax.plot(df[selected_x_axis], df[column], label=f"{info['name']} - {column}")
 
     ax.set_xlabel(selected_x_axis)
     ax.set_ylabel("Values")
