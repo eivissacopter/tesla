@@ -262,6 +262,8 @@ selected_x_axis = "Speed"
 st.sidebar.subheader("Additional Options")
 show_legend = st.sidebar.checkbox("Show Legend", value=False)
 
+####################################################################################################
+
 # Plotting the data using Plotly
 if selected_x_axis and selected_columns and filtered_file_info:
     plot_data = []
@@ -286,14 +288,14 @@ if selected_x_axis and selected_columns and filtered_file_info:
             y_col = columns_to_plot[column]
             if isinstance(y_col, list):
                 for sub_col in y_col:
-                    smoothed_y = df[sub_col].rolling(window=15).mean()
+                    smoothed_y = uniform_filter1d(df[sub_col], size=15)
                     plot_data.append(pd.DataFrame({
                         'X': df[selected_x_axis],
                         'Y': smoothed_y,
                         'Label': f"{info['name']} - {sub_col}"
                     }))
             else:
-                smoothed_y = df[y_col].rolling(window=15).mean()
+                smoothed_y = uniform_filter1d(df[y_col], size=15)
                 plot_data.append(pd.DataFrame({
                     'X': df[selected_x_axis],
                     'Y': smoothed_y,
@@ -303,11 +305,25 @@ if selected_x_axis and selected_columns and filtered_file_info:
     if plot_data:
         plot_df = pd.concat(plot_data)
         fig = px.line(plot_df, x='X', y='Y', color='Label', labels={'X': selected_x_axis, 'Y': 'Values'})
-        fig.update_layout(title="Performance Data Plot", xaxis_title=selected_x_axis, yaxis_title="Values" if len(selected_columns) > 1 else selected_columns[0])
+        fig.update_layout(
+            title="Performance Data Plot",
+            xaxis_title=selected_x_axis,
+            yaxis_title="Values" if len(selected_columns) > 1 else selected_columns[0],
+            autosize=True,
+            height=None
+        )
         if show_legend:
             fig.update_layout(showlegend=True)
         else:
             fig.update_layout(showlegend=False)
+
+        # Set the Plotly chart to be responsive
+        fig.update_layout(
+            margin=dict(l=20, r=20, t=30, b=20),
+            modebar=dict(orientation='v'),
+            autosize=True,
+            height=None
+        )
 
         st.plotly_chart(fig, use_container_width=True)
 else:
