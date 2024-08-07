@@ -193,10 +193,6 @@ if file_info:
 # Add the plotting options for X and Y axes in the sidebar
 st.sidebar.header("Plotting Options")
 
-# X-Axis selection with checkboxes
-x_axis_options = ["Speed", "Time"]
-selected_x_axis = st.sidebar.radio("Select X-Axis", x_axis_options, index=0)
-
 # Y-Axis selection checkboxes
 st.sidebar.subheader("Select Y-Axis")
 columns_to_plot = {
@@ -211,7 +207,15 @@ columns_to_plot = {
     "Battery Current": "Battery current",
     "Battery Voltage": "Battery voltage"
 }
-selected_columns = st.sidebar.multiselect("Select Columns to Plot (Y-Axis)", list(columns_to_plot.keys()), default=[])
+selected_columns = []
+for label in columns_to_plot.keys():
+    if st.sidebar.checkbox(label, key=f"y_{label}"):
+        selected_columns.append(label)
+
+# X-Axis selection with radio buttons
+st.sidebar.subheader("Select X-Axis")
+x_axis_options = ["Speed", "Time"]
+selected_x_axis = st.sidebar.radio("Select X-Axis", x_axis_options, index=0)
 
 # Additional options
 st.sidebar.subheader("Additional Options")
