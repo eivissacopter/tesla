@@ -215,53 +215,28 @@ def fetch_and_process_data(url):
     df = df[(df['SOC'] >= -5) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= -30) & (df['Cell temp mid'] <= 70)]
     return df
 
-# Only plot if at least one column is selected for X-Axis
-if selected_x_axis and selected_columns:
+# Plotting the data
+if selected_x_axis and selected_columns and filtered_file_info:
     fig, ax = plt.subplots(figsize=(10, 6))
-    for file in filtered_file_info:
-        df = fetch_and_process_data(file['path'])
-        
+
+    for info in filtered_file_info:
+        df = fetch_and_process_data(info['path'])
+
+        # Plot selected columns
         for col in selected_columns:
             y_col = columns_to_plot[col]
             if isinstance(y_col, list):
                 df['Combined'] = df[y_col[0]] + df[y_col[1]]
                 y_col = 'Combined'
-            ax.plot(df[selected_x_axis], df[y_col], label=f"{file['name']} - {col.split()[0]}")
+            ax.plot(df[selected_x_axis], df[y_col], label=f"{info['name']} - {col}")
 
     ax.set_xlabel(selected_x_axis)
     ax.set_ylabel("Values")
     ax.set_title("Performance Data Plot")
-    ax.legend(loc='best')
-    st.pyplot(fig)
-
-# Plotting the data
-if selected_x_column and selected_columns and filtered_file_info:
-    fig, ax = plt.subplots(figsize=(10, 6))
-
-    for info in filtered_file_info:
-        response = requests.get(info['path'])
-        content = response.content.decode('utf-8')
-        df = pd.read_csv(StringIO(content))
-
-        # Fill forward and backward to handle NaN values
-        df = df.fillna(method='ffill').fillna(method='bfill')
-
-        # Filter invalid values
-        df = df[(df['SOC'] >= -5) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= -30) & (df['Cell temp mid'] <= 70)]
-
-        # Plot selected columns
-        for column in selected_columns:
-            if isinstance(column, list):
-                combined_column_name = ' + '.join(column)
-                df[combined_column_name] = df[column[0]] + df[column[1]]
-                ax.plot(df[selected_x_column], df[combined_column_name], label=f"{info['name']} - {combined_column_name}")
-            else:
-                ax.plot(df[selected_x_column], df[column], label=f"{info['name']} - {column}")
-
-    ax.set_xlabel(selected_x_column if not isinstance(selected_x_column, list) else 'Combined Motor Power (F+R)')
-    ax.set_ylabel(selected_y_column)
-    ax.legend()
+    if show_legend:
+        ax.legend(loc='best')
     ax.grid(True)
     st.pyplot(fig)
 else:
     st.write("Please select an X-axis and at least one column to plot.")
+
