@@ -6,6 +6,7 @@ import urllib.parse
 import re
 from io import StringIO
 import plotly.express as px
+import plotly.graph_objects as go
 import os
 import json
 from scipy.ndimage import uniform_filter1d
@@ -269,50 +270,41 @@ show_legend = st.sidebar.checkbox("Show Legend", value=False)
 if selected_x_axis and selected_columns and filtered_file_info:
     plot_data = []
 
-    for info in filtered_file_info:
-        response = requests.get(info['path'])
-        content = response.content.decode('utf-8')
-        df = pd.read_csv(StringIO(content))
-
-        # Fill forward and backward to handle NaN values
-        df = df.fillna(method='ffill').fillna(method='bfill')
-
-        # Filter invalid values
-        df = df[(df['SOC'] >= -5) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= -30) & (df['Cell temp mid'] <= 70)]
-
-        # Filter rows where Accelerator Pedal is not 100 if the column exists
-        if 'Accelerator Pedal' in df.columns:
-            df = df[df['Accelerator Pedal'] == 100]
-
-        # Plot selected columns
-        for column in selected_columns:
-            y_col = columns_to_plot[column]
-            if isinstance(y_col, list):
-                for sub_col in y_col:
-                    smoothed_y = df[sub_col].rolling(window=15).mean()
-                    plot_data.append(pd.DataFrame({
-                        'X': df[selected_x_axis],
-                        'Y': smoothed_y,
-                        'Label': f"{info['name']} - {sub_col}"
-                    }))
-            else:
-                smoothed_y = df[y_col].rolling(window=15).mean()
+    for column in selected_columns:
+        y_col = columns_to_plot[column]
+        if isinstance(y_col, list):
+            for sub_col in y_col:
+                smoothed_y = df[sub_col].rolling(window=15).mean()
                 plot_data.append(pd.DataFrame({
                     'X': df[selected_x_axis],
                     'Y': smoothed_y,
-                    'Label': f"{info['name']} - {column}"
+                    'Label': f"{legend_label} - {sub_col}"
                 }))
-
-    if plot_data:
-        plot_df = pd.concat(plot_data)
-        fig = px.line(plot_df, x='X', y='Y', color='Label', labels={'X': selected_x_axis, 'Y': 'Values'})
-        fig.update_layout(title="Performance Data Plot", xaxis_title=selected_x_axis, yaxis_title="Values" if len(selected_columns) > 1 else selected_columns[0])
-        if show_legend:
-            fig.update_layout(showlegend=True)
         else:
-            fig.update_layout(showlegend=False)
+            smoothed_y = df[y_col].rolling(window=15).mean()
+            plot_data.append(pd.DataFrame({
+                'X': df[selected_x_axis],
+                'Y': smoothed_y,
+                'Label': f"{legend_label} - {column}"
+            }))
 
-        st.plotly_chart(fig, use_container_width=True)
+if plot_data:
+    plot_df = pd.concat(plot_data)
+    fig = px.line(plot_df, x='X', y='Y', color='Label', labels={'X': selected_x_axis, 'Y': 'Values'})
+    fig.update_layout(title="Performance Data Plot", xaxis_title=selected_x_axis, yaxis_title="Values" if len(selected_columns) > 1 else selected_columns[0])
+    if show_legend:
+        fig.update_layout(showlegend=True)
+        fig.update_layout(legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=-0.25,  # Position the legend below the plot
+            xanchor="center",
+            x=0.5
+        ))
+    else:
+        fig.update_layout(showlegend=False)
+
+    st.plotly_chart(fig, use_container_width=True)
 else:
     st.write("Please select an X-axis and at least one column to plot.")
 
