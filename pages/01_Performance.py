@@ -213,9 +213,12 @@ for label in columns_to_plot.keys():
         selected_columns.append(label)
 
 # X-Axis selection with radio buttons
-st.sidebar.subheader("Select X-Axis")
-x_axis_options = ["Speed", "Time"]
-selected_x_axis = st.sidebar.radio("", x_axis_options, index=0)
+#st.sidebar.subheader("Select X-Axis")
+#x_axis_options = ["Speed", "Time"]
+#selected_x_axis = st.sidebar.radio("", x_axis_options, index=0)
+
+# X-Axis selection with radio buttons without a subheader
+st.sidebar.radio("Select X-Axis", x_axis_options, index=0)
 
 # Additional options
 st.sidebar.subheader("Additional Options")
