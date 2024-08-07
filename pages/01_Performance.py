@@ -52,38 +52,72 @@ BASE_URL = "https://nginx.eivissacopter.com/smt/"
 classified_folders = scan_and_classify_folders(BASE_URL)
 
 # Create dynamic filters based on the classified information
-manufacturers = list(set([f['manufacturer'] for f in classified_folders]))
-models = list(set([f['model'] for f in classified_folders]))
-variants = list(set([f['variant'] for f in classified_folders]))
-model_years = list(set([f['model_year'] for f in classified_folders]))
-batteries = list(set([f['battery'] for f in classified_folders]))
-front_motors = list(set([f['front_motor'] for f in classified_folders]))
-rear_motors = list(set([f['rear_motor'] for f in classified_folders]))
-tunings = list(set([f['tuning'] for f in classified_folders]))
+def get_unique_values(classified_folders, key, filters={}):
+    values = set()
+    for folder in classified_folders:
+        match = all(folder[k] in v for k, v in filters.items())
+        if match:
+            values.add(folder[key])
+    return sorted(values)
+
+selected_filters = {}
 
 # Sidebar filters
 st.sidebar.header("Filter Options")
-selected_manufacturer = st.sidebar.multiselect("Select Manufacturer", manufacturers)
-selected_model = st.sidebar.multiselect("Select Model", models)
-selected_variant = st.sidebar.multiselect("Select Variant", variants)
-selected_model_year = st.sidebar.multiselect("Select Model Year", model_years)
-selected_battery = st.sidebar.multiselect("Select Battery", batteries)
-selected_front_motor = st.sidebar.multiselect("Select Front Motor", front_motors)
-selected_rear_motor = st.sidebar.multiselect("Select Rear Motor", rear_motors)
-selected_tuning = st.sidebar.multiselect("Select Tuning", tunings)
+
+# Manufacturer filter
+manufacturers = get_unique_values(classified_folders, 'manufacturer')
+selected_manufacturer = st.sidebar.multiselect("Manufacturer", manufacturers)
+if selected_manufacturer:
+    selected_filters['manufacturer'] = selected_manufacturer
+
+# Model filter
+models = get_unique_values(classified_folders, 'model', selected_filters)
+selected_model = st.sidebar.multiselect("Model", models)
+if selected_model:
+    selected_filters['model'] = selected_model
+
+# Variant filter
+variants = get_unique_values(classified_folders, 'variant', selected_filters)
+selected_variant = st.sidebar.multiselect("Variant", variants)
+if selected_variant:
+    selected_filters['variant'] = selected_variant
+
+# Model Year filter
+model_years = get_unique_values(classified_folders, 'model_year', selected_filters)
+selected_model_year = st.sidebar.multiselect("Model Year", model_years)
+if selected_model_year:
+    selected_filters['model_year'] = selected_model_year
+
+# Battery filter
+batteries = get_unique_values(classified_folders, 'battery', selected_filters)
+selected_battery = st.sidebar.multiselect("Battery", batteries)
+if selected_battery:
+    selected_filters['battery'] = selected_battery
+
+# Front Motor filter
+front_motors = get_unique_values(classified_folders, 'front_motor', selected_filters)
+selected_front_motor = st.sidebar.multiselect("Front Motor", front_motors)
+if selected_front_motor:
+    selected_filters['front_motor'] = selected_front_motor
+
+# Rear Motor filter
+rear_motors = get_unique_values(classified_folders, 'rear_motor', selected_filters)
+selected_rear_motor = st.sidebar.multiselect("Rear Motor", rear_motors)
+if selected_rear_motor:
+    selected_filters['rear_motor'] = selected_rear_motor
+
+# Tuning filter
+tunings = get_unique_values(classified_folders, 'tuning', selected_filters)
+selected_tuning = st.sidebar.multiselect("Tuning", tunings)
+if selected_tuning:
+    selected_filters['tuning'] = selected_tuning
 
 # Filter folders based on selections
 filtered_folders = [f for f in classified_folders if
-                    (not selected_manufacturer or f['manufacturer'] in selected_manufacturer) and
-                    (not selected_model or f['model'] in selected_model) and
-                    (not selected_variant or f['variant'] in selected_variant) and
-                    (not selected_model_year or f['model_year'] in selected_model_year) and
-                    (not selected_battery or f['battery'] in selected_battery) and
-                    (not selected_front_motor or f['front_motor'] in selected_front_motor) and
-                    (not selected_rear_motor or f['rear_motor'] in selected_rear_motor) and
-                    (not selected_tuning or f['tuning'] in selected_tuning)]
+                    all(f[k] in v for k, v in selected_filters.items())]
 
-# Display selected path
+# Display selected paths
 if filtered_folders:
     st.sidebar.write("Filtered Paths:")
     for folder in filtered_folders:
