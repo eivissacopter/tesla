@@ -6,7 +6,6 @@ import urllib.parse
 import re
 from io import StringIO
 import plotly.express as px
-from scipy.ndimage import uniform_filter1d
 import os
 import json
 
@@ -61,6 +60,16 @@ def scan_and_classify_folders(base_url):
         else:
             return None
 
+    classified_folders = []
+    dirs = parse_directory(base_url)
+    for d in dirs:
+        full_path = urllib.parse.urljoin(base_url, d)
+        classification = classify_folder(d.strip('/'))
+        if classification:
+            classification['path'] = full_path
+            classified_folders.append(classification)
+    return classified_folders
+
 # Base URL for scanning the root folder
 BASE_URL = "https://nginx.eivissacopter.com/smt/"
 
@@ -82,8 +91,6 @@ def get_unique_values(classified_folders, key, filters={}):
     return sorted(values)
 
 selected_filters = {}
-
-###################################################################################
 
 # Sidebar filters
 st.sidebar.header("Filter Options")
@@ -142,8 +149,6 @@ acceleration_modes_ordered = ["Chill", "Standard", "Sport"]
 selected_acceleration_mode = st.sidebar.multiselect("Acceleration Mode", acceleration_modes_ordered, default=acceleration_modes_ordered if len(acceleration_modes_ordered) == 1 else [])
 if selected_acceleration_mode:
     selected_filters['acceleration_mode'] = selected_acceleration_mode
-
-#################################################################################################
 
 # Function to fetch CSV headers and first valid values
 def fetch_csv_headers_and_first_valid_values(url):
@@ -212,8 +217,6 @@ if filtered_folders:
 # Save metadata cache
 save_metadata_cache(metadata_cache)
 
-#############################################################################
-
 # Sidebar sliders for SOC and Cell temp mid
 if file_info:
     min_soc = min(info['SOC'] for info in file_info)
@@ -234,8 +237,6 @@ if file_info:
         if selected_soc_range[0] <= info['SOC'] <= selected_soc_range[1]
         and (min_temp is None or selected_temp_range[0] <= info['Cell temp mid'] <= selected_temp_range[1])
     ]
-
-####################################################################################
 
 # Y-Axis selection checkboxes
 st.sidebar.subheader("Select Y-Axis")
@@ -285,14 +286,14 @@ if selected_x_axis and selected_columns and filtered_file_info:
             y_col = columns_to_plot[column]
             if isinstance(y_col, list):
                 for sub_col in y_col:
-                    smoothed_y = uniform_filter1d(df[sub_col], size=15)
+                    smoothed_y = df[sub_col].rolling(window=15).mean()
                     plot_data.append(pd.DataFrame({
                         'X': df[selected_x_axis],
                         'Y': smoothed_y,
                         'Label': f"{info['name']} - {sub_col}"
                     }))
             else:
-                smoothed_y = uniform_filter1d(df[y_col], size=15)
+                smoothed_y = df[y_col].rolling(window=15).mean()
                 plot_data.append(pd.DataFrame({
                     'X': df[selected_x_axis],
                     'Y': smoothed_y,
@@ -310,4 +311,4 @@ if selected_x_axis and selected_columns and filtered_file_info:
 
         st.plotly_chart(fig, use_container_width=True)
 else:
-    st.write("Please select at least one column to plot.")
+    st.write("Please select an X-axis and at least one column to plot.")
