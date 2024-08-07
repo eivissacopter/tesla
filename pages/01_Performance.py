@@ -25,6 +25,8 @@ def fetch_and_cache_csv_files(base_url, max_depth=5):
     csv_files_data = {}
 
     def build_structure(url, parent_structure, depth):
+        if 'smt' not in url:
+            return  # Only consider URLs within the 'smt' directory
         dirs, files = parse_directory(url, depth)
         if not dirs and not files:
             st.warning(f"No directories or files found at {url}.")
