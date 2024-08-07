@@ -17,7 +17,7 @@ def fetch_and_cache_csv_files(base_url, max_depth=3):
             return [], []
         response = requests.get(url)
         soup = BeautifulSoup(response.content, 'html.parser')
-        dirs = [a['href'] for a in soup.find_all('a', href=True) if a['href'].endswith('/') and 'smt' in a['href']]
+        dirs = [a['href'] for a in soup.find_all('a', href=True) if a['href'].endswith('/')]
         files = [a['href'] for a in soup.find_all('a', href=True) if a['href'].endswith('.csv')]
         return dirs, files
 
@@ -30,10 +30,14 @@ def fetch_and_cache_csv_files(base_url, max_depth=3):
             st.warning(f"No directories or files found at {url}.")
         for d in dirs:
             full_path = urllib.parse.urljoin(url, d)
+            if 'smt' not in full_path:
+                continue
             parent_structure[d] = {}
             build_structure(full_path, parent_structure[d], depth + 1)
         for f in files:
             full_path = urllib.parse.urljoin(url, f)
+            if 'smt' not in full_path:
+                continue
             parent_structure[f] = full_path
             # Download and cache the CSV file
             try:
