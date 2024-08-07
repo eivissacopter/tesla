@@ -129,6 +129,32 @@ selected_tuning = st.sidebar.multiselect("Tuning", tunings)
 if selected_tuning:
     selected_filters['tuning'] = selected_tuning
 
+# Acceleration Mode filter
+acceleration_modes = get_unique_values(classified_folders, 'acceleration_mode', selected_filters)
+selected_acceleration_mode = st.sidebar.multiselect("Acceleration Mode", acceleration_modes)
+if selected_acceleration_mode:
+    selected_filters['acceleration_mode'] = selected_acceleration_mode
+
+# Function to classify folder names including Acceleration Mode
+def classify_folder(folder_name):
+    pattern = re.compile(r"(?P<manufacturer>[^_]+)_"
+                         r"(?P<model>[^_]+)_"
+                         r"(?P<variant>[^_]+)_"
+                         r"(?P<model_year>\d+)_"
+                         r"(?P<battery>[^_]+)_"
+                         r"(?P<front_motor>[^_]+)_"
+                         r"(?P<rear_motor>[^_]+)_"
+                         r"(?P<tuning>[^_]+)_"
+                         r"(?P<acceleration_mode>[^/]+)")
+    match = pattern.match(folder_name)
+    if match:
+        classified = match.groupdict()
+        classified['tuning'] = urllib.parse.unquote(classified['tuning'])
+        classified['acceleration_mode'] = urllib.parse.unquote(classified['acceleration_mode'])
+        return classified
+    else:
+        return None
+
 # Function to fetch CSV headers and first valid values
 def fetch_csv_headers_and_first_valid_values(url):
     # Use cached metadata if available
