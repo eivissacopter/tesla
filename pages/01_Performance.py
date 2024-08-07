@@ -193,16 +193,16 @@ if file_info:
 # Y-Axis selection checkboxes
 st.sidebar.subheader("Select Y-Axis")
 columns_to_plot = {
-    "Max Discharge Power": "Max discharge power",
-    "Battery Power": "Battery power",
-    "Front Power": "F power",
-    "Rear Power": "R power",
-    "Combined Motor Power (F+R)": ["F power", "R power"],
-    "Front Torque": "F torque",
-    "Rear Torque": "R torque",
-    "Combined Motor Torque (F+R)": ["F torque", "R torque"],
-    "Battery Current": "Battery current",
-    "Battery Voltage": "Battery voltage"
+    "Max Discharge Power [kW]": "Max discharge power",
+    "Battery Power [kW]": "Battery power",
+    "Front Power [kW]": "F power",
+    "Rear Power [kW]": "R power",
+    "Combined Motor Power [kW]": ["F power", "R power"],
+    "Front Torque [Nm]": "F torque",
+    "Rear Torque [Nm]": "R torque",
+    "Combined Motor Torque [Nm]": ["F torque", "R torque"],
+    "Battery Current [A]": "Battery current",
+    "Battery Voltage [V]": "Battery voltage"
 }
 selected_columns = []
 for label in columns_to_plot.keys():
