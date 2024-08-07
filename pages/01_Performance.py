@@ -120,15 +120,15 @@ def fetch_csv_headers_and_values(url):
     response = requests.get(url)
     content = response.content.decode('utf-8')
     df = pd.read_csv(StringIO(content))
-    
-    # Filter out implausible values before filling
-    df = df[(df['SOC'].between(0, 100)) & (df['Cell temp mid'].between(-30, 70))]
-    
-    # Fill missing values
-    df = df.fillna(method='ffill').fillna(method='bfill')
-    
-    # Check if necessary columns exist
+
+    # Check if necessary columns exist before any operation
     if 'SOC' in df.columns and 'Cell temp mid' in df.columns:
+        # Filter out implausible values before filling
+        df = df[(df['SOC'].between(0, 100)) & (df['Cell temp mid'].between(-30, 70))]
+        
+        # Fill missing values
+        df = df.fillna(method='ffill').fillna(method='bfill')
+        
         soc_value = df['SOC'].iloc[0] if not pd.isna(df['SOC'].iloc[0]) else None
         temp_value = df['Cell temp mid'].iloc[0] if not pd.isna(df['Cell temp mid'].iloc[0]) else None
     else:
