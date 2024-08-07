@@ -223,11 +223,15 @@ if file_info:
 
     selected_soc_range = st.sidebar.slider("Select SOC Range", min_soc, max_soc, (min_soc, max_soc))
 
-    # Ensure min_temp and max_temp are not None
+    # Ensure min_temp and max_temp are not None and are numeric
     if min_temp is None or max_temp is None:
         st.error("Error: Unable to determine the min and max temperature for slider.")
-    else:
-        selected_temp_range = st.sidebar.slider("Select Cell Temp Range", min_temp, max_temp, (min_temp, max_temp))
+        min_temp, max_temp = -30, 70  # Default values in case of error
+    elif not (isinstance(min_temp, (int, float)) and isinstance(max_temp, (int, float))):
+        st.error("Error: Temperature values are not numeric.")
+        min_temp, max_temp = -30, 70  # Default values in case of error
+
+    selected_temp_range = st.sidebar.slider("Select Cell Temp Range", min_temp, max_temp, (min_temp, max_temp))
 
     # Filter files based on selected ranges
     filtered_file_info = [
