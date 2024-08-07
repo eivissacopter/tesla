@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
-import numpy as np
 import requests
 from bs4 import BeautifulSoup
 from io import StringIO
@@ -19,7 +17,7 @@ def fetch_and_cache_csv_files(base_url, max_depth=3):
             return [], []
         response = requests.get(url)
         soup = BeautifulSoup(response.content, 'html.parser')
-        dirs = [a['href'] for a in soup.find_all('a', href=True) if a['href'].endswith('/')]
+        dirs = [a['href'] for a in soup.find_all('a', href=True) if a['href'].endswith('/') and 'smt' in a['href']]
         files = [a['href'] for a in soup.find_all('a', href=True) if a['href'].endswith('.csv')]
         return dirs, files
 
