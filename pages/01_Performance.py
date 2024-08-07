@@ -274,15 +274,16 @@ if selected_x_axis and selected_columns and filtered_file_info:
         if 'Accelerator Pedal' in df.columns:
             df = df[df['Accelerator Pedal'] == 100]
 
-        # Plot selected columns with smoothing
+        # Plot selected columns
         for column in selected_columns:
             y_col = columns_to_plot[column]
             if isinstance(y_col, list):
-                combined_column_name = 'Combined'
-                df[combined_column_name] = df[y_col[0]] + df[y_col[1]]
-                y_col = combined_column_name
-            smoothed_y = uniform_filter1d(df[y_col], size=5)
-            ax.plot(df[selected_x_axis], smoothed_y, label=f"{info['name']} - {column}")
+                for sub_col in y_col:
+                    smoothed_y = uniform_filter1d(df[sub_col], size=15)
+                    ax.plot(df[selected_x_axis], smoothed_y, label=f"{info['name']} - {sub_col}")
+            else:
+                smoothed_y = uniform_filter1d(df[y_col], size=15)
+                ax.plot(df[selected_x_axis], smoothed_y, label=f"{info['name']} - {column}")
 
     ax.set_xlabel(selected_x_axis)
     ax.set_ylabel("Values" if len(selected_columns) > 1 else selected_columns[0])
@@ -293,3 +294,4 @@ if selected_x_axis and selected_columns and filtered_file_info:
     st.pyplot(fig)
 else:
     st.write("Please select an X-axis and at least one column to plot.")
+
