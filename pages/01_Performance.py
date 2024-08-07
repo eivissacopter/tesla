@@ -93,50 +93,60 @@ def get_unique_values(classified_folders, key, filters={}):
 
 selected_filters = {}
 
+###################################################################################
+
 # Sidebar filters
 st.sidebar.header("Filter Options")
 
+# Prefill function
+def prefill_filter(options, label):
+    if len(options) == 1:
+        return st.sidebar.multiselect(label, options, default=options)
+    return st.sidebar.multiselect(label, options)
+
 # Model filter
 models = get_unique_values(classified_folders, 'model')
-selected_model = st.sidebar.multiselect("Model", models)
+selected_model = prefill_filter(models, "Model")
 if selected_model:
     selected_filters['model'] = selected_model
 
 # Variant filter
 variants = get_unique_values(classified_folders, 'variant', selected_filters)
-selected_variant = st.sidebar.multiselect("Variant", variants)
+selected_variant = prefill_filter(variants, "Variant")
 if selected_variant:
     selected_filters['variant'] = selected_variant
 
 # Model Year filter
 model_years = get_unique_values(classified_folders, 'model_year', selected_filters)
-selected_model_year = st.sidebar.multiselect("Model Year", model_years)
+selected_model_year = prefill_filter(model_years, "Model Year")
 if selected_model_year:
     selected_filters['model_year'] = selected_model_year
 
 # Battery filter
 batteries = get_unique_values(classified_folders, 'battery', selected_filters)
-selected_battery = st.sidebar.multiselect("Battery", batteries)
+selected_battery = prefill_filter(batteries, "Battery")
 if selected_battery:
     selected_filters['battery'] = selected_battery
 
 # Rear Motor filter
 rear_motors = get_unique_values(classified_folders, 'rear_motor', selected_filters)
-selected_rear_motor = st.sidebar.multiselect("Rear Motor", rear_motors)
+selected_rear_motor = prefill_filter(rear_motors, "Rear Motor")
 if selected_rear_motor:
     selected_filters['rear_motor'] = selected_rear_motor
 
 # Tuning filter
 tunings = get_unique_values(classified_folders, 'tuning', selected_filters)
-selected_tuning = st.sidebar.multiselect("Tuning", tunings)
+selected_tuning = prefill_filter(tunings, "Tuning")
 if selected_tuning:
     selected_filters['tuning'] = selected_tuning
 
 # Acceleration Mode filter
 acceleration_modes = get_unique_values(classified_folders, 'acceleration_mode', selected_filters)
-selected_acceleration_mode = st.sidebar.multiselect("Acceleration Mode", acceleration_modes)
+selected_acceleration_mode = prefill_filter(acceleration_modes, "Acceleration Mode")
 if selected_acceleration_mode:
     selected_filters['acceleration_mode'] = selected_acceleration_mode
+
+#################################################################################################
 
 # Function to fetch CSV headers and first valid values
 def fetch_csv_headers_and_first_valid_values(url):
