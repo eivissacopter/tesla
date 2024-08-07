@@ -5,16 +5,15 @@ import plotly.graph_objects as go
 import numpy as np
 import requests
 from bs4 import BeautifulSoup
-import os
 from io import StringIO
 import urllib.parse
 
 # Set page config
 st.set_page_config(page_title="Tesla Performance Analysis", page_icon=":racing_car:", layout="wide")
 
-# Function to fetch directory structure from the given URL
+# Function to fetch directory structure and CSV files from the given URL
 @st.cache_data(ttl=600)
-def fetch_directory_structure(base_url):
+def fetch_and_cache_csv_files(base_url):
     def parse_directory(url):
         response = requests.get(url)
         soup = BeautifulSoup(response.content, 'html.parser')
@@ -23,6 +22,7 @@ def fetch_directory_structure(base_url):
         return dirs, files
 
     directory_structure = {}
+    csv_files_data = {}
 
     def build_structure(url, parent_structure):
         dirs, files = parse_directory(url)
@@ -33,16 +33,20 @@ def fetch_directory_structure(base_url):
         for f in files:
             full_path = urllib.parse.urljoin(url, f)
             parent_structure[f] = full_path
+            # Download and cache the CSV file
+            response = requests.get(full_path)
+            csv_content = response.content.decode('utf-8')
+            csv_files_data[full_path] = pd.read_csv(StringIO(csv_content))
 
     base_url = base_url if base_url.endswith('/') else base_url + '/'
     build_structure(base_url, directory_structure)
-    return directory_structure
+    return directory_structure, csv_files_data
 
 # Base URL for CSV files
 BASE_URL = "https://nginx.eivissacopter.com/smt/"
 
-# Fetch directory structure
-directory_structure = fetch_directory_structure(BASE_URL)
+# Fetch directory structure and CSV files
+directory_structure, csv_files_data = fetch_and_cache_csv_files(BASE_URL)
 
 # Sidebar filters
 st.sidebar.header("Filter Options")
@@ -61,15 +65,8 @@ csv_file_url, selected_keys = get_options_from_structure(directory_structure)
 # Display the selected path
 st.sidebar.write("Selected Path: " + " / ".join(selected_keys))
 
-# Function to read CSV file from URL
-@st.cache_data(ttl=600)
-def load_csv_from_url(url):
-    response = requests.get(url)
-    csv_content = response.content.decode('utf-8')
-    return pd.read_csv(StringIO(csv_content))
-
-# Load the selected CSV file
-data = load_csv_from_url(csv_file_url)
+# Load the selected CSV file from cache
+data = csv_files_data[csv_file_url]
 
 # Display the data
 st.write(data.head())
