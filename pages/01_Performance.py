@@ -289,14 +289,14 @@ if selected_x_axis and selected_columns and filtered_file_info:
             y_col = columns_to_plot[column]
             if isinstance(y_col, list):
                 for sub_col in y_col:
-                    smoothed_y = uniform_filter1d(df[sub_col], size=15)
+                    smoothed_y = df[sub_col].rolling(window=15).mean()
                     plot_data.append(pd.DataFrame({
                         'X': df[selected_x_axis],
                         'Y': smoothed_y,
                         'Label': f"{info['name']} - {sub_col}"
                     }))
             else:
-                smoothed_y = uniform_filter1d(df[y_col], size=15)
+                smoothed_y = df[y_col].rolling(window=15).mean()
                 plot_data.append(pd.DataFrame({
                     'X': df[selected_x_axis],
                     'Y': smoothed_y,
@@ -306,22 +306,15 @@ if selected_x_axis and selected_columns and filtered_file_info:
     if plot_data:
         plot_df = pd.concat(plot_data)
         fig = px.line(plot_df, x='X', y='Y', color='Label', labels={'X': selected_x_axis, 'Y': 'Values'})
-        fig.update_layout(
-            title="Performance Data Plot",
-            xaxis_title=selected_x_axis,
-            yaxis_title="Values" if len(selected_columns) > 1 else selected_columns[0],
-            autosize=True,
-            height=None,
-            margin=dict(l=20, r=20, t=30, b=20),
-            modebar=dict(orientation='v')
-        )
-        fig.update_yaxes(automargin=True)
-        fig.update_xaxes(automargin=True)
+        fig.update_layout(title="Performance Data Plot", xaxis_title=selected_x_axis, yaxis_title="Values" if len(selected_columns) > 1 else selected_columns[0])
+        if show_legend:
+            fig.update_layout(showlegend=True)
+        else:
+            fig.update_layout(showlegend=False)
 
         st.plotly_chart(fig, use_container_width=True)
 else:
     st.write("Please select an X-axis and at least one column to plot.")
-
 
 
 
