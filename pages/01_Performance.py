@@ -5,89 +5,118 @@ import requests
 from bs4 import BeautifulSoup
 from io import StringIO
 import urllib.parse
+import re
 
 # Set page config
 st.set_page_config(page_title="Tesla Performance Analysis", page_icon=":racing_car:", layout="wide")
 
-# Function to fetch directory structure and CSV files from the given URL
+# Function to scan the root folder and classify the subfolders
 @st.cache_data(ttl=600)
-def fetch_and_cache_csv_files(base_url, max_depth=6):
-    def parse_directory(url, depth):
-        if depth > max_depth:
-            return [], []
+def scan_and_classify_folders(base_url):
+    def parse_directory(url):
         response = requests.get(url)
         soup = BeautifulSoup(response.content, 'html.parser')
         dirs = [a['href'] for a in soup.find_all('a', href=True) if a['href'].endswith('/')]
-        files = [a['href'] for a in soup.find_all('a', href=True) if a['href'].endswith('.csv')]
-        return dirs, files
+        return dirs
 
-    directory_structure = {}
-    csv_files_data = {}
+    def classify_folder(folder_name):
+        pattern = re.compile(r"(?P<manufacturer>[^_]+)_"
+                             r"(?P<model>[^_]+)_"
+                             r"(?P<variant>[^_]+)_"
+                             r"(?P<model_year>\d+)_"
+                             r"(?P<battery>[^_]+)_"
+                             r"(?P<front_motor>[^_]+)_"
+                             r"(?P<rear_motor>[^_]+)_"
+                             r"(?P<tuning>[^/]+)")
+        match = pattern.match(folder_name)
+        if match:
+            return match.groupdict()
+        else:
+            return None
 
-    def build_structure(url, parent_structure, depth):
-        dirs, files = parse_directory(url, depth)
-        for d in dirs:
-            full_path = urllib.parse.urljoin(url, d)
-            if 'smt' not in full_path:
-                continue  # Only consider URLs within the 'smt' directory
-            parent_structure[urllib.parse.unquote(d)] = {}
-            build_structure(full_path, parent_structure[urllib.parse.unquote(d)], depth + 1)
-        for f in files:
-            full_path = urllib.parse.urljoin(url, f)
-            if 'smt' not in full_path:
-                continue  # Only consider URLs within the 'smt' directory
-            parent_structure[urllib.parse.unquote(f)] = full_path
-            # Download and cache the CSV file
-            try:
-                response = requests.get(full_path)
-                csv_content = response.content.decode('utf-8')
-                csv_files_data[full_path] = pd.read_csv(StringIO(csv_content))
-            except Exception as e:
-                st.error(f"Error fetching {full_path}: {e}")
+    root_structure = {}
+    classified_folders = []
+    dirs = parse_directory(base_url)
+    for d in dirs:
+        full_path = urllib.parse.urljoin(base_url, d)
+        classification = classify_folder(d)
+        if classification:
+            classification['path'] = full_path
+            classified_folders.append(classification)
+    return classified_folders
 
-    base_url = base_url if base_url.endswith('/') else base_url + '/'
-    build_structure(base_url, directory_structure, 0)
-    return directory_structure, csv_files_data
-
-# Base URL for CSV files
+# Base URL for scanning the root folder
 BASE_URL = "https://nginx.eivissacopter.com/smt/"
 
-# Fetch directory structure and CSV files
-directory_structure, csv_files_data = fetch_and_cache_csv_files(BASE_URL)
+# Scan and classify folders
+classified_folders = scan_and_classify_folders(BASE_URL)
+
+# Create dynamic filters based on the classified information
+manufacturers = list(set([f['manufacturer'] for f in classified_folders]))
+models = list(set([f['model'] for f in classified_folders]))
+variants = list(set([f['variant'] for f in classified_folders]))
+model_years = list(set([f['model_year'] for f in classified_folders]))
+batteries = list(set([f['battery'] for f in classified_folders]))
+front_motors = list(set([f['front_motor'] for f in classified_folders]))
+rear_motors = list(set([f['rear_motor'] for f in classified_folders]))
+tunings = list(set([f['tuning'] for f in classified_folders]))
 
 # Sidebar filters
 st.sidebar.header("Filter Options")
+selected_manufacturer = st.sidebar.multiselect("Select Manufacturer", manufacturers)
+selected_model = st.sidebar.multiselect("Select Model", models)
+selected_variant = st.sidebar.multiselect("Select Variant", variants)
+selected_model_year = st.sidebar.multiselect("Select Model Year", model_years)
+selected_battery = st.sidebar.multiselect("Select Battery", batteries)
+selected_front_motor = st.sidebar.multiselect("Select Front Motor", front_motors)
+selected_rear_motor = st.sidebar.multiselect("Select Rear Motor", rear_motors)
+selected_tuning = st.sidebar.multiselect("Select Tuning", tunings)
 
-def get_options_from_structure(structure, keys=[]):
-    if not structure:
-        st.error("The directory structure is empty. No options available.")
-        st.stop()
-    options = list(structure.keys())
-    selected_option = st.sidebar.selectbox("Select " + " > ".join(keys), options)
-    if selected_option not in structure:
-        st.error(f"Option '{selected_option}' not found in the structure. Available options: {list(structure.keys())}")
-        st.stop()
-    if isinstance(structure[selected_option], dict):
-        return get_options_from_structure(structure[selected_option], keys + [selected_option])
-    else:
-        return structure[selected_option], keys + [selected_option]
+# Filter folders based on selections
+filtered_folders = [f for f in classified_folders if
+                    (not selected_manufacturer or f['manufacturer'] in selected_manufacturer) and
+                    (not selected_model or f['model'] in selected_model) and
+                    (not selected_variant or f['variant'] in selected_variant) and
+                    (not selected_model_year or f['model_year'] in selected_model_year) and
+                    (not selected_battery or f['battery'] in selected_battery) and
+                    (not selected_front_motor or f['front_motor'] in selected_front_motor) and
+                    (not selected_rear_motor or f['rear_motor'] in selected_rear_motor) and
+                    (not selected_tuning or f['tuning'] in selected_tuning)]
 
-# Fetch the CSV file based on user's selection
-csv_file_url, selected_keys = get_options_from_structure(directory_structure)
+# Display selected path
+if filtered_folders:
+    st.sidebar.write("Filtered Paths:")
+    for folder in filtered_folders:
+        st.sidebar.write(folder['path'])
+else:
+    st.sidebar.write("No folders match the selected filters.")
 
-# Display the selected path
-st.sidebar.write("Selected Path: " + " / ".join(selected_keys))
+# Fetch and process CSV files based on filtered folders
+dfs = []
+for folder in filtered_folders:
+    response = requests.get(folder['path'])
+    soup = BeautifulSoup(response.content, 'html.parser')
+    files = [a['href'] for a in soup.find_all('a', href=True) if a['href'].endswith('.csv')]
+    for file in files:
+        file_url = urllib.parse.urljoin(folder['path'], file)
+        try:
+            response = requests.get(file_url)
+            csv_content = response.content.decode('utf-8')
+            df = pd.read_csv(StringIO(csv_content))
+            df = df.fillna(method='ffill', limit=100)
+            df = df.fillna(method='bfill', limit=100)
+            if 'Accelerator Pedal' in df.columns:
+                df = df[df['Accelerator Pedal'] == 100]
+            dfs.append(df)
+        except Exception as e:
+            st.error(f"Error fetching {file_url}: {e}")
 
-# Load the selected CSV file from cache
-data = csv_files_data[csv_file_url]
-
-# Fill empty fields
-data = data.fillna(method='ffill', limit=100)
-data = data.fillna(method='bfill', limit=100)
-
-# Filter based on Accelerator Pedal if the column exists
-if 'Accelerator Pedal' in data.columns:
-    data = data[data['Accelerator Pedal'] == 100]
+# Concatenate all dataframes
+if dfs:
+    data = pd.concat(dfs, ignore_index=True)
+    st.write(data.head())
+else:
+    st.write("No CSV files found or no data available after filtering.")
 
 # Ensure required columns are available for plotting
 if 'SOC' in data.columns and 'pdelta' in data.columns and 'Cell temp mid' in data.columns:
