@@ -30,7 +30,9 @@ def scan_and_classify_folders(base_url):
                              r"(?P<tuning>[^/]+)")
         match = pattern.match(folder_name)
         if match:
-            return match.groupdict()
+            classified = match.groupdict()
+            classified['tuning'] = urllib.parse.unquote(classified['tuning'])
+            return classified
         else:
             return None
 
