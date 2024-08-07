@@ -59,6 +59,9 @@ st.sidebar.header("Filter Options")
 def get_options_from_structure(structure, keys=[]):
     options = list(structure.keys())
     selected_option = st.sidebar.selectbox("Select " + " > ".join(keys), options)
+    if selected_option not in structure:
+        st.error(f"Option '{selected_option}' not found in the structure. Available options: {list(structure.keys())}")
+        st.stop()
     if isinstance(structure[selected_option], dict):
         return get_options_from_structure(structure[selected_option], keys + [selected_option])
     else:
