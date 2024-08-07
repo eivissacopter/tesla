@@ -231,8 +231,8 @@ username = st.text_input("Search by Username:", key="username")
 # Fetch the data
 df = fetch_data(username_filter=username)
 
-# Get the latest row from the filtered DataFrame and hide the last five columns
-latest_row = df.iloc[-3:][::-1].iloc[:, :-5]
+# Get the latest row from the filtered DataFrame
+latest_row = df.iloc[-3:][::-1]
 
 # Display the latest row at the top
 st.markdown(
@@ -379,21 +379,6 @@ if refresh.button("Refresh Data", key="refresh_data"):
     st.cache_data.clear()  # Clear the cache
     st.experimental_rerun()  # Rerun the app to refresh with new data
 
-if reset.button("Reset Filters", key="reset_filters"):
-    # Reset filters to default values
-    st.session_state.filters = {
-        "tesla": default_tesla,
-        "version": default_version,
-        "battery": default_battery,
-        "min_age": default_min_age,
-        "max_age": default_max_age,
-        "min_odo": default_min_odo,
-        "max_odo": default_max_odo,
-        "show_daily_soc_limit": default_daily_soc_limit,
-        "show_dc_ratio": default_dc_ratio,
-    }
-    st.experimental_rerun()  # Rerun the app to apply reset filters
-
 # Show number of rows in filtered data
 st.sidebar.write(f"Filtered Data Rows: {st.session_state.filtered_df.shape[0]}")
 
@@ -516,7 +501,7 @@ def add_trend_lines(fig, batteries, filtered_df, x_column, y_column, trend_line_
 
 # Define the data points for the green line (converted from miles to kilometers)
 odometer_miles = np.array([0, 50000, 100000, 150000, 200000])
-battery_retention = np.array([0, -8, -12, -15, -18])  # Ensure the initial point starts at 100%
+battery_retention = np.array([0, -8, -12, -13.5, -15])  # Ensure the initial point starts at 100%
 odometer_km = odometer_miles * 1.60934  # Convert miles to kilometers
 
 # Create a smooth line for the green line using logarithmic fitting
