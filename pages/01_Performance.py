@@ -150,7 +150,10 @@ for folder in classified_folders:
         files = [a['href'] for a in soup.find_all('a', href=True) if a['href'].endswith('.csv')]
         for file in files:
             file_url = urllib.parse.urljoin(folder['path'], file)
+            st.write(f"Processing file: {file_url}")
             headers, soc_value, temp_value = fetch_csv_headers_and_values(file_url)
+            st.write(f"Headers: {headers}")
+            st.write(f"SOC: {soc_value}, Cell temp mid: {temp_value}")
             if soc_value is not None and temp_value is not None:
                 file_info.append({
                     'path': file_url,
