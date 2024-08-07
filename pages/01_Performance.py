@@ -128,8 +128,14 @@ def fetch_csv_headers_and_first_valid_values(url):
     # Fill forward and backward to handle NaN values
     df = df.fillna(method='ffill').fillna(method='bfill')
     
+    # Debugging: Check the filled DataFrame
+    st.write(f"Filled DataFrame for {url}:\n", df.head())
+    
     # Filter invalid values
     df = df[(df['SOC'] >= -5) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= -30) & (df['Cell temp mid'] <= 70)]
+    
+    # Debugging: Check the filtered DataFrame
+    st.write(f"Filtered DataFrame for {url}:\n", df.head())
     
     # Find the first valid values
     for index, row in df.iterrows():
