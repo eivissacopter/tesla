@@ -186,8 +186,11 @@ if file_info:
         and selected_temp_range[0] <= info['Cell temp mid'] <= selected_temp_range[1]
     ]
 
-# Checkbox options for plotting
+# Sidebar options for X-axis and Y-axis selection
 st.sidebar.header("Plotting Options")
+
+# X-axis selection
+st.sidebar.subheader("Select X-axis")
 columns_to_plot = {
     "Max Discharge Power": "Max discharge power",
     "Battery Power": "Battery power",
@@ -201,13 +204,26 @@ columns_to_plot = {
     "Battery Voltage": "Battery voltage"
 }
 
+selected_x_column = None
+for label, column in columns_to_plot.items():
+    if st.sidebar.checkbox(label, key=f"x_{label}"):
+        selected_x_column = column
+        break
+
+# Y-axis selection
+st.sidebar.subheader("Select Y-axis")
+y_axis_options = ["Speed", "Time"]
+selected_y_column = st.sidebar.radio("Y-axis", y_axis_options)
+
+# Checkbox options for additional plotting
+st.sidebar.subheader("Select additional columns to plot")
 selected_columns = []
 for label, column in columns_to_plot.items():
-    if st.sidebar.checkbox(label):
+    if st.sidebar.checkbox(label, key=f"y_{label}"):
         selected_columns.append(column)
 
 # Plotting the data
-if selected_columns and filtered_file_info:
+if selected_x_column and selected_columns and filtered_file_info:
     fig, ax = plt.subplots(figsize=(10, 6))
 
     for info in filtered_file_info:
@@ -226,15 +242,14 @@ if selected_columns and filtered_file_info:
             if isinstance(column, list):
                 combined_column_name = ' + '.join(column)
                 df[combined_column_name] = df[column[0]] + df[column[1]]
-                ax.plot(df['Speed'], df[combined_column_name], label=f"{info['name']} - {combined_column_name}")
+                ax.plot(df[selected_x_column], df[combined_column_name], label=f"{info['name']} - {combined_column_name}")
             else:
-                ax.plot(df['Speed'], df[column], label=f"{info['name']} - {column}")
+                ax.plot(df[selected_x_column], df[column], label=f"{info['name']} - {column}")
 
-    ax.set_xlabel("Speed")
-    ax.set_ylabel("Value")
+    ax.set_xlabel(selected_x_column if not isinstance(selected_x_column, list) else 'Combined Motor Power (F+R)')
+    ax.set_ylabel(selected_y_column)
     ax.legend()
     ax.grid(True)
     st.pyplot(fig)
 else:
-    st.write("No columns selected or no files match the selected SOC and Cell Temp range.")
-
+    st.write("Please select an X-axis and at least one column to plot.")
