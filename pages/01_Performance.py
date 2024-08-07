@@ -134,11 +134,14 @@ else:
     st.sidebar.write("No folders match the selected filters.")
 
 # Fetch and list CSV files based on filtered folders
-dfs = []
-for folder in filtered_folders:
-    response = requests.get(folder['path'])
-    soup = BeautifulSoup(response.content, 'html.parser')
-    files = [a['href'] for a in soup.find_all('a', href=True) if a['href'].endswith('.csv')]
-    for file in files:
-        file_url = urllib.parse.urljoin(folder['path'], file)
-        st.write(file_url)
+if filtered_folders:
+    st.write("Filtered Files:")
+    for folder in filtered_folders:
+        response = requests.get(folder['path'])
+        soup = BeautifulSoup(response.content, 'html.parser')
+        files = [a['href'] for a in soup.find_all('a', href=True) if a['href'].endswith('.csv')]
+        for file in files:
+            file_url = urllib.parse.urljoin(folder['path'], file)
+            st.write(file_url)
+else:
+    st.write("No CSV files found in the filtered folders.")
