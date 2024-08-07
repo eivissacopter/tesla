@@ -99,10 +99,10 @@ if selected_battery:
     selected_filters['battery'] = selected_battery
 
 # Front Motor filter
-front_motors = get_unique_values(classified_folders, 'front_motor', selected_filters)
-selected_front_motor = st.sidebar.multiselect("Front Motor", front_motors)
-if selected_front_motor:
-    selected_filters['front_motor'] = selected_front_motor
+# front_motors = get_unique_values(classified_folders, 'front_motor', selected_filters)
+# selected_front_motor = st.sidebar.multiselect("Front Motor", front_motors)
+# if selected_front_motor:
+#    selected_filters['front_motor'] = selected_front_motor
 
 # Rear Motor filter
 rear_motors = get_unique_values(classified_folders, 'rear_motor', selected_filters)
