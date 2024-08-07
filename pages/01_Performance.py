@@ -104,45 +104,52 @@ def prefill_filter(options, label):
         return st.sidebar.multiselect(label, options, default=options)
     return st.sidebar.multiselect(label, options)
 
-# Model filter
+# Model and Variant filters
+col1, col2 = st.sidebar.columns(2)
 models = get_unique_values(classified_folders, 'model')
-selected_model = prefill_filter(models, "Model")
+selected_model = col1.multiselect("Model", models, default=models if len(models) == 1 else [])
 if selected_model:
     selected_filters['model'] = selected_model
 
-# Variant filter
 variants = get_unique_values(classified_folders, 'variant', selected_filters)
-selected_variant = prefill_filter(variants, "Variant")
+selected_variant = col2.multiselect("Variant", variants, default=variants if len(variants) == 1 else [])
 if selected_variant:
     selected_filters['variant'] = selected_variant
 
-# Model Year filter
+# Model Year and Battery filters
+col3, col4 = st.sidebar.columns(2)
 model_years = get_unique_values(classified_folders, 'model_year', selected_filters)
-selected_model_year = prefill_filter(model_years, "Model Year")
+selected_model_year = col3.multiselect("Model Year", model_years, default=model_years if len(model_years) == 1 else [])
 if selected_model_year:
     selected_filters['model_year'] = selected_model_year
 
-# Battery filter
 batteries = get_unique_values(classified_folders, 'battery', selected_filters)
-selected_battery = prefill_filter(batteries, "Battery")
+selected_battery = col4.multiselect("Battery", batteries, default=batteries if len(batteries) == 1 else [])
 if selected_battery:
     selected_filters['battery'] = selected_battery
 
-# Rear Motor filter
+# Front Motor and Rear Motor filters
+col5, col6 = st.sidebar.columns(2)
+front_motors = get_unique_values(classified_folders, 'front_motor', selected_filters)
+selected_front_motor = col5.multiselect("Front Motor", front_motors, default=front_motors if len(front_motors) == 1 else [])
+if selected_front_motor:
+    selected_filters['front_motor'] = selected_front_motor
+
 rear_motors = get_unique_values(classified_folders, 'rear_motor', selected_filters)
-selected_rear_motor = prefill_filter(rear_motors, "Rear Motor")
+selected_rear_motor = col6.multiselect("Rear Motor", rear_motors, default=rear_motors if len(rear_motors) == 1 else [])
 if selected_rear_motor:
     selected_filters['rear_motor'] = selected_rear_motor
 
 # Tuning filter
 tunings = get_unique_values(classified_folders, 'tuning', selected_filters)
-selected_tuning = prefill_filter(tunings, "Tuning")
+selected_tuning = st.sidebar.multiselect("Tuning", tunings, default=tunings if len(tunings) == 1 else [])
 if selected_tuning:
     selected_filters['tuning'] = selected_tuning
 
-# Acceleration Mode filter
+# Acceleration Mode filter with custom order
 acceleration_modes = get_unique_values(classified_folders, 'acceleration_mode', selected_filters)
-selected_acceleration_mode = prefill_filter(acceleration_modes, "Acceleration Mode")
+acceleration_modes = ["Chill", "Standard", "Sport"]
+selected_acceleration_mode = st.sidebar.multiselect("Acceleration Mode", acceleration_modes, default=acceleration_modes if len(acceleration_modes) == 1 else [])
 if selected_acceleration_mode:
     selected_filters['acceleration_mode'] = selected_acceleration_mode
 
@@ -259,10 +266,8 @@ for label in columns_to_plot.keys():
     if st.sidebar.checkbox(label, key=f"y_{label}"):
         selected_columns.append(label)
 
-# X-Axis selection with radio buttons with a label
-st.sidebar.subheader("Select X-Axis")
-x_axis_options = ["Speed", "Time"]
-selected_x_axis = st.sidebar.radio("", x_axis_options, index=0)
+# X-Axis selection
+selected_x_axis = "Speed"
 
 # Additional options
 st.sidebar.subheader("Additional Options")
