@@ -232,11 +232,13 @@ st.sidebar.subheader("Select Y-Axis")
 columns_to_plot = {
     "Max Discharge Power": "Max discharge power",
     "Battery Power": "Battery power",
-    "Front Power": "F power",
-    "Rear Power": "R power",
+    #"Front Power": "F power",
+    #"Rear Power": "R power",
+    "Front/Rear Power": "F power", "R power",
     "Combined Motor Power (F+R)": ["F power", "R power"],
-    "Front Torque": "F torque",
-    "Rear Torque": "R torque",
+    #"Front Torque": "F torque",
+    #"Rear Torque": "R torque",
+    "Front/Rear Torque": "F torque", "R torque",
     "Combined Motor Torque (F+R)": ["F torque", "R torque"],
     "Battery Current": "Battery current",
     "Battery Voltage": "Battery voltage"
