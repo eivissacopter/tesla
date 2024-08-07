@@ -265,6 +265,34 @@ show_legend = st.sidebar.checkbox("Show Legend", value=False)
 
 ####################################################################################################
 
+# Add custom CSS to control the layout
+st.markdown(
+    """
+    <style>
+    .reportview-container .main .block-container {
+        padding-top: 0rem;
+        padding-right: 1rem;
+        padding-left: 1rem;
+        padding-bottom: 0rem;
+    }
+    .reportview-container .main {
+        flex: 1 1 auto;
+        height: 100vh;
+        overflow: hidden;
+        padding: 0;
+    }
+    .reportview-container .main .element-container {
+        padding: 0;
+        height: 100%;
+    }
+    .reportview-container .main .stPlotlyChart {
+        height: calc(100vh - 60px) !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 # Plotting the data using Plotly
 if selected_x_axis and selected_columns and filtered_file_info:
     plot_data = []
@@ -311,21 +339,13 @@ if selected_x_axis and selected_columns and filtered_file_info:
             xaxis_title=selected_x_axis,
             yaxis_title="Values" if len(selected_columns) > 1 else selected_columns[0],
             autosize=True,
-            height=None
-        )
-        if show_legend:
-            fig.update_layout(showlegend=True)
-        else:
-            fig.update_layout(showlegend=False)
-
-        # Set the Plotly chart to be responsive
-        fig.update_layout(
+            height=None,
             margin=dict(l=20, r=20, t=30, b=20),
-            modebar=dict(orientation='v'),
-            autosize=True,
-            height=None
+            modebar=dict(orientation='v')
         )
+        fig.update_yaxes(automargin=True)
+        fig.update_xaxes(automargin=True)
 
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True, height='100vh')
 else:
     st.write("Please select an X-axis and at least one column to plot.")
