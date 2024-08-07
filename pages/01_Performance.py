@@ -274,7 +274,7 @@ if selected_x_axis and selected_columns and filtered_file_info:
         if 'Accelerator Pedal' in df.columns:
             df = df[df['Accelerator Pedal'] == 100]
 
-        # Plot selected columns
+        # Plot selected columns with smoothing
         for column in selected_columns:
             y_col = columns_to_plot[column]
             if isinstance(y_col, list):
