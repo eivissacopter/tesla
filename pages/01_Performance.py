@@ -190,9 +190,6 @@ if file_info:
 
 #####################################################################################
 
-# Add the plotting options for X and Y axes in the sidebar
-st.sidebar.header("Plotting Options")
-
 # Y-Axis selection checkboxes
 st.sidebar.subheader("Select Y-Axis")
 columns_to_plot = {
@@ -213,6 +210,7 @@ for label in columns_to_plot.keys():
         selected_columns.append(label)
 
 # X-Axis selection with radio buttons with a label
+st.sidebar.subheader("Select X-Axis")
 x_axis_options = ["Speed", "Time"]
 selected_x_axis = st.sidebar.radio("Select X-Axis", x_axis_options, index=0)
 
