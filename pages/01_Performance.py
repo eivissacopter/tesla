@@ -183,16 +183,6 @@ if file_info:
         and selected_temp_range[0] <= info['Cell temp mid'] <= selected_temp_range[1]
     ]
 
-    # Display filtered files
-    if filtered_file_info:
-        st.write("Filtered Files:")
-        for info in filtered_file_info:
-            st.write(f"File: {info['path']} | SOC: {info['SOC']} | Cell Temp: {info['Cell temp mid']}")
-    else:
-        st.write("No files match the selected SOC and Cell Temp range.")
-else:
-    st.write("No CSV files found in the filtered folders.")
-
 # Checkbox options for plotting
 st.sidebar.header("Plotting Options")
 columns_to_plot = {
