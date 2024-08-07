@@ -224,22 +224,31 @@ save_metadata_cache(metadata_cache)
 if file_info:
     min_soc = min(info['SOC'] for info in file_info)
     max_soc = max(info['SOC'] for info in file_info)
-    min_temp = min((info['Cell temp mid'] for info in file_info if info['Cell temp mid'] is not None), default=None)
-    max_temp = max((info['Cell temp mid'] for info in file_info if info['Cell temp mid'] is not None), default=None)
+    
+    valid_temp_values = [info['Cell temp mid'] for info in file_info if info['Cell temp mid'] is not None]
+    if valid_temp_values:
+        min_temp = min(valid_temp_values)
+        max_temp = max(valid_temp_values)
+    else:
+        min_temp = None
+        max_temp = None
 
     selected_soc_range = st.sidebar.slider("Select SOC Range", min_soc, max_soc, (min_soc, max_soc))
 
     if min_temp is not None and max_temp is not None and min_temp < max_temp:
         selected_temp_range = st.sidebar.slider("Select Cell Temp Range", min_temp, max_temp, (min_temp, max_temp))
+        # Filter files based on selected ranges
+        filtered_file_info = [
+            info for info in file_info
+            if selected_soc_range[0] <= info['SOC'] <= selected_soc_range[1]
+            and selected_temp_range[0] <= info['Cell temp mid'] <= selected_temp_range[1]
+        ]
     else:
         st.error("Error: Unable to determine the min and max temperature for slider. Ensure temperature data is valid.")
-
-    # Filter files based on selected ranges
-    filtered_file_info = [
-        info for info in file_info
-        if selected_soc_range[0] <= info['SOC'] <= selected_soc_range[1]
-        and (min_temp is None or selected_temp_range[0] <= info['Cell temp mid'] <= selected_temp_range[1])
-    ]
+        filtered_file_info = [
+            info for info in file_info
+            if selected_soc_range[0] <= info['SOC'] <= selected_soc_range[1]
+        ]
 
 ####################################################################################
 
