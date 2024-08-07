@@ -6,6 +6,7 @@ import urllib.parse
 import re
 from io import StringIO
 import plotly.express as px
+from scipy.ndimage import uniform_filter1d
 import os
 import json
 
@@ -59,16 +60,6 @@ def scan_and_classify_folders(base_url):
             return classified
         else:
             return None
-
-    classified_folders = []
-    dirs = parse_directory(base_url)
-    for d in dirs:
-        full_path = urllib.parse.urljoin(base_url, d)
-        classification = classify_folder(d.strip('/'))
-        if classification:
-            classification['path'] = full_path
-            classified_folders.append(classification)
-    return classified_folders
 
 # Base URL for scanning the root folder
 BASE_URL = "https://nginx.eivissacopter.com/smt/"
@@ -319,4 +310,4 @@ if selected_x_axis and selected_columns and filtered_file_info:
 
         st.plotly_chart(fig, use_container_width=True)
 else:
-    st.write("Please select an X-axis and at least one column to plot.")
+    st.write("Please select at least one column to plot.")
