@@ -128,12 +128,17 @@ def fetch_csv_headers_and_first_valid_values(url):
     # Fill forward and backward to handle NaN values
     df = df.fillna(method='ffill').fillna(method='bfill')
     
-    # Find the first valid values
-    first_valid_row = df.iloc[0]
-    soc_value = first_valid_row['SOC']
-    cell_temp_mid_value = first_valid_row['Cell temp mid']
+    # Filter invalid values
+    df = df[(df['SOC'] >= -5) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= -30) & (df['Cell temp mid'] <= 70)]
     
-    return df.columns.tolist(), soc_value, cell_temp_mid_value
+    # Find the first valid values
+    if not df.empty:
+        first_valid_row = df.iloc[0]
+        soc_value = round(first_valid_row['SOC'])
+        cell_temp_mid_value = round(first_valid_row['Cell temp mid'])
+        return df.columns.tolist(), soc_value, cell_temp_mid_value
+    
+    return df.columns.tolist(), None, None
 
 # Filter folders based on selections
 filtered_folders = [f for f in classified_folders if
