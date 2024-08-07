@@ -270,6 +270,26 @@ show_legend = st.sidebar.checkbox("Show Legend", value=False)
 if selected_x_axis and selected_columns and filtered_file_info:
     plot_data = []
 
+# Change the plot data preparation to include the desired legend format
+for info in filtered_file_info:
+    response = requests.get(info['path'])
+    content = response.content.decode('utf-8')
+    df = pd.read_csv(StringIO(content))
+
+    # Fill forward and backward to handle NaN values
+    df = df.fillna(method='ffill').fillna(method='bfill')
+
+    # Filter invalid values
+    df = df[(df['SOC'] >= -5) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= -30) & (df['Cell temp mid'] <= 70)]
+
+    # Filter rows where Accelerator Pedal is not 100 if the column exists
+    if 'Accelerator Pedal' in df.columns:
+        df = df[df['Accelerator Pedal'] == 100]
+
+    # Prepare the legend format
+    legend_label = f"{info['name']} - {info['SOC']}% SOC - {info['Cell temp mid']}°C"
+
+    # Plot selected columns
     for column in selected_columns:
         y_col = columns_to_plot[column]
         if isinstance(y_col, list):
