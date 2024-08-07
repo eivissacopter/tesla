@@ -318,8 +318,9 @@ if selected_x_axis and selected_columns and filtered_file_info:
         fig.update_yaxes(automargin=True)
         fig.update_xaxes(automargin=True)
 
-        st.plotly_chart(fig, use_container_width=True, height='100vh')
+        st.plotly_chart(fig, use_container_width=True)
 else:
     st.write("Please select an X-axis and at least one column to plot.")
+
 
 
