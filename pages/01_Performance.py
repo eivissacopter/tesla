@@ -292,4 +292,3 @@ if selected_x_axis and selected_columns and filtered_file_info:
     st.pyplot(fig)
 else:
     st.write("Please select an X-axis and at least one column to plot.")
-
