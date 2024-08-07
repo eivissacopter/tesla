@@ -5,6 +5,7 @@ import pandas as pd
 import urllib.parse
 import re
 from io import StringIO
+import matplotlib.pyplot as plt
 
 # Set page config
 st.set_page_config(page_title="Tesla Performance Analysis", page_icon=":racing_car:", layout="wide")
@@ -128,14 +129,8 @@ def fetch_csv_headers_and_first_valid_values(url):
     # Fill forward and backward to handle NaN values
     df = df.fillna(method='ffill').fillna(method='bfill')
     
-    # Debugging: Check the filled DataFrame
-    st.write(f"Filled DataFrame for {url}:\n", df.head())
-    
     # Filter invalid values
     df = df[(df['SOC'] >= -5) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= -30) & (df['Cell temp mid'] <= 70)]
-    
-    # Debugging: Check the filtered DataFrame
-    st.write(f"Filtered DataFrame for {url}:\n", df.head())
     
     # Find the first valid values
     for index, row in df.iterrows():
@@ -202,3 +197,57 @@ if file_info:
         st.write("No files match the selected SOC and Cell Temp range.")
 else:
     st.write("No CSV files found in the filtered folders.")
+
+# Checkbox options for plotting
+st.sidebar.header("Plotting Options")
+columns_to_plot = {
+    "Max Discharge Power": "Max discharge power",
+    "Battery Power": "Battery power",
+    "Front Power": "F power",
+    "Rear Power": "R power",
+    "Combined Motor Power (F+R)": ["F power", "R power"],
+    "Front Torque": "F torque",
+    "Rear Torque": "R torque",
+    "Combined Motor Torque (F+R)": ["F torque", "R torque"],
+    "Battery Current": "Battery current",
+    "Battery Voltage": "Battery voltage"
+}
+
+selected_columns = []
+for label, column in columns_to_plot.items():
+    if st.sidebar.checkbox(label):
+        selected_columns.append(column)
+
+# Plotting the data
+if selected_columns and filtered_file_info:
+    fig, ax = plt.subplots(figsize=(10, 6))
+   
+    for info in filtered_file_info:
+        response = requests.get(info['path'])
+        content = response.content.decode('utf-8')
+        df = pd.read_csv(StringIO(content))
+
+        # Fill forward and backward to handle NaN values
+        df = df.fillna(method='ffill').fillna(method='bfill')
+
+        # Filter invalid values
+        df = df[(df['SOC'] >= -5) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= -30) & (df['Cell temp mid'] <= 70)]
+
+        # Plot selected columns
+        for column in selected_columns:
+            if isinstance(column, list):
+                combined_column_name = ' + '.join(column)
+                df[combined_column_name] = df[column[0]] + df[column[1]]
+                ax.plot(df['Speed'], df[combined_column_name], label=f"{info['path']} - {combined_column_name}")
+            else:
+                ax.plot(df['Speed'], df[column], label=f"{info['path']} - {column}")
+
+    ax.set_xlabel("Speed")
+    ax.set_ylabel("Value")
+    ax.legend()
+    ax.grid(True)
+    st.pyplot(fig)
+else:
+    st.write("No columns selected or no files match the selected SOC and Cell Temp range.")
+
+    
