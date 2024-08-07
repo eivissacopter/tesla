@@ -30,13 +30,13 @@ def fetch_and_cache_csv_files(base_url, max_depth=6):
             full_path = urllib.parse.urljoin(url, d)
             if 'smt' not in full_path:
                 continue  # Only consider URLs within the 'smt' directory
-            parent_structure[d] = {}
-            build_structure(full_path, parent_structure[d], depth + 1)
+            parent_structure[urllib.parse.unquote(d)] = {}
+            build_structure(full_path, parent_structure[urllib.parse.unquote(d)], depth + 1)
         for f in files:
             full_path = urllib.parse.urljoin(url, f)
             if 'smt' not in full_path:
                 continue  # Only consider URLs within the 'smt' directory
-            parent_structure[f] = full_path
+            parent_structure[urllib.parse.unquote(f)] = full_path
             # Download and cache the CSV file
             try:
                 response = requests.get(full_path)
@@ -89,57 +89,46 @@ data = data.fillna(method='bfill', limit=100)
 if 'Accelerator Pedal' in data.columns:
     data = data[data['Accelerator Pedal'] == 100]
 
-# Further filtering based on the criteria from your script
-data = data[data['SOC'] <= 100]
-data = data[data['SOC'] >= 0]
-data = data[data['Battery power'] >= 250]
-data = data[data['Speed'] <= 93]
-data = data[data['Speed'] >= 75]
+# Ensure required columns are available for plotting
+if 'SOC' in data.columns and 'pdelta' in data.columns and 'Cell temp mid' in data.columns:
+    # Plot the data
+    fig = px.scatter(
+        data,
+        x='SOC',
+        y='pdelta',
+        color='Cell temp mid',
+        color_continuous_scale='bwr',
+        labels={'SOC': 'SOC [%]', 'pdelta': 'Pdelta [kW]', 'Cell temp mid': 'Cell Temp'},
+        title='Panasonic 3L 82kWh - Pdelta'
+    )
 
-# Sorting data
-data = data.sort_values(by='Cell temp mid', ascending=False)
+    fig.update_layout(
+        coloraxis_colorbar=dict(
+            title="Cell Temp"
+        ),
+        xaxis=dict(
+            autorange='reversed'
+        ),
+        template="plotly_dark"
+    )
 
-# Calculating pdelta
-data['pdelta'] = data['Battery power'] - data['Max discharge power']
-data['pdelta'] = data['pdelta'].mask(data['pdelta'] > 35)
-data['pdelta'] = data['pdelta'].mask(data['pdelta'] < -35)
+    # Add watermark
+    fig.add_annotation(
+        text="@eivissacopter",
+        font=dict(size=50, color="gray"),
+        align="center",
+        xref="paper",
+        yref="paper",
+        x=0.5,
+        y=0.5,
+        opacity=0.2,
+        showarrow=False
+    )
 
-# Plot the data
-fig = px.scatter(
-    data,
-    x='SOC',
-    y='pdelta',
-    color='Cell temp mid',
-    color_continuous_scale='bwr',
-    labels={'SOC': 'SOC [%]', 'pdelta': 'Pdelta [kW]', 'Cell temp mid': 'Cell Temp'},
-    title='Panasonic 3L 82kWh - Pdelta'
-)
-
-fig.update_layout(
-    coloraxis_colorbar=dict(
-        title="Cell Temp"
-    ),
-    xaxis=dict(
-        autorange='reversed'
-    ),
-    template="plotly_dark"
-)
-
-# Add watermark
-fig.add_annotation(
-    text="@eivissacopter",
-    font=dict(size=50, color="gray"),
-    align="center",
-    xref="paper",
-    yref="paper",
-    x=0.5,
-    y=0.5,
-    opacity=0.2,
-    showarrow=False
-)
-
-# Plot the figure
-st.plotly_chart(fig, use_container_width=True)
+    # Plot the figure
+    st.plotly_chart(fig, use_container_width=True)
+else:
+    st.error("Required columns are missing in the data.")
 
 # Placeholder for performance meter screenshots
 st.sidebar.header("Performance Meter Screenshots")
