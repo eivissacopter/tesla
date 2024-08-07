@@ -11,7 +11,7 @@ st.set_page_config(page_title="Tesla Performance Analysis", page_icon=":racing_c
 
 # Function to fetch directory structure and CSV files from the given URL
 @st.cache_data(ttl=600)
-def fetch_and_cache_csv_files(base_url, max_depth=3):
+def fetch_and_cache_csv_files(base_url, max_depth=5):
     def parse_directory(url, depth):
         if depth > max_depth:
             return [], []
@@ -30,14 +30,10 @@ def fetch_and_cache_csv_files(base_url, max_depth=3):
             st.warning(f"No directories or files found at {url}.")
         for d in dirs:
             full_path = urllib.parse.urljoin(url, d)
-            if 'smt' not in full_path:
-                continue
             parent_structure[d] = {}
             build_structure(full_path, parent_structure[d], depth + 1)
         for f in files:
             full_path = urllib.parse.urljoin(url, f)
-            if 'smt' not in full_path:
-                continue
             parent_structure[f] = full_path
             # Download and cache the CSV file
             try:
