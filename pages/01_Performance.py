@@ -362,7 +362,7 @@ for i, info in enumerate(filtered_file_info):
 
 if plot_data:
     plot_df = pd.concat(plot_data)
-    fig = px.line(plot_df, x='X', y='Y', color='Label', line_dash='Line Style', labels={'X': selected_x_axis, 'Y': 'Values'}, color_discrete_map=folder_colors)
+    fig = px.line(plot_df, x='X', y='Y', color='Label', line_dash='Line Style', labels={'X': 'Speed [kph]', 'Y': 'Values'}, color_discrete_map=folder_colors)
     
     # Apply the colors and make the lines wider with a glow effect
     for trace in fig.data:
@@ -398,7 +398,8 @@ if plot_data:
     )
 
     fig.update_layout(
-        xaxis_title=selected_x_axis,
+        title="Performance Data Plot",
+        xaxis_title='Speed [kph]',
         yaxis_title="Values" if len(selected_columns) > 1 else selected_columns[0],
         width=800,  # Adjust width as needed
         height=800,  # Adjust height as needed
@@ -415,3 +416,4 @@ if plot_data:
     st.plotly_chart(fig, use_container_width=True)
 else:
     st.write("Please select an X-axis and at least one column to plot.")
+
