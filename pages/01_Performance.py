@@ -275,6 +275,7 @@ show_legend = st.sidebar.checkbox("Show Legend", value=True)
 if selected_x_axis and selected_columns and filtered_file_info:
     plot_data = []
 
+    # Change the plot data preparation to include the desired legend format
     for info in filtered_file_info:
         response = requests.get(info['path'])
         content = response.content.decode('utf-8')
@@ -284,14 +285,14 @@ if selected_x_axis and selected_columns and filtered_file_info:
         df = df.ffill().bfill()
 
         # Filter invalid values
-        df = df[(df['SOC'] >= -5) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= -30) & (df['Cell temp mid'] <= 70)]
+        df = df[(df['SOC'] >= 0) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= 0) & (df['Cell temp mid'] <= 70)]
 
-        # Filter rows where Accelerator Pedal is not 100 if the column exists
-        if 'Accelerator Pedal' in df.columns:
-            df = df[df['Accelerator Pedal'] == 100]
+        # Filter rows where speed is not increasing
+        if 'Speed' in df.columns:
+            df = df[df['Speed'].diff() > 0]
 
         # Prepare the legend format
-        legend_label = f"{info['name']} - {info['SOC']}% SOC - {info['Cell temp mid']}°C"
+        legend_label = f"{info['folder']['model']}_{info['folder']['variant']}_{info['folder']['model_year']}_{info['folder']['battery']}_{info['folder']['rear_motor']}_{info['folder']['acceleration_mode']}_{info['SOC']}% SOC_{info['Cell temp mid']}°C"
 
         # Plot selected columns
         for column in selected_columns:
