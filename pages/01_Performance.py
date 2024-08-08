@@ -100,6 +100,45 @@ selected_filters = {}
 
 ###################################################################################################
 
+# Add the main header picture with emojis
+st.markdown(
+    """
+    <style>
+        .header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            padding: 0rem 0;
+            margin-bottom: 0rem; /* Adjust the margin bottom to reduce space */
+        }
+        .header img {
+            width: 100%;
+            height: auto;
+        }
+        .header h1 {
+            margin: 0;
+            padding-top: 1rem;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+        }
+        .header h1 span {
+            margin: 0 10px;
+        }
+    </style>
+    <div class="header">
+        <img src="https://uploads.tff-forum.de/original/4X/5/2/3/52397973df71db6122c1eda4c5c558d2ca70686c.jpeg" alt=":racing_car: Tesla Performance Analysis :racing_car:">
+        <h1><span>🔋</span> Tesla Battery Analysis <span>🔋</span></h1>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+###################################################################################################
+
 # Sidebar filters
 st.sidebar.header("Filter Options")
 
