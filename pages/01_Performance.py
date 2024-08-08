@@ -6,10 +6,8 @@ import urllib.parse
 import re
 from io import StringIO
 import plotly.express as px
-import plotly.graph_objects as go
 import os
 import json
-from scipy.ndimage import uniform_filter1d
 
 # Set page config
 st.set_page_config(page_title="Tesla Performance Analysis", page_icon=":racing_car:", layout="wide")
@@ -169,8 +167,8 @@ def fetch_csv_headers_and_first_valid_values(url):
         return headers, None, None
     
     # Scan entire DataFrame until valid values are found
-    df['SOC'] = df['SOC'].fillna(method='ffill').fillna(method='bfill')
-    df['Cell temp mid'] = df['Cell temp mid'].fillna(method='ffill').fillna(method='bfill')
+    df['SOC'] = df['SOC'].ffill().bfill()
+    df['Cell temp mid'] = df['Cell temp mid'].ffill().bfill()
     
     # Filter invalid values
     df = df[(df['SOC'] >= -5) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= -30) & (df['Cell temp mid'] <= 70)]
@@ -213,7 +211,8 @@ if filtered_folders:
                     'path': file_url,
                     'SOC': soc_value,
                     'Cell temp mid': cell_temp_mid_value,
-                    'name': short_name  # Add short name here
+                    'name': short_name,
+                    'folder': folder  # Add folder info for legend
                 })
 
 # Save metadata cache
