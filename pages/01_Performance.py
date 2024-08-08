@@ -131,7 +131,7 @@ st.markdown(
     </style>
     <div class="header">
         <img src="https://uploads.tff-forum.de/original/4X/5/2/3/52397973df71db6122c1eda4c5c558d2ca70686c.jpeg" alt=":racing_car: Tesla Performance Analysis :racing_car:">
-        <h1><span>:racing_car:</span> Tesla Performance Analysis <span>:racing_car:</span></h1>
+        <h1><span>🚀</span> Tesla Performance Analysis <span>🚀</span></h1>
     </div>
     """,
     unsafe_allow_html=True
