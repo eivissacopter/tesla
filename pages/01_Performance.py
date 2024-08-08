@@ -345,6 +345,12 @@ for i, info in enumerate(filtered_file_info):
     # Ensure speed values are strictly increasing
     df = df[df['Speed'].diff().fillna(1) > 0]
 
+    # Debugging output for checking speed values
+    if df['Speed'].is_monotonic_increasing:
+        st.write(f"Speed values are strictly increasing for file: {info['path']}")
+    else:
+        st.write(f"Speed values are NOT strictly increasing for file: {info['path']}")
+
     # Drop rows with NaN values in the selected columns to avoid lines connecting back to the start
     df.dropna(subset=[selected_x_axis] + [col for col_list in columns_to_plot.values() for col in (col_list if isinstance(col_list, list) else [col_list])], inplace=True)
 
@@ -459,7 +465,6 @@ if plot_data:
 
 else:
     st.write("Please select an X-axis and at least one column to plot.")
-
 
 
 ####################################################################################################
