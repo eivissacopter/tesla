@@ -377,19 +377,17 @@ st.sidebar.markdown(
 plot_data = []
 
 # Predefined list of colors for different cars
-predefined_colors = ['blue', 'red', 'orange', 'green', 'purple', 'brown', 'pink', 'grey', 'olive', 'cyan']
+predefined_colors = ['darkblue', 'red', 'orange', 'purple']
 
-# Prepare plot data with fixed colors for each unique subfolder
-folder_colors = {}
-label_colors = {}
+# Adjusting the unique color assignment by Label
+unique_labels = list(set(info['folder']['model'] + " " + info['folder']['variant'] + " " + info['folder']['model_year'] + " " + info['folder']['battery'] + " " + info['folder']['rear_motor'] + " " + info['folder']['acceleration_mode'] for info in filtered_file_info))
+label_color_map = {label: predefined_colors[i % len(predefined_colors)] for i, label in enumerate(unique_labels)}
 
 for i, info in enumerate(filtered_file_info):
     folder_path = info['folder']['path']
-    base_label = f"{info['folder']['model']} {info['folder']['variant']} {info['folder']['model_year']} {info['folder']['battery']} {info['folder']['rear_motor']} {info['folder']['acceleration_mode']}"
-    
-    if base_label not in label_colors:
-        label_colors[base_label] = predefined_colors[len(label_colors) % len(predefined_colors)]
-    
+    label_key = info['folder']['model'] + " " + info['folder']['variant'] + " " + info['folder']['model_year'] + " " + info['folder']['battery'] + " " + info['folder']['rear_motor'] + " " + info['folder']['acceleration_mode']
+    color = label_color_map[label_key]
+
     response = requests.get(info['path'])
     content = response.content.decode('utf-8')
     df = pd.read_csv(StringIO(content))
@@ -405,7 +403,7 @@ for i, info in enumerate(filtered_file_info):
         df = df[df['Speed'].diff() > 0]
 
     # Prepare the legend format
-    legend_label = f"{base_label}"
+    legend_label = f"{info['folder']['model']} {info['folder']['variant']} {info['folder']['model_year']} {info['folder']['battery']} {info['folder']['rear_motor']} {info['folder']['acceleration_mode']}"
 
     # Plot selected columns
     for column in selected_columns:
@@ -414,22 +412,22 @@ for i, info in enumerate(filtered_file_info):
             if column == "Combined Motor Power [kW]":
                 combined_value = df[y_col[0]] + df[y_col[1]]
                 smoothed_y = uniform_filter1d(combined_value, size=15)
-                valid_indices = smoothed_y >= 20  # Filter combined motor power values below 20 kW
+                smoothed_y = smoothed_y[smoothed_y >= 20]  # Filter combined motor power values below 20 kW
                 plot_data.append(pd.DataFrame({
-                    'X': df[selected_x_axis].iloc[valid_indices],
-                    'Y': smoothed_y[valid_indices],
+                    'X': df[selected_x_axis],
+                    'Y': smoothed_y,
                     'Label': f"{legend_label} - Combined Motor Power",
-                    'Color': label_colors[base_label],
+                    'Color': color,
                     'Line Style': 'solid'
                 }))
             elif column == "Combined Motor Torque [Nm]":
                 combined_value = df[y_col[0]] + df[y_col[1]]
                 smoothed_y = uniform_filter1d(combined_value, size=15)
                 plot_data.append(pd.DataFrame({
-                    'X': df[selected_x_axis][:len(smoothed_y)],
+                    'X': df[selected_x_axis],
                     'Y': smoothed_y,
                     'Label': f"{legend_label} - Combined Motor Torque",
-                    'Color': label_colors[base_label],
+                    'Color': color,
                     'Line Style': 'dash'
                 }))
             else:
@@ -439,10 +437,10 @@ for i, info in enumerate(filtered_file_info):
                     if 'Torque' in sub_col:
                         line_style = 'dash'
                     plot_data.append(pd.DataFrame({
-                        'X': df[selected_x_axis][:len(smoothed_y)],
+                        'X': df[selected_x_axis],
                         'Y': smoothed_y,
                         'Label': f"{legend_label} - {sub_col}",
-                        'Color': label_colors[base_label],
+                        'Color': color,
                         'Line Style': line_style
                     }))
         else:
@@ -451,22 +449,24 @@ for i, info in enumerate(filtered_file_info):
             if 'Current' in y_col or 'Voltage' in y_col:
                 line_style = 'dot'
             if 'Battery power' in y_col:
-                valid_indices = smoothed_y >= 40  # Filter battery power values below 40 kW
-                plot_data.append(pd.DataFrame({
-                    'X': df[selected_x_axis].iloc[valid_indices],
-                    'Y': smoothed_y[valid_indices],
-                    'Label': f"{legend_label} - {column}",
-                    'Color': label_colors[base_label],
-                    'Line Style': line_style
-                }))
+                smoothed_y = smoothed_y[smoothed_y >= 40]  # Filter battery power values below 40 kW
+            plot_data.append(pd.DataFrame({
+                'X': df[selected_x_axis],
+                'Y': smoothed_y,
+                'Label': f"{legend_label} - {column}",
+                'Color': color,
+                'Line Style': line_style
+            }))
 
 if plot_data:
     plot_df = pd.concat(plot_data)
-    fig = px.line(plot_df, x='X', y='Y', color='Label', line_dash='Line Style', labels={'X': 'Speed [kph]', 'Y': 'Values'}, color_discrete_map=label_colors)
+    fig = px.line(plot_df, x='X', y='Y', color='Label', line_dash='Line Style', labels={'X': 'Speed [kph]', 'Y': 'Values'})
     
     # Apply the colors and make the lines wider
     for trace in fig.data:
-        trace.update(line=dict(width=3))  # Set base line width
+        label = trace.name.split(' - ')[0]
+        color = label_color_map[label]
+        trace.update(line=dict(color=color, width=3))  # Set base line width
 
     # Add watermark
     fig.add_annotation(
@@ -499,4 +499,3 @@ if plot_data:
     st.plotly_chart(fig, use_container_width=True)
 else:
     st.write("Please select an X-axis and at least one column to plot.")
-
