@@ -139,10 +139,6 @@ st.markdown(
 
 ###################################################################################################
 
-
-# Sidebar filters
-# st.sidebar.header("Filter Options")
-
 # Prefill function
 def prefill_filter(options, label):
     if len(options) == 1:
@@ -298,8 +294,6 @@ if file_info:
 
 ####################################################################################################
 
-# Y-Axis selection checkboxes
-st.sidebar.subheader("Select Y-Axis")
 columns_to_plot = {
     "Max Discharge Power [kW]": "Max discharge power",
     "Battery Power [kW]": "Battery power",
