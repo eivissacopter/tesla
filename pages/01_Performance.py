@@ -405,7 +405,7 @@ for i, info in enumerate(filtered_file_info):
     # Drop rows with NaN values in the selected columns to avoid lines connecting back to the start
     df.dropna(subset=[selected_x_axis] + [col for col_list in columns_to_plot.values() for col in (col_list if isinstance(col_list, list) else [col_list])], inplace=True)
 
-    # Prepare the legend format without line style
+    # Prepare the legend format
     legend_label = f"{info['folder']['model']} {info['folder']['variant']} {info['folder']['model_year']} {info['folder']['battery']} {info['folder']['rear_motor']} {info['folder']['acceleration_mode']}"
 
     # Plot selected columns
@@ -501,14 +501,12 @@ if plot_data:
     color_map = {}
 
     for label in unique_labels:
-        # Use folder_colors.get with a default color to avoid KeyError
-        color = st.sidebar.color_picker(f"Pick a color for {label}", folder_colors.get(label, '#430098'))
+        color = st.sidebar.color_picker(f"Pick a color for {label}", folder_colors.get(label, "#000000"))
         color_map[label] = color
 
     # Update the color in the plot
-    fig.for_each_trace(lambda trace: trace.update(line_color=color_map[trace.name]))
+    fig.for_each_trace(lambda trace: trace.update(line_color=color_map.get(trace.name, trace.line.color)))
 
-    # Display the chart once with updated colors
     st.plotly_chart(fig, use_container_width=True)
 
 else:
