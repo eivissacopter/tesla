@@ -282,13 +282,13 @@ if file_info:
         st.sidebar.write(f"Only one SOC value available: {min_soc}")
         selected_soc_range = (min_soc, max_soc)
     else:
-        selected_soc_range = st.sidebar.slider("Select SOC Range", min_soc, max_soc, (min_soc, max_soc))
+        selected_soc_range = st.sidebar.slider("State Of Charge [%]", min_soc, max_soc, (min_soc, max_soc))
 
     if min_temp == max_temp:
         st.sidebar.write(f"Only one Cell Temp value available: {min_temp}")
         selected_temp_range = (min_temp, max_temp)
     else:
-        selected_temp_range = st.sidebar.slider("Select Cell Temp Range", min_temp, max_temp, (min_temp, max_temp))
+        selected_temp_range = st.sidebar.slider("Battery Temperature [°C]", min_temp, max_temp, (min_temp, max_temp))
 
     # Filter files based on selected ranges
     filtered_file_info = [
