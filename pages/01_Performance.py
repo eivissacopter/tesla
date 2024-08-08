@@ -9,6 +9,8 @@ import plotly.express as px
 import os
 import json
 from scipy.ndimage import uniform_filter1d
+import matplotlib.cm as cm
+import matplotlib.colors as mcolors
 
 # Set page config
 st.set_page_config(page_title="Tesla Performance Analysis", page_icon=":racing_car:", layout="wide")
