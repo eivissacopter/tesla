@@ -1,18 +1,11 @@
 import streamlit as st
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go  # Import plotly.graph_objects as go
 import requests
 from bs4 import BeautifulSoup
-import pandas as pd
-import urllib.parse
-import re
 from io import StringIO
-import plotly.express as px
-import plotly.graph_objects as go
-import os
-import json
-from scipy.ndimage import uniform_filter1d
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-import matplotlib.colors as mcolors
+import urllib.parse
 
 # Set page config
 st.set_page_config(page_title="Tesla Performance Analysis", page_icon=":racing_car:", layout="wide")
