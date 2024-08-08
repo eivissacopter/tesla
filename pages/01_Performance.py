@@ -376,7 +376,6 @@ st.sidebar.markdown(
 )
 
 ####################################################################################################
-
 # Initialize plot data
 plot_data = []
 
@@ -513,9 +512,10 @@ if plot_data:
     st.sidebar.subheader("Select Line Colors")
     unique_labels = plot_df['Label'].unique()
     for label in unique_labels:
-        color = st.sidebar.color_picker(f"Pick a color for {label}", folder_colors[info['folder']['path']])
+        color = st.sidebar.color_picker(f"Pick a color for {label}", folder_colors[folder_path])
         fig.for_each_trace(lambda trace: trace.update(line_color=color) if trace.name == label else ())
 
 else:
     st.write("Please select an X-axis and at least one column to plot.")
+
 
