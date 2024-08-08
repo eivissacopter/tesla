@@ -385,8 +385,9 @@ predefined_colors = ['#0000FF', '#FF0000', '#FFA500', '#008000', '#800080', '#A5
 folder_colors = {}
 for i, info in enumerate(filtered_file_info):
     folder_path = info['folder']['path']
-    if folder_path not in folder_colors:
-        folder_colors[folder_path] = predefined_colors[len(folder_colors) % len(predefined_colors)]
+    legend_label = f"{info['folder']['model']} {info['folder']['variant']} {info['folder']['model_year']} {info['folder']['battery']} {info['folder']['rear_motor']} {info['folder']['acceleration_mode']}"
+    if legend_label not in folder_colors:
+        folder_colors[legend_label] = predefined_colors[len(folder_colors) % len(predefined_colors)]
     
     response = requests.get(info['path'])
     content = response.content.decode('utf-8')
@@ -405,9 +406,6 @@ for i, info in enumerate(filtered_file_info):
     # Drop rows with NaN values in the selected columns to avoid lines connecting back to the start
     df.dropna(subset=[selected_x_axis] + [col for col_list in columns_to_plot.values() for col in (col_list if isinstance(col_list, list) else [col_list])], inplace=True)
 
-    # Prepare the legend format
-    legend_label = f"{info['folder']['model']} {info['folder']['variant']} {info['folder']['model_year']} {info['folder']['battery']} {info['folder']['rear_motor']} {info['folder']['acceleration_mode']}"
-
     # Plot selected columns
     for column in selected_columns:
         y_col = columns_to_plot[column]
@@ -420,7 +418,7 @@ for i, info in enumerate(filtered_file_info):
                     'X': df[selected_x_axis].loc[smoothed_y.index],
                     'Y': smoothed_y,
                     'Label': f"{legend_label} - Combined Motor Power",
-                    'Color': folder_colors[folder_path]
+                    'Color': folder_colors[legend_label]
                 }))
             elif column == "Combined Motor Torque [Nm]":
                 combined_value = df[y_col[0]] + df[y_col[1]]
@@ -429,7 +427,7 @@ for i, info in enumerate(filtered_file_info):
                     'X': df[selected_x_axis].loc[smoothed_y.index],
                     'Y': smoothed_y,
                     'Label': f"{legend_label} - Combined Motor Torque",
-                    'Color': folder_colors[folder_path]
+                    'Color': folder_colors[legend_label]
                 }))
             else:
                 for sub_col in y_col:
@@ -438,7 +436,7 @@ for i, info in enumerate(filtered_file_info):
                         'X': df[selected_x_axis].loc[smoothed_y.index],
                         'Y': smoothed_y,
                         'Label': f"{legend_label} - {sub_col}",
-                        'Color': folder_colors[folder_path]
+                        'Color': folder_colors[legend_label]
                     }))
         else:
             smoothed_y = pd.Series(uniform_filter1d(df[y_col], size=3), index=df[y_col].index)
@@ -448,7 +446,7 @@ for i, info in enumerate(filtered_file_info):
                 'X': df[selected_x_axis].loc[smoothed_y.index],
                 'Y': smoothed_y,
                 'Label': f"{legend_label} - {column}",
-                'Color': folder_colors[folder_path]
+                'Color': folder_colors[legend_label]
             }))
 
 # Convert plot data to a DataFrame
@@ -460,7 +458,7 @@ if plot_data:
 
     # Create a color map for each label
     unique_labels = plot_df['Label'].unique()
-    color_map = {label: folder_colors[label.split(" - ")[0]] for label in unique_labels}
+    color_map = {label: folder_colors.get(label.split(" - ")[0], "#000000") for label in unique_labels}
 
     fig = px.line(plot_df, x='X', y='Y', color='Label', labels={'X': 'Speed [kph]', 'Y': 'Values'}, color_discrete_map=color_map)
 
@@ -514,4 +512,5 @@ if plot_data:
 
 else:
     st.write("Please select an X-axis and at least one column to plot.")
+
 
