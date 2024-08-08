@@ -320,14 +320,33 @@ if selected_x_axis and selected_columns and filtered_file_info:
         for column in selected_columns:
             y_col = columns_to_plot[column]
             if isinstance(y_col, list):
-                for sub_col in y_col:
-                    smoothed_y = uniform_filter1d(df[sub_col], size=15)
+                if column == "Combined Motor Power [kW]":
+                    combined_value = df[y_col[0]] + df[y_col[1]]
+                    smoothed_y = uniform_filter1d(combined_value, size=15)
                     plot_data.append(pd.DataFrame({
                         'X': df[selected_x_axis],
                         'Y': smoothed_y,
-                        'Label': f"{legend_label} - {sub_col}",
+                        'Label': f"{legend_label} - Combined Motor Power",
                         'Color': get_color(info['SOC'], min_soc, max_soc, folder_colors[folder_path])
                     }))
+                elif column == "Combined Motor Torque [Nm]":
+                    combined_value = df[y_col[0]] + df[y_col[1]]
+                    smoothed_y = uniform_filter1d(combined_value, size=15)
+                    plot_data.append(pd.DataFrame({
+                        'X': df[selected_x_axis],
+                        'Y': smoothed_y,
+                        'Label': f"{legend_label} - Combined Motor Torque",
+                        'Color': get_color(info['SOC'], min_soc, max_soc, folder_colors[folder_path])
+                    }))
+                else:
+                    for sub_col in y_col:
+                        smoothed_y = uniform_filter1d(df[sub_col], size=15)
+                        plot_data.append(pd.DataFrame({
+                            'X': df[selected_x_axis],
+                            'Y': smoothed_y,
+                            'Label': f"{legend_label} - {sub_col}",
+                            'Color': get_color(info['SOC'], min_soc, max_soc, folder_colors[folder_path])
+                        }))
             else:
                 smoothed_y = uniform_filter1d(df[y_col], size=15)
                 plot_data.append(pd.DataFrame({
