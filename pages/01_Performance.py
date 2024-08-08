@@ -398,7 +398,6 @@ if plot_data:
     plot_df.dropna(subset=['X', 'Y'], inplace=True)
 
     # Add dropdown to select colors for each line
-    st.sidebar.subheader("Select Line Colors")
     unique_labels = plot_df['Label'].unique()
     color_map = {}
 
