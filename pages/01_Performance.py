@@ -291,12 +291,12 @@ if selected_x_axis and selected_columns and filtered_file_info:
 
     # Prepare plot data
     folder_colors = {}
-    for i, folder in enumerate(filtered_file_info):
-        folder_path = folder['folder']['path']
+    for i, info in enumerate(filtered_file_info):
+        folder_path = info['folder']['path']
         if folder_path not in folder_colors:
             folder_colors[folder_path] = base_colors[i % len(base_colors)]
         
-        response = requests.get(folder['path'])
+        response = requests.get(info['path'])
         content = response.content.decode('utf-8')
         df = pd.read_csv(StringIO(content))
 
@@ -311,7 +311,7 @@ if selected_x_axis and selected_columns and filtered_file_info:
             df = df[df['Speed'].diff() > 0]
 
         # Prepare the legend format
-        legend_label = f"{folder['folder']['model']} {folder['folder']['variant']} {folder['folder']['model_year']} {folder['folder']['battery']} {folder['folder']['rear_motor']} {folder['folder']['acceleration_mode']} / {folder['SOC']}% / {folder['Cell temp mid']}°C"
+        legend_label = f"{info['folder']['model']} {info['folder']['variant']} {info['folder']['model_year']} {info['folder']['battery']} {info['folder']['rear_motor']} {info['folder']['acceleration_mode']} / {info['SOC']}% / {info['Cell temp mid']}°C"
 
         # Plot selected columns
         for column in selected_columns:
@@ -323,7 +323,7 @@ if selected_x_axis and selected_columns and filtered_file_info:
                         'X': df[selected_x_axis],
                         'Y': smoothed_y,
                         'Label': f"{legend_label} - {sub_col}",
-                        'Color': get_color(folder['SOC'], min_soc, max_soc, folder_colors[folder_path])
+                        'Color': get_color(info['SOC'], min_soc, max_soc, folder_colors[folder_path])
                     }))
             else:
                 smoothed_y = uniform_filter1d(df[y_col], size=15)
@@ -331,7 +331,7 @@ if selected_x_axis and selected_columns and filtered_file_info:
                     'X': df[selected_x_axis],
                     'Y': smoothed_y,
                     'Label': f"{legend_label} - {column}",
-                    'Color': get_color(folder['SOC'], min_soc, max_soc, folder_colors[folder_path])
+                    'Color': get_color(info['SOC'], min_soc, max_soc, folder_colors[folder_path])
                 }))
 
     if plot_data:
