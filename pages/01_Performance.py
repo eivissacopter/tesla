@@ -1,11 +1,17 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go  # Import plotly.graph_objects as go
+import plotly.graph_objects as go
 import requests
 from bs4 import BeautifulSoup
 from io import StringIO
 import urllib.parse
+import json
+import os
+import re
+from matplotlib import colors as mcolors
+import matplotlib.pyplot as plt
+from scipy.ndimage import uniform_filter1d
 
 # Set page config
 st.set_page_config(page_title="Tesla Performance Analysis", page_icon=":racing_car:", layout="wide")
@@ -89,6 +95,8 @@ def get_unique_values(classified_folders, key, filters={}):
     return sorted(values)
 
 selected_filters = {}
+
+###################################################################################
 
 # Sidebar filters
 st.sidebar.header("Filter Options")
@@ -263,7 +271,7 @@ for label in columns_to_plot.keys():
 selected_x_axis = "Speed"
 
 # Additional options
-st.sidebar.subheader("Additional Options")
+st.sidebar.subheader("Options")
 show_legend = st.sidebar.checkbox("Show Legend", value=True)
 
 ####################################################################################################
@@ -340,14 +348,14 @@ if selected_x_axis and selected_columns and filtered_file_info:
             fig.add_trace(go.Scatter(
                 x=trace.x, y=trace.y,
                 mode='lines',
-                line=dict(color=color, width=6, opacity=0.2),  # Outer glow
+                line=dict(color=color, width=6),  # Outer glow
                 showlegend=False,
                 hoverinfo='skip'
             ))
             fig.add_trace(go.Scatter(
                 x=trace.x, y=trace.y,
                 mode='lines',
-                line=dict(color=color, width=9, opacity=0.1),  # Inner glow
+                line=dict(color=color, width=9),  # Inner glow
                 showlegend=False,
                 hoverinfo='skip'
             ))
@@ -384,4 +392,3 @@ if selected_x_axis and selected_columns and filtered_file_info:
         st.plotly_chart(fig, use_container_width=True)
 else:
     st.write("Please select an X-axis and at least one column to plot.")
-
