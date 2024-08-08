@@ -445,7 +445,7 @@ for i, info in enumerate(filtered_file_info):
             if 'Current' in y_col or 'Voltage' in y_col:
                 line_style = 'dot'
             if 'Battery power' in y_col:
-                df = df[df[y_col] >= 0]  # Filter battery power values below 40 kW
+                df = df[df[y_col] >= 10]  # Filter battery power values below 40 kW
             plot_data.append(pd.DataFrame({
                 'X': df[selected_x_axis],
                 'Y': df[y_col],
