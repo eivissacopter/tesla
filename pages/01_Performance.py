@@ -311,7 +311,7 @@ if selected_x_axis and selected_columns and filtered_file_info:
             df = df[df['Speed'].diff() > 0]
 
         # Prepare the legend format
-        legend_label = f"{folder['folder']['model']}_{folder['folder']['variant']}_{folder['folder']['model_year']}_{folder['folder']['battery']}_{folder['folder']['rear_motor']}_{folder['folder']['acceleration_mode']}_{folder['SOC']}% SOC_{folder['Cell temp mid']}°C"
+        legend_label = f"{folder['folder']['model']} {folder['folder']['variant']} {folder['folder']['model_year']} {folder['folder']['battery']} {folder['folder']['rear_motor']} {folder['folder']['acceleration_mode']} / {folder['SOC']}% / {folder['Cell temp mid']}°C"
 
         # Plot selected columns
         for column in selected_columns:
@@ -342,8 +342,8 @@ if selected_x_axis and selected_columns and filtered_file_info:
         for trace, color in zip(fig.data, plot_df['Color'].unique()):
             trace.update(line=dict(color=color))
 
-        # Add watermark
-        fig.add_annotation(
+        # Add watermark to the bar chart
+        bar_fig.add_annotation(
             text="@eivissacopter",
             font=dict(size=20, color="lightgrey"),
             align="center",
