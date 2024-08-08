@@ -8,6 +8,7 @@ from io import StringIO
 import plotly.express as px
 import os
 import json
+from scipy.ndimage import uniform_filter1d
 
 # Set page config
 st.set_page_config(page_title="Tesla Performance Analysis", page_icon=":racing_car:", layout="wide")
@@ -261,7 +262,7 @@ selected_x_axis = "Speed"
 
 # Additional options
 st.sidebar.subheader("Additional Options")
-show_legend = st.sidebar.checkbox("Show Legend", value=False)
+show_legend = st.sidebar.checkbox("Show Legend", value=True)
 
 ####################################################################################################
 
