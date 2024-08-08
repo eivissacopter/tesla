@@ -497,8 +497,6 @@ if plot_data:
         )
     )
 
-    st.plotly_chart(fig, use_container_width=True)
-
     # Add dropdown to select colors for each line
     st.sidebar.subheader("Select Line Colors")
     for label in unique_labels:
