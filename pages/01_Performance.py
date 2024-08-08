@@ -373,6 +373,9 @@ st.sidebar.markdown(
 
 ####################################################################################################
 
+# Initialize plot data
+plot_data = []
+
 # Predefined list of colors for different cars
 predefined_colors = ['blue', 'red', 'orange', 'green', 'purple', 'brown', 'pink', 'grey', 'olive', 'cyan']
 
@@ -489,3 +492,4 @@ if plot_data:
     st.plotly_chart(fig, use_container_width=True)
 else:
     st.write("Please select an X-axis and at least one column to plot.")
+
