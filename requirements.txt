@@ -8,3 +8,5 @@ oauth2client
 statsmodels
 scikit-learn
 matplotlib
+requests
+beautifulsoup4
