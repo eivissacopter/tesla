@@ -198,10 +198,6 @@ selected_acceleration_mode = st.sidebar.multiselect("Acceleration Mode", acceler
 if selected_acceleration_mode:
     selected_filters['acceleration_mode'] = selected_acceleration_mode
 
-# Smoothing parameter slider
-st.sidebar.subheader("Smoothing")
-smoothing_window = st.sidebar.slider("Smoothing Window Size", min_value=1, max_value=20, value=1, step=1)
-
 ###################################################################################################
 
 # Function to fetch CSV headers and first valid values
@@ -466,6 +462,11 @@ if plot_data:
 
 else:
     st.write("Please select an X-axis and at least one column to plot.")
+
+
+# Smoothing parameter slider
+st.sidebar.subheader("Smoothing")
+smoothing_window = st.sidebar.slider("Smoothing Window Size", min_value=1, max_value=20, value=1, step=1)
 
 ####################################################################################################
 
