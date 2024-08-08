@@ -402,7 +402,9 @@ if plot_data:
     color_map = {}
 
     for label in unique_labels:
-        color = st.sidebar.color_picker(f"Pick a color for {label}", folder_colors.get(label.split(" - ")[0], "#000000"))
+        base_label = label.split(" - ")[0]
+        default_color = folder_colors.get(base_label, "#000000")
+        color = st.sidebar.color_picker(f"Pick a color for {label}", default_color)
         color_map[label] = color
 
     # Slider for smoothing
