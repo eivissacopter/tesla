@@ -141,8 +141,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-  
-
 ###################################################################################################
 
 # Sidebar filters
@@ -301,6 +299,35 @@ if file_info:
         and (min_temp is None or selected_temp_range[0] <= info['Cell temp mid'] <= selected_temp_range[1])
     ]
 
+
+####################################################################################################
+
+# Sidebar sliders for SOC and Cell temp mid
+if file_info:
+    min_soc = min(info['SOC'] for info in file_info)
+    max_soc = max(info['SOC'] for info in file_info)
+    min_temp = min(info['Cell temp mid'] for info in file_info if info['Cell temp mid'] is not None)
+    max_temp = max(info['Cell temp mid'] for info in file_info if info['Cell temp mid'] is not None)
+
+    if min_soc == max_soc:
+        st.sidebar.write(f"Only one SOC value available: {min_soc}")
+        selected_soc_range = (min_soc, max_soc)
+    else:
+        selected_soc_range = st.sidebar.slider("State Of Charge [%]", min_soc, max_soc, (min_soc, max_soc))
+
+    if min_temp == max_temp:
+        st.sidebar.write(f"Only one Cell Temp value available: {min_temp}")
+        selected_temp_range = (min_temp, max_temp)
+    else:
+        selected_temp_range = st.sidebar.slider("Battery Temperature [°C]", min_temp, max_temp, (min_temp, max_temp))
+
+    # Filter files based on selected ranges
+    filtered_file_info = [
+        info for info in file_info
+        if selected_soc_range[0] <= info['SOC'] <= selected_soc_range[1]
+        and (min_temp is None or selected_temp_range[0] <= info['Cell temp mid'] <= selected_temp_range[1])
+    ]
+
 ####################################################################################################
 
 # Y-Axis selection checkboxes
@@ -376,6 +403,7 @@ st.sidebar.markdown(
 )
 
 ####################################################################################################
+
 # Initialize plot data
 plot_data = []
 
@@ -517,5 +545,4 @@ if plot_data:
 
 else:
     st.write("Please select an X-axis and at least one column to plot.")
-
 
