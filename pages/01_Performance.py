@@ -444,6 +444,14 @@ if plot_data:
     # Update the color in the plot
     fig.for_each_trace(lambda trace: trace.update(line_color=color_map.get(trace.name, trace.line.color)))
 
+    # Slider for smoothing
+    smoothing_value = st.sidebar.slider("Smoothing Window Size", min_value=0, max_value=20, value=20)
+
+    # Apply smoothing if smoothing_value is greater than 0
+    if smoothing_value > 0:
+        for label in unique_labels:
+            plot_df.loc[plot_df['Label'] == label, 'Y'] = uniform_filter1d(plot_df.loc[plot_df['Label'] == label, 'Y'], size=smoothing_value)
+    
     st.plotly_chart(fig, use_container_width=True)
 
 else:
