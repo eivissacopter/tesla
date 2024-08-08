@@ -401,7 +401,7 @@ for i, info in enumerate(filtered_file_info):
         df = df[df['Speed'].diff() > 0]
 
     # Filter battery power and motor power
-    df = df[(df['Battery power'] >= 20) & (df['F power'] >= 10) & (df['R power'] >= 10)]
+    # df = df[(df['Battery power'] >= 20) & (df['F power'] >= 10) & (df['R power'] >= 10)]
 
     # Prepare the legend format
     legend_label = f"{info['folder']['model']} {info['folder']['variant']} {info['folder']['model_year']} {info['folder']['battery']} {info['folder']['rear_motor']} {info['folder']['acceleration_mode']} / {info['SOC']}% / {info['Cell temp mid']}°C"
