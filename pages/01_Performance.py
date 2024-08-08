@@ -343,7 +343,7 @@ for i, info in enumerate(filtered_file_info):
         df = df[(df['Speed'] >= 1) & (df['Speed'] <= 200)]
 
     # Ensure speed values are strictly increasing by removing non-increasing rows
-    df = df[df['Speed'].diff().fillna(1) > 0]
+    df = df[df['Speed'].diff().fillna(0) > 0]
 
     # Debugging output for checking speed values
     if df['Speed'].is_monotonic_increasing:
@@ -465,6 +465,7 @@ if plot_data:
 
 else:
     st.write("Please select an X-axis and at least one column to plot.")
+
 
 ####################################################################################################
 
