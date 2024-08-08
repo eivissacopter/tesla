@@ -274,10 +274,6 @@ show_legend = st.sidebar.checkbox("Show Legend", value=True)
 
 ####################################################################################################
 
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-import matplotlib.colors as mcolors
-
 # Plotting the data using Plotly
 if selected_x_axis and selected_columns and filtered_file_info:
     plot_data = []
@@ -343,9 +339,24 @@ if selected_x_axis and selected_columns and filtered_file_info:
         plot_df = pd.concat(plot_data)
         fig = px.line(plot_df, x='X', y='Y', color='Label', labels={'X': selected_x_axis, 'Y': 'Values'})
         
-        # Apply the colors
-        for trace, color in zip(fig.data, plot_df['Color'].unique()):
-            trace.update(line=dict(color=color))
+        # Apply the colors and make the lines wider with a glow effect
+        for trace in fig.data:
+            trace.update(line=dict(width=3))  # Make lines wider
+            color = trace.line.color
+            fig.add_trace(go.Scatter(
+                x=trace.x, y=trace.y,
+                mode='lines',
+                line=dict(color=color, width=6, opacity=0.2),  # Outer glow
+                showlegend=False,
+                hoverinfo='skip'
+            ))
+            fig.add_trace(go.Scatter(
+                x=trace.x, y=trace.y,
+                mode='lines',
+                line=dict(color=color, width=9, opacity=0.1),  # Inner glow
+                showlegend=False,
+                hoverinfo='skip'
+            ))
 
         # Add watermark
         fig.add_annotation(
@@ -379,3 +390,4 @@ if selected_x_axis and selected_columns and filtered_file_info:
         st.plotly_chart(fig, use_container_width=True)
 else:
     st.write("Please select an X-axis and at least one column to plot.")
+
