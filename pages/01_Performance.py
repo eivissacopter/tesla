@@ -277,7 +277,7 @@ if file_info:
         st.sidebar.write(f"Only one SOC value available: {min_soc}")
         selected_soc_range = (min_soc, max_soc)
     else:
-        selected_soc_range = st.sidebar.slider("State Of Charge [%]", min_soc, max_soc, (min_soc, max_soc))
+        selected_soc_range = st.sidebar.slider("State Of Charge [%]", min_soc, max_soc, (95, 100))
 
     if min_temp == max_temp:
         st.sidebar.write(f"Only one Cell Temp value available: {min_temp}")
@@ -407,15 +407,15 @@ if plot_data:
         color_map[label] = color
 
     # Slider for smoothing
-    smoothing_value = st.sidebar.slider("Smoothing Window Size", min_value=1, max_value=100, value=20)
+    smoothing_value = st.sidebar.slider("Smoothing Window Size", min_value=0, max_value=20, value=20)
 
-    # Apply smoothing if smoothing_value is greater than 1
-    if smoothing_value > 1:
+    # Apply smoothing if smoothing_value is greater than 0
+    if smoothing_value > 0:
         for label in unique_labels:
             plot_df.loc[plot_df['Label'] == label, 'Y'] = uniform_filter1d(plot_df.loc[plot_df['Label'] == label, 'Y'], size=smoothing_value)
 
     fig = px.line(plot_df, x='X', y='Y', color='Label', labels={'X': 'Speed [kph]', 'Y': 'Values'}, color_discrete_map=color_map)
-
+    
     # Apply the colors and make the lines wider
     for trace in fig.data:
         trace.update(line=dict(width=3))  # Set base line width
@@ -455,7 +455,6 @@ if plot_data:
 
 else:
     st.write("Please select an X-axis and at least one column to plot.")
-
 
 ####################################################################################################
 
