@@ -9,6 +9,7 @@ import plotly.express as px
 import os
 import json
 from scipy.ndimage import uniform_filter1d
+import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.colors as mcolors
 
