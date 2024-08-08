@@ -411,48 +411,44 @@ for i, info in enumerate(filtered_file_info):
         if isinstance(y_col, list):
             if column == "Combined Motor Power [kW]":
                 combined_value = df[y_col[0]] + df[y_col[1]]
-                smoothed_y = uniform_filter1d(combined_value, size=15)
-                smoothed_y = smoothed_y[smoothed_y >= 20]  # Filter combined motor power values below 20 kW
+                combined_value = combined_value[combined_value >= 20]  # Filter combined motor power values below 20 kW
                 plot_data.append(pd.DataFrame({
-                    'X': df[selected_x_axis],
-                    'Y': smoothed_y,
+                    'X': df[selected_x_axis].iloc[combined_value.index],
+                    'Y': combined_value,
                     'Label': f"{legend_label} - Combined Motor Power",
                     'Color': color,
                     'Line Style': 'solid'
                 }))
             elif column == "Combined Motor Torque [Nm]":
                 combined_value = df[y_col[0]] + df[y_col[1]]
-                smoothed_y = uniform_filter1d(combined_value, size=15)
                 plot_data.append(pd.DataFrame({
                     'X': df[selected_x_axis],
-                    'Y': smoothed_y,
+                    'Y': combined_value,
                     'Label': f"{legend_label} - Combined Motor Torque",
                     'Color': color,
                     'Line Style': 'dash'
                 }))
             else:
                 for sub_col in y_col:
-                    smoothed_y = uniform_filter1d(df[sub_col], size=15)
                     line_style = 'solid'
                     if 'Torque' in sub_col:
                         line_style = 'dash'
                     plot_data.append(pd.DataFrame({
                         'X': df[selected_x_axis],
-                        'Y': smoothed_y,
+                        'Y': df[sub_col],
                         'Label': f"{legend_label} - {sub_col}",
                         'Color': color,
                         'Line Style': line_style
                     }))
         else:
-            smoothed_y = uniform_filter1d(df[y_col], size=15)
             line_style = 'solid'
             if 'Current' in y_col or 'Voltage' in y_col:
                 line_style = 'dot'
             if 'Battery power' in y_col:
-                smoothed_y = smoothed_y[smoothed_y >= 40]  # Filter battery power values below 40 kW
+                df = df[df[y_col] >= 40]  # Filter battery power values below 40 kW
             plot_data.append(pd.DataFrame({
                 'X': df[selected_x_axis],
-                'Y': smoothed_y,
+                'Y': df[y_col],
                 'Label': f"{legend_label} - {column}",
                 'Color': color,
                 'Line Style': line_style
@@ -460,13 +456,11 @@ for i, info in enumerate(filtered_file_info):
 
 if plot_data:
     plot_df = pd.concat(plot_data)
-    fig = px.line(plot_df, x='X', y='Y', color='Label', line_dash='Line Style', labels={'X': 'Speed [kph]', 'Y': 'Values'})
+    fig = px.line(plot_df, x='X', y='Y', color='Label', line_dash='Line Style', labels={'X': 'Speed [kph]', 'Y': 'Values'}, color_discrete_map=label_color_map)
     
     # Apply the colors and make the lines wider
     for trace in fig.data:
-        label = trace.name.split(' - ')[0]
-        color = label_color_map[label]
-        trace.update(line=dict(color=color, width=3))  # Set base line width
+        trace.update(line=dict(width=3))  # Set base line width
 
     # Add watermark
     fig.add_annotation(
