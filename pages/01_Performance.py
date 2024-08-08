@@ -348,14 +348,14 @@ if selected_x_axis and selected_columns and filtered_file_info:
             fig.add_trace(go.Scatter(
                 x=trace.x, y=trace.y,
                 mode='lines',
-                line=dict(color=color, width=6),  # Outer glow
+                line=dict(color=color, width=4),  # Outer glow
                 showlegend=False,
                 hoverinfo='skip'
             ))
             fig.add_trace(go.Scatter(
                 x=trace.x, y=trace.y,
                 mode='lines',
-                line=dict(color=color, width=9),  # Inner glow
+                line=dict(color=color, width=5),  # Inner glow
                 showlegend=False,
                 hoverinfo='skip'
             ))
