@@ -356,19 +356,23 @@ if selected_x_axis and selected_columns and filtered_file_info:
             showarrow=False
         )
 
-        fig.update_layout(title="Performance Data Plot", xaxis_title=selected_x_axis, yaxis_title="Values" if len(selected_columns) > 1 else selected_columns[0])
-        if show_legend:
-            fig.update_layout(showlegend=True)
-            fig.update_layout(legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=-0.25,  # Position the legend below the plot
-                xanchor="center",
-                x=0.5
-            ))
-        else:
-            fig.update_layout(showlegend=False)
+        fig.update_layout(
+            title="Performance Data Plot",
+            xaxis_title=selected_x_axis,
+            yaxis_title="Values" if len(selected_columns) > 1 else selected_columns[0],
+            width=800,  # Adjust width as needed
+            height=600,  # Adjust height as needed
+            margin=dict(l=0, r=300, t=50, b=50),  # Add margin to the right for legend
+            legend=dict(
+                orientation="v",  # Vertical legend
+                yanchor="top",
+                y=1,
+                xanchor="left",
+                x=1.05  # Adjust position of legend outside of the plot
+            )
+        )
 
         st.plotly_chart(fig, use_container_width=True)
 else:
     st.write("Please select an X-axis and at least one column to plot.")
+
