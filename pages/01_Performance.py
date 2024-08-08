@@ -340,7 +340,7 @@ for i, info in enumerate(filtered_file_info):
 
     # Filter rows where speed is between 1 kph and 200 kph
     if 'Speed' in df.columns:
-        df = df[(df['Speed'] >= 0) & (df['Speed'] <= 210)]
+        df = df[(df['Speed'] >= 1) & (df['Speed'] <= 200)]
 
     # Ensure speed values are strictly increasing
     df = df[df['Speed'].diff().fillna(1) > 0]
@@ -448,7 +448,7 @@ if plot_data:
     fig.for_each_trace(lambda trace: trace.update(line_color=color_map.get(trace.name, trace.line.color)))
 
     # Slider for smoothing
-    smoothing_value = st.sidebar.slider("Line Smoothing", min_value=0, max_value=20, value=20)
+    smoothing_value = st.sidebar.slider("Smoothing Window Size", min_value=0, max_value=20, value=20)
 
     # Apply smoothing if smoothing_value is greater than 0
     if smoothing_value > 0:
@@ -459,6 +459,7 @@ if plot_data:
 
 else:
     st.write("Please select an X-axis and at least one column to plot.")
+
 
 
 ####################################################################################################
