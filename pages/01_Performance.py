@@ -399,3 +399,4 @@ if plot_data:
     st.plotly_chart(fig, use_container_width=True)
 else:
     st.write("Please select an X-axis and at least one column to plot.")
+
