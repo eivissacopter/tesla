@@ -404,6 +404,9 @@ for i, info in enumerate(filtered_file_info):
     if 'Speed' in df.columns:
         df = df[df['Speed'].diff() > 0]
 
+    # Drop rows with NaN values in the selected columns to avoid lines connecting back to the start
+    df.dropna(subset=[selected_x_axis] + [col for col_list in columns_to_plot.values() for col in (col_list if isinstance(col_list, list) else [col_list])], inplace=True)
+
     # Prepare the legend format
     legend_label = f"{info['folder']['model']} {info['folder']['variant']} {info['folder']['model_year']} {info['folder']['battery']} {info['folder']['rear_motor']} {info['folder']['acceleration_mode']}"
 
@@ -414,7 +417,7 @@ for i, info in enumerate(filtered_file_info):
             if column == "Combined Motor Power [kW]":
                 combined_value = df[y_col[0]] + df[y_col[1]]
                 combined_value = combined_value[combined_value >= 20]  # Filter combined motor power values below 20 kW
-                smoothed_y = uniform_filter1d(combined_value, size=15)
+                smoothed_y = uniform_filter1d(combined_value, size=5)  # Light smoothing with window size 5
                 plot_data.append(pd.DataFrame({
                     'X': df[selected_x_axis][:len(smoothed_y)],
                     'Y': smoothed_y,
@@ -424,7 +427,7 @@ for i, info in enumerate(filtered_file_info):
                 }))
             elif column == "Combined Motor Torque [Nm]":
                 combined_value = df[y_col[0]] + df[y_col[1]]
-                smoothed_y = uniform_filter1d(combined_value, size=15)
+                smoothed_y = uniform_filter1d(combined_value, size=5)  # Light smoothing with window size 5
                 plot_data.append(pd.DataFrame({
                     'X': df[selected_x_axis][:len(smoothed_y)],
                     'Y': smoothed_y,
@@ -434,7 +437,7 @@ for i, info in enumerate(filtered_file_info):
                 }))
             else:
                 for sub_col in y_col:
-                    smoothed_y = uniform_filter1d(df[sub_col], size=15)
+                    smoothed_y = uniform_filter1d(df[sub_col], size=5)  # Light smoothing with window size 5
                     line_style = 'solid'
                     if 'Torque' in sub_col:
                         line_style = 'dash'
@@ -446,7 +449,7 @@ for i, info in enumerate(filtered_file_info):
                         'Line Style': line_style
                     }))
         else:
-            smoothed_y = uniform_filter1d(df[y_col], size=15)
+            smoothed_y = uniform_filter1d(df[y_col], size=5)  # Light smoothing with window size 5
             line_style = 'solid'
             if 'Current' in y_col or 'Voltage' in y_col:
                 line_style = 'dot'
