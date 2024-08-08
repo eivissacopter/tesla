@@ -6,6 +6,7 @@ import urllib.parse
 import re
 from io import StringIO
 import plotly.express as px
+import plotly.graph_objects as go
 import os
 import json
 from scipy.ndimage import uniform_filter1d
