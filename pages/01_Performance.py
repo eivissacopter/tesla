@@ -364,25 +364,9 @@ if plot_data:
     plot_df = pd.concat(plot_data)
     fig = px.line(plot_df, x='X', y='Y', color='Label', line_dash='Line Style', labels={'X': 'Speed [kph]', 'Y': 'Values'}, color_discrete_map=folder_colors)
     
-    # Apply the colors and make the lines wider with a glow effect
+    # Apply the colors and make the lines wider
     for trace in fig.data:
-        trace.update(line=dict(width=2))  # Set base line width
-        color = trace.line.color
-        line_dash = trace.line.dash
-        fig.add_trace(go.Scatter(
-            x=trace.x, y=trace.y,
-            mode='lines',
-            line=dict(color=color, width=3, dash=line_dash),  # Outer glow
-            showlegend=False,
-            hoverinfo='skip'
-        ))
-        fig.add_trace(go.Scatter(
-            x=trace.x, y=trace.y,
-            mode='lines',
-            line=dict(color=color, width=4, dash=line_dash),  # Inner glow
-            showlegend=False,
-            hoverinfo='skip'
-        ))
+        trace.update(line=dict(width=3))  # Set base line width
 
     # Add watermark
     fig.add_annotation(
@@ -393,12 +377,11 @@ if plot_data:
         yref="paper",
         x=0.5,
         y=0.5,
-        opacity=0.05,
+        opacity=0.15,
         showarrow=False
     )
 
     fig.update_layout(
-        title="Performance Data Plot",
         xaxis_title='Speed [kph]',
         yaxis_title="Values" if len(selected_columns) > 1 else selected_columns[0],
         width=800,  # Adjust width as needed
