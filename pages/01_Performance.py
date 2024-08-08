@@ -379,12 +379,21 @@ plot_data = []
 # Predefined list of colors for different cars
 predefined_colors = ['blue', 'red', 'orange', 'green', 'purple', 'brown', 'pink', 'grey', 'olive', 'cyan']
 
+# Determine if only one unique vehicle and acceleration mode is selected
+single_color_mode = (
+    len(set(info['folder']['model'] for info in filtered_file_info)) == 1 and
+    len(set(info['folder']['acceleration_mode'] for info in filtered_file_info)) == 1
+)
+
 # Prepare plot data with fixed colors for each unique subfolder
 folder_colors = {}
 for i, info in enumerate(filtered_file_info):
     folder_path = info['folder']['path']
     if folder_path not in folder_colors:
-        folder_colors[folder_path] = predefined_colors[len(folder_colors) % len(predefined_colors)]
+        if single_color_mode:
+            folder_colors[folder_path] = 'blue'  # Single color mode
+        else:
+            folder_colors[folder_path] = predefined_colors[len(folder_colors) % len(predefined_colors)]
     
     response = requests.get(info['path'])
     content = response.content.decode('utf-8')
