@@ -413,10 +413,10 @@ for i, info in enumerate(filtered_file_info):
         if isinstance(y_col, list):
             if column == "Combined Motor Power [kW]":
                 combined_value = df[y_col[0]] + df[y_col[1]]
+                combined_value = combined_value[combined_value >= 20]  # Filter combined motor power values below 20 kW
                 smoothed_y = uniform_filter1d(combined_value, size=15)
-                smoothed_y = smoothed_y[smoothed_y >= 20]  # Filter combined motor power values below 20 kW
                 plot_data.append(pd.DataFrame({
-                    'X': df[selected_x_axis],
+                    'X': df[selected_x_axis][:len(smoothed_y)],
                     'Y': smoothed_y,
                     'Label': f"{legend_label} - Combined Motor Power",
                     'Color': folder_colors[folder_path],
@@ -426,7 +426,7 @@ for i, info in enumerate(filtered_file_info):
                 combined_value = df[y_col[0]] + df[y_col[1]]
                 smoothed_y = uniform_filter1d(combined_value, size=15)
                 plot_data.append(pd.DataFrame({
-                    'X': df[selected_x_axis],
+                    'X': df[selected_x_axis][:len(smoothed_y)],
                     'Y': smoothed_y,
                     'Label': f"{legend_label} - Combined Motor Torque",
                     'Color': folder_colors[folder_path],
@@ -439,7 +439,7 @@ for i, info in enumerate(filtered_file_info):
                     if 'Torque' in sub_col:
                         line_style = 'dash'
                     plot_data.append(pd.DataFrame({
-                        'X': df[selected_x_axis],
+                        'X': df[selected_x_axis][:len(smoothed_y)],
                         'Y': smoothed_y,
                         'Label': f"{legend_label} - {sub_col}",
                         'Color': folder_colors[folder_path],
@@ -453,7 +453,7 @@ for i, info in enumerate(filtered_file_info):
             if 'Battery power' in y_col:
                 smoothed_y = smoothed_y[smoothed_y >= 40]  # Filter battery power values below 40 kW
             plot_data.append(pd.DataFrame({
-                'X': df[selected_x_axis],
+                'X': df[selected_x_axis][:len(smoothed_y)],
                 'Y': smoothed_y,
                 'Label': f"{legend_label} - {column}",
                 'Color': folder_colors[folder_path],
@@ -504,4 +504,3 @@ if plot_data:
     st.plotly_chart(fig, use_container_width=True)
 else:
     st.write("Please select an X-axis and at least one column to plot.")
-
