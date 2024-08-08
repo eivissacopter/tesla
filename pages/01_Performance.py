@@ -502,7 +502,7 @@ if plot_data:
 
     for label in unique_labels:
         # Use folder_colors.get with a default color to avoid KeyError
-        color = st.sidebar.color_picker(f"Pick a color for {label}", folder_colors.get(label, '#000000'))
+        color = st.sidebar.color_picker(f"Pick a color for {label}", folder_colors.get(label, '#BC00FF'))
         color_map[label] = color
 
     # Update the color in the plot
