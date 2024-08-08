@@ -321,6 +321,58 @@ selected_x_axis = "Speed"
 
 ####################################################################################################
 
+# Animated Banner with logo and link
+st.sidebar.markdown(
+    """
+    <style>
+        .sidebar-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0rem;
+        }
+        .sidebar-content img {
+            height: auto;
+        }
+        .sidebar-content .akku-wiki {
+            width: 90px;  /* Set specific width for Akku Wiki logo */
+        }
+        .sidebar-content .buy-me-coffee {
+            width: 240px;  /* Set specific width for Buy Me a Coffee logo */
+        }
+        .sidebar-content .follow-on-x {
+            width: 110px;  /* Set specific width for Follow on X logo */
+        }
+        .sidebar-content .text {
+            text-align: center;
+            font-size: 12px;  /* Default font size for text */
+        }
+        .sidebar-content a {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+        }
+    </style>
+    <div class="sidebar-content">
+        <a href="https://tff-forum.de/t/wiki-akkuwiki-model-3-model-y-cybertruck/107641?u=eivissa" target="_blank">
+            <div>
+                <img src="https://i.ibb.co/vBvVFTg/TFF-Logo-ohne-Schrift-removebg-preview.png" class="akku-wiki" alt="Akku Wiki">
+                <div class="text">Akku Wiki</div>
+            </div>
+        </a>
+        <a href="https://buymeacoffee.com/eivissa" target="_blank">
+            <img src="https://media.giphy.com/media/o7RZbs4KAA6tvM4H6j/giphy.gif" class="buy-me-coffee" alt="Buy Me a Coffee">
+        </a>
+        <a href="https://x.com/eivissacopter" target="_blank">
+            <img src="https://i.ibb.co/xLhFQNn/c23e7825a07e5e998bd361f9c991e12c-400x400-removebg-preview.png" class="follow-on-x" alt="Follow on X">
+        </a>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+####################################################################################################
+
 # Initialize plot data
 plot_data = []
 
