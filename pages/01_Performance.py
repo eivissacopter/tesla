@@ -340,7 +340,7 @@ for i, info in enumerate(filtered_file_info):
 
     # Filter rows where speed is between 1 kph and 200 kph
     if 'Speed' in df.columns:
-        df = df[(df['Speed'] >= 1) & (df['Speed'] <= 200)]
+        df = df[(df['Speed'] >= 5) & (df['Speed'] <= 200)]
     
     # Filter rows where speed is not increasing
     if 'Speed' in df.columns:
