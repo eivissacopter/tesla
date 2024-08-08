@@ -506,13 +506,19 @@ if plot_data:
     )
 
     st.plotly_chart(fig, use_container_width=True)
-
+    
     # Add dropdown to select colors for each line
     st.sidebar.subheader("Select Line Colors")
     unique_labels = plot_df['Label'].unique()
+    color_map = {}
+    
     for label in unique_labels:
-        color = st.sidebar.color_picker(f"Pick a color for {label}", folder_colors[folder_path])
-        fig.for_each_trace(lambda trace: trace.update(line_color=color) if trace.name == label else ())
+        color = st.sidebar.color_picker(f"Pick a color for {label}", folder_colors[label])
+        color_map[label] = color
+    
+    # Update the color in the plot
+    fig.for_each_trace(lambda trace: trace.update(line_color=color_map[trace.name]))
+
 
 else:
     st.write("Please select an X-axis and at least one column to plot.")
