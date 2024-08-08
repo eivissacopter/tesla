@@ -96,6 +96,10 @@ def get_unique_values(classified_folders, key, filters={}):
             values.add(folder[key])
     return sorted(values)
 
+def smooth_and_filter(df, column, window_size=15):
+    smoothed = uniform_filter1d(df[column], size=window_size)
+    return pd.Series(smoothed, index=df.index)
+
 selected_filters = {}
 
 ###################################################################################################
