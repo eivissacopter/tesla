@@ -399,22 +399,8 @@ if plot_data:
     unique_labels = plot_df['Label'].unique()
     color_map = {label: folder_colors[label.split(" - ")[0]] for label in unique_labels}
 
-    # Add dropdown to select colors for each line
-    st.sidebar.subheader("Select Line Colors")
-    for label in unique_labels:
-        color = st.sidebar.color_picker(f"Pick a color for {label}", color_map[label])
-        color_map[label] = color
-
-    # Slider for smoothing
-    smoothing_value = st.sidebar.slider("Smoothing Window Size", min_value=0, max_value=20, value=20)
-
-    # Apply smoothing if smoothing_value is greater than 0
-    if smoothing_value > 0:
-        for label in unique_labels:
-            plot_df.loc[plot_df['Label'] == label, 'Y'] = uniform_filter1d(plot_df.loc[plot_df['Label'] == label, 'Y'], size=smoothing_value)
-
     fig = px.line(plot_df, x='X', y='Y', color='Label', labels={'X': 'Speed [kph]', 'Y': 'Values'}, color_discrete_map=color_map)
-    
+
     # Apply the colors and make the lines wider
     for trace in fig.data:
         trace.update(line=dict(width=3))  # Set base line width
@@ -449,6 +435,15 @@ if plot_data:
             title=None  # Remove title "Label, Line Style"
         )
     )
+
+    # Add dropdown to select colors for each line
+    st.sidebar.subheader("Select Line Colors")
+    for label in unique_labels:
+        color = st.sidebar.color_picker(f"Pick a color for {label}", color_map[label])
+        color_map[label] = color
+
+    # Update the color in the plot
+    fig.for_each_trace(lambda trace: trace.update(line_color=color_map.get(trace.name, trace.line.color)))
 
     st.plotly_chart(fig, use_container_width=True)
 
