@@ -275,9 +275,6 @@ show_legend = st.sidebar.checkbox("Show Legend", value=True)
 if selected_x_axis and selected_columns and filtered_file_info:
     plot_data = []
 
-    # Define the minimum speed difference threshold for acceleration
-    min_speed_diff = 3.47  # Adjust this threshold as needed for your data frequency
-
     # Change the plot data preparation to include the desired legend format
     for info in filtered_file_info:
         response = requests.get(info['path'])
@@ -290,9 +287,9 @@ if selected_x_axis and selected_columns and filtered_file_info:
         # Filter invalid values
         df = df[(df['SOC'] >= 0) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= 0) & (df['Cell temp mid'] <= 70)]
 
-        # Filter rows where speed difference is below the threshold
+        # Filter rows where speed is not increasing
         if 'Speed' in df.columns:
-            df = df[df['Speed'].diff().abs() > min_speed_diff]
+            df = df[df['Speed'].diff() > 0]
 
         # Prepare the legend format
         legend_label = f"{info['folder']['model']}_{info['folder']['variant']}_{info['folder']['model_year']}_{info['folder']['battery']}_{info['folder']['rear_motor']}_{info['folder']['acceleration_mode']}_{info['SOC']}% SOC_{info['Cell temp mid']}°C"
@@ -335,6 +332,4 @@ if selected_x_axis and selected_columns and filtered_file_info:
         st.plotly_chart(fig, use_container_width=True)
 else:
     st.write("Please select an X-axis and at least one column to plot.")
-
-
 
