@@ -96,10 +96,6 @@ def get_unique_values(classified_folders, key, filters={}):
             values.add(folder[key])
     return sorted(values)
 
-def smooth_and_filter(df, column, window_size=15):
-    smoothed = uniform_filter1d(df[column], size=window_size)
-    return pd.Series(smoothed, index=df.index)
-
 selected_filters = {}
 
 ###################################################################################################
@@ -142,6 +138,7 @@ st.markdown(
 )
 
 ###################################################################################################
+
 
 # Sidebar filters
 st.sidebar.header("Filter Options")
@@ -200,6 +197,10 @@ acceleration_modes_ordered = ["Chill", "Standard", "Sport"]
 selected_acceleration_mode = st.sidebar.multiselect("Acceleration Mode", acceleration_modes_ordered, default=acceleration_modes_ordered if len(acceleration_modes_ordered) == 1 else [])
 if selected_acceleration_mode:
     selected_filters['acceleration_mode'] = selected_acceleration_mode
+
+# Smoothing parameter slider
+st.sidebar.subheader("Smoothing")
+smoothing_window = st.sidebar.slider("Smoothing Window Size", min_value=1, max_value=20, value=1, step=1)
 
 ###################################################################################################
 
@@ -323,6 +324,151 @@ selected_x_axis = "Speed"
 
 ####################################################################################################
 
+# Initialize plot data
+plot_data = []
+
+# Predefined list of colors for different cars
+predefined_colors = ['#0000FF', '#FF0000', '#FFA500', '#008000', '#800080', '#A52A2A', '#FFC0CB', '#808080', '#808000', '#00FFFF']
+
+# Prepare plot data with fixed colors for each unique subfolder
+folder_colors = {}
+for i, info in enumerate(filtered_file_info):
+    folder_path = info['folder']['path']
+    if folder_path not in folder_colors:
+        folder_colors[folder_path] = predefined_colors[len(folder_colors) % len(predefined_colors)]
+    
+    response = requests.get(info['path'])
+    content = response.content.decode('utf-8')
+    df = pd.read_csv(StringIO(content))
+
+    # Fill forward and backward to handle NaN values
+    df = df.ffill().bfill()
+
+    # Filter invalid values
+    df = df[(df['SOC'] >= 0) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= 0) & (df['Cell temp mid'] <= 70)]
+
+    # Filter rows where speed is not increasing
+    if 'Speed' in df.columns:
+        df = df[df['Speed'].diff() > 0]
+
+    # Drop rows with NaN values in the selected columns to avoid lines connecting back to the start
+    df.dropna(subset=[selected_x_axis] + [col for col_list in columns_to_plot.values() for col in (col_list if isinstance(col_list, list) else [col_list])], inplace=True)
+
+    # Prepare the legend format
+    legend_label = f"{info['folder']['model']} {info['folder']['variant']} {info['folder']['model_year']} {info['folder']['battery']} {info['folder']['rear_motor']} {info['folder']['acceleration_mode']}"
+
+    # Plot selected columns
+    for column in selected_columns:
+        y_col = columns_to_plot[column]
+        if isinstance(y_col, list):
+            if column == "Combined Motor Power [kW]":
+                combined_value = df[y_col[0]] + df[y_col[1]]
+                combined_value = combined_value[combined_value >= 20]  # Filter combined motor power values below 20 kW
+                if smoothing_window > 1:
+                    combined_value = pd.Series(uniform_filter1d(combined_value, size=smoothing_window), index=combined_value.index)
+                plot_data.append(pd.DataFrame({
+                    'X': df[selected_x_axis].loc[combined_value.index],
+                    'Y': combined_value,
+                    'Label': f"{legend_label} - Combined Motor Power",
+                    'Color': folder_colors[folder_path]
+                }))
+            elif column == "Combined Motor Torque [Nm]":
+                combined_value = df[y_col[0]] + df[y_col[1]]
+                if smoothing_window > 1:
+                    combined_value = pd.Series(uniform_filter1d(combined_value, size=smoothing_window), index=combined_value.index)
+                plot_data.append(pd.DataFrame({
+                    'X': df[selected_x_axis].loc[combined_value.index],
+                    'Y': combined_value,
+                    'Label': f"{legend_label} - Combined Motor Torque",
+                    'Color': folder_colors[folder_path]
+                }))
+            else:
+                for sub_col in y_col:
+                    smoothed_y = df[sub_col]
+                    if smoothing_window > 1:
+                        smoothed_y = pd.Series(uniform_filter1d(df[sub_col], size=smoothing_window), index=df[sub_col].index)
+                    plot_data.append(pd.DataFrame({
+                        'X': df[selected_x_axis].loc[smoothed_y.index],
+                        'Y': smoothed_y,
+                        'Label': f"{legend_label} - {sub_col}",
+                        'Color': folder_colors[folder_path]
+                    }))
+        else:
+            smoothed_y = df[y_col]
+            if smoothing_window > 1:
+                smoothed_y = pd.Series(uniform_filter1d(df[y_col], size=smoothing_window), index=df[y_col].index)
+            if 'Battery power' in y_col:
+                smoothed_y = smoothed_y[smoothed_y >= 40]  # Filter battery power values below 40 kW
+            plot_data.append(pd.DataFrame({
+                'X': df[selected_x_axis].loc[smoothed_y.index],
+                'Y': smoothed_y,
+                'Label': f"{legend_label} - {column}",
+                'Color': folder_colors[folder_path]
+            }))
+
+# Convert plot data to a DataFrame
+if plot_data:
+    plot_df = pd.concat(plot_data)
+
+    # Filter out rows where 'X' or 'Y' have NaN values to prevent lines from connecting back to the start
+    plot_df.dropna(subset=['X', 'Y'], inplace=True)
+
+    fig = px.line(plot_df, x='X', y='Y', color='Label', labels={'X': 'Speed [kph]', 'Y': 'Values'}, color_discrete_map=folder_colors)
+    
+    # Apply the colors and make the lines wider
+    for trace in fig.data:
+        trace.update(line=dict(width=3))  # Set base line width
+
+    # Add watermark
+    fig.add_annotation(
+        text="@eivissacopter",
+        font=dict(size=20, color="lightgrey"),
+        align="center",
+        xref="paper",
+        yref="paper",
+        x=0.5,
+        y=0.5,
+        opacity=0.15,
+        showarrow=False
+    )
+
+    # Move legend inside the chart and remove the "Label, Line Style"
+    fig.update_layout(
+        showlegend=True,
+        xaxis_title='Speed [kph]',
+        yaxis_title="Values" if len(selected_columns) > 1 else selected_columns[0],
+        width=800,  # Adjust width as needed
+        height=800,  # Adjust height as needed
+        margin=dict(l=50, r=50, t=50, b=50),  # Adjust margin
+        legend=dict(
+            orientation="h",  # Horizontal legend
+            yanchor="top",
+            y=1.1,  # Position the legend above the plot
+            xanchor="center",
+            x=0.5,
+            title=None  # Remove title "Label, Line Style"
+        )
+    )
+
+    # Add dropdown to select colors for each line
+    st.sidebar.subheader("Select Line Colors")
+    unique_labels = plot_df['Label'].unique()
+    color_map = {}
+
+    for label in unique_labels:
+        color = st.sidebar.color_picker(f"Pick a color for {label}", folder_colors.get(label.split(" - ")[0], "#000000"))
+        color_map[label] = color
+
+    # Update the color in the plot
+    fig.for_each_trace(lambda trace: trace.update(line_color=color_map[trace.name]))
+
+    st.plotly_chart(fig, use_container_width=True)
+
+else:
+    st.write("Please select an X-axis and at least one column to plot.")
+
+####################################################################################################
+
 # Animated Banner with logo and link
 st.sidebar.markdown(
     """
@@ -372,144 +518,3 @@ st.sidebar.markdown(
     """,
     unsafe_allow_html=True
 )
-
-####################################################################################################
-
-# Initialize plot data
-plot_data = []
-
-# Predefined list of colors for different cars
-predefined_colors = ['#0000FF', '#FF0000', '#FFA500', '#008000', '#800080', '#A52A2A', '#FFC0CB', '#808080', '#808000', '#00FFFF']
-
-# Prepare plot data with fixed colors for each unique subfolder
-folder_colors = {}
-for i, info in enumerate(filtered_file_info):
-    folder_path = info['folder']['path']
-    legend_label = f"{info['folder']['model']} {info['folder']['variant']} {info['folder']['model_year']} {info['folder']['battery']} {info['folder']['rear_motor']} {info['folder']['acceleration_mode']}"
-    if legend_label not in folder_colors:
-        folder_colors[legend_label] = predefined_colors[len(folder_colors) % len(predefined_colors)]
-    
-    response = requests.get(info['path'])
-    content = response.content.decode('utf-8')
-    df = pd.read_csv(StringIO(content))
-
-    # Fill forward and backward to handle NaN values
-    df = df.ffill().bfill()
-
-    # Filter invalid values
-    df = df[(df['SOC'] >= 0) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= 0) & (df['Cell temp mid'] <= 70)]
-
-    # Filter rows where speed is not increasing
-    if 'Speed' in df.columns:
-        df = df[df['Speed'].diff() > 0]
-
-    # Drop rows with NaN values in the selected columns to avoid lines connecting back to the start
-    df.dropna(subset=[selected_x_axis] + [col for col_list in columns_to_plot.values() for col in (col_list if isinstance(col_list, list) else [col_list])], inplace=True)
-
-    # Plot selected columns
-    for column in selected_columns:
-        y_col = columns_to_plot[column]
-        if isinstance(y_col, list):
-            if column == "Combined Motor Power [kW]":
-                combined_value = df[y_col[0]] + df[y_col[1]]
-                combined_value = combined_value[combined_value >= 20]  # Filter combined motor power values below 20 kW
-                smoothed_y = pd.Series(uniform_filter1d(combined_value, size=3), index=combined_value.index)
-                plot_data.append(pd.DataFrame({
-                    'X': df[selected_x_axis].loc[smoothed_y.index],
-                    'Y': smoothed_y,
-                    'Label': f"{legend_label} - Combined Motor Power",
-                    'Color': folder_colors[legend_label]
-                }))
-            elif column == "Combined Motor Torque [Nm]":
-                combined_value = df[y_col[0]] + df[y_col[1]]
-                smoothed_y = pd.Series(uniform_filter1d(combined_value, size=3), index=combined_value.index)
-                plot_data.append(pd.DataFrame({
-                    'X': df[selected_x_axis].loc[smoothed_y.index],
-                    'Y': smoothed_y,
-                    'Label': f"{legend_label} - Combined Motor Torque",
-                    'Color': folder_colors[legend_label]
-                }))
-            else:
-                for sub_col in y_col:
-                    smoothed_y = pd.Series(uniform_filter1d(df[sub_col], size=3), index=df[sub_col].index)
-                    plot_data.append(pd.DataFrame({
-                        'X': df[selected_x_axis].loc[smoothed_y.index],
-                        'Y': smoothed_y,
-                        'Label': f"{legend_label} - {sub_col}",
-                        'Color': folder_colors[legend_label]
-                    }))
-        else:
-            smoothed_y = pd.Series(uniform_filter1d(df[y_col], size=3), index=df[y_col].index)
-            if 'Battery power' in y_col:
-                smoothed_y = smoothed_y[smoothed_y >= 40]  # Filter battery power values below 40 kW
-            plot_data.append(pd.DataFrame({
-                'X': df[selected_x_axis].loc[smoothed_y.index],
-                'Y': smoothed_y,
-                'Label': f"{legend_label} - {column}",
-                'Color': folder_colors[legend_label]
-            }))
-
-# Convert plot data to a DataFrame
-if plot_data:
-    plot_df = pd.concat(plot_data)
-
-    # Filter out rows where 'X' or 'Y' have NaN values to prevent lines from connecting back to the start
-    plot_df.dropna(subset=['X', 'Y'], inplace=True)
-
-    # Create a color map for each label
-    unique_labels = plot_df['Label'].unique()
-    color_map = {label: folder_colors.get(label.split(" - ")[0], "#000000") for label in unique_labels}
-
-    fig = px.line(plot_df, x='X', y='Y', color='Label', labels={'X': 'Speed [kph]', 'Y': 'Values'}, color_discrete_map=color_map)
-
-    # Apply the colors and make the lines wider
-    for trace in fig.data:
-        trace.update(line=dict(width=3))  # Set base line width
-
-    # Add watermark
-    fig.add_annotation(
-        text="@eivissacopter",
-        font=dict(size=20, color="lightgrey"),
-        align="center",
-        xref="paper",
-        yref="paper",
-        x=0.5,
-        y=0.5,
-        opacity=0.15,
-        showarrow=False
-    )
-
-    # Move legend inside the chart and remove the "Label, Line Style"
-    fig.update_layout(
-        showlegend=True,
-        xaxis_title='Speed [kph]',
-        yaxis_title="Values" if len(selected_columns) > 1 else selected_columns[0],
-        width=800,  # Adjust width as needed
-        height=800,  # Adjust height as needed
-        margin=dict(l=50, r=50, t=50, b=50),  # Adjust margin
-        legend=dict(
-            orientation="h",  # Horizontal legend
-            yanchor="top",
-            y=1.1,  # Position the legend above the plot
-            xanchor="center",
-            x=0.5,
-            title=None  # Remove title "Label, Line Style"
-        )
-    )
-
-    # Add dropdown to select colors for each line
-    st.sidebar.subheader("Select Line Colors")
-    for label in unique_labels:
-        color = st.sidebar.color_picker(f"Pick a color for {label}", color_map[label])
-        color_map[label] = color
-
-    # Update the color in the plot
-    fig.for_each_trace(lambda trace: trace.update(line_color=color_map.get(trace.name, trace.line.color)))
-
-    st.plotly_chart(fig, use_container_width=True)
-
-else:
-    st.write("Please select an X-axis and at least one column to plot.")
-
-
-
