@@ -141,7 +141,7 @@ st.markdown(
 
 
 # Sidebar filters
-st.sidebar.header("Filter Options")
+# st.sidebar.header("Filter Options")
 
 # Prefill function
 def prefill_filter(options, label):
