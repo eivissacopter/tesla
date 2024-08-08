@@ -275,7 +275,16 @@ show_legend = st.sidebar.checkbox("Show Legend", value=True)
 if selected_x_axis and selected_columns and filtered_file_info:
     plot_data = []
 
-    # Change the plot data preparation to include the desired legend format
+    # Define a function to get the color based on SOC
+    def get_color(value, min_val, max_val):
+        norm = mcolors.Normalize(vmin=min_val, vmax=max_val)
+        cmap = cm.get_cmap('RdBu')
+        return mcolors.to_hex(cmap(norm(value)))
+
+    min_soc = min(info['SOC'] for info in file_info)
+    max_soc = max(info['SOC'] for info in file_info)
+
+    # Prepare plot data
     for info in filtered_file_info:
         response = requests.get(info['path'])
         content = response.content.decode('utf-8')
@@ -299,23 +308,43 @@ if selected_x_axis and selected_columns and filtered_file_info:
             y_col = columns_to_plot[column]
             if isinstance(y_col, list):
                 for sub_col in y_col:
-                    smoothed_y = df[sub_col].rolling(window=15).mean()
+                    smoothed_y = uniform_filter1d(df[sub_col], size=15)
                     plot_data.append(pd.DataFrame({
                         'X': df[selected_x_axis],
                         'Y': smoothed_y,
-                        'Label': f"{legend_label} - {sub_col}"
+                        'Label': f"{legend_label} - {sub_col}",
+                        'Color': get_color(info['SOC'], min_soc, max_soc)
                     }))
             else:
-                smoothed_y = df[y_col].rolling(window=15).mean()
+                smoothed_y = uniform_filter1d(df[y_col], size=15)
                 plot_data.append(pd.DataFrame({
                     'X': df[selected_x_axis],
                     'Y': smoothed_y,
-                    'Label': f"{legend_label} - {column}"
+                    'Label': f"{legend_label} - {column}",
+                    'Color': get_color(info['SOC'], min_soc, max_soc)
                 }))
 
     if plot_data:
         plot_df = pd.concat(plot_data)
         fig = px.line(plot_df, x='X', y='Y', color='Label', labels={'X': selected_x_axis, 'Y': 'Values'})
+        
+        # Apply the colors
+        for trace, color in zip(fig.data, plot_df['Color'].unique()):
+            trace.update(line=dict(color=color))
+
+        # Add watermark
+        fig.add_annotation(
+            text="@eivissacopter",
+            font=dict(size=20, color="lightgrey"),
+            align="center",
+            xref="paper",
+            yref="paper",
+            x=0.5,
+            y=0.5,
+            opacity=0.05,
+            showarrow=False
+        )
+
         fig.update_layout(title="Performance Data Plot", xaxis_title=selected_x_axis, yaxis_title="Values" if len(selected_columns) > 1 else selected_columns[0])
         if show_legend:
             fig.update_layout(showlegend=True)
@@ -332,4 +361,3 @@ if selected_x_axis and selected_columns and filtered_file_info:
         st.plotly_chart(fig, use_container_width=True)
 else:
     st.write("Please select an X-axis and at least one column to plot.")
-
