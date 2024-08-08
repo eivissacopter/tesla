@@ -379,14 +379,17 @@ plot_data = []
 # Predefined list of colors for different cars
 predefined_colors = ['blue', 'red', 'orange', 'green', 'purple', 'brown', 'pink', 'grey', 'olive', 'cyan']
 
-# Prepare plot data with fixed colors for each unique label
+# Prepare plot data with fixed colors for each unique subfolder
+folder_colors = {}
 label_colors = {}
-for i, info in enumerate(filtered_file_info):
-    # Generate a label ignoring SOC and Cell temp mid
-    label_key = f"{info['folder']['model']} {info['folder']['variant']} {info['folder']['model_year']} {info['folder']['battery']} {info['folder']['rear_motor']} {info['folder']['acceleration_mode']}"
-    if label_key not in label_colors:
-        label_colors[label_key] = predefined_colors[len(label_colors) % len(predefined_colors)]
 
+for i, info in enumerate(filtered_file_info):
+    folder_path = info['folder']['path']
+    base_label = f"{info['folder']['model']} {info['folder']['variant']} {info['folder']['model_year']} {info['folder']['battery']} {info['folder']['rear_motor']} {info['folder']['acceleration_mode']}"
+    
+    if base_label not in label_colors:
+        label_colors[base_label] = predefined_colors[len(label_colors) % len(predefined_colors)]
+    
     response = requests.get(info['path'])
     content = response.content.decode('utf-8')
     df = pd.read_csv(StringIO(content))
@@ -402,7 +405,7 @@ for i, info in enumerate(filtered_file_info):
         df = df[df['Speed'].diff() > 0]
 
     # Prepare the legend format
-    legend_label = f"{label_key} / {info['SOC']}% / {info['Cell temp mid']}°C"
+    legend_label = f"{base_label} / {info['SOC']}% / {info['Cell temp mid']}°C"
 
     # Plot selected columns
     for column in selected_columns:
@@ -413,20 +416,20 @@ for i, info in enumerate(filtered_file_info):
                 smoothed_y = uniform_filter1d(combined_value, size=15)
                 smoothed_y = smoothed_y[smoothed_y >= 20]  # Filter combined motor power values below 20 kW
                 plot_data.append(pd.DataFrame({
-                    'X': df[selected_x_axis],
+                    'X': df[selected_x_axis][:len(smoothed_y)],
                     'Y': smoothed_y,
                     'Label': f"{legend_label} - Combined Motor Power",
-                    'Color': label_colors[label_key],
+                    'Color': label_colors[base_label],
                     'Line Style': 'solid'
                 }))
             elif column == "Combined Motor Torque [Nm]":
                 combined_value = df[y_col[0]] + df[y_col[1]]
                 smoothed_y = uniform_filter1d(combined_value, size=15)
                 plot_data.append(pd.DataFrame({
-                    'X': df[selected_x_axis],
+                    'X': df[selected_x_axis][:len(smoothed_y)],
                     'Y': smoothed_y,
                     'Label': f"{legend_label} - Combined Motor Torque",
-                    'Color': label_colors[label_key],
+                    'Color': label_colors[base_label],
                     'Line Style': 'dash'
                 }))
             else:
@@ -436,10 +439,10 @@ for i, info in enumerate(filtered_file_info):
                     if 'Torque' in sub_col:
                         line_style = 'dash'
                     plot_data.append(pd.DataFrame({
-                        'X': df[selected_x_axis],
+                        'X': df[selected_x_axis][:len(smoothed_y)],
                         'Y': smoothed_y,
                         'Label': f"{legend_label} - {sub_col}",
-                        'Color': label_colors[label_key],
+                        'Color': label_colors[base_label],
                         'Line Style': line_style
                     }))
         else:
@@ -450,10 +453,10 @@ for i, info in enumerate(filtered_file_info):
             if 'Battery power' in y_col:
                 smoothed_y = smoothed_y[smoothed_y >= 40]  # Filter battery power values below 40 kW
             plot_data.append(pd.DataFrame({
-                'X': df[selected_x_axis],
+                'X': df[selected_x_axis][:len(smoothed_y)],
                 'Y': smoothed_y,
                 'Label': f"{legend_label} - {column}",
-                'Color': label_colors[label_key],
+                'Color': label_colors[base_label],
                 'Line Style': line_style
             }))
 
