@@ -420,8 +420,7 @@ for i, info in enumerate(filtered_file_info):
                     'X': df[selected_x_axis].loc[smoothed_y.index],
                     'Y': smoothed_y,
                     'Label': f"{legend_label} - Combined Motor Power",
-                    'Color': folder_colors[folder_path],
-                    'Line Style': 'solid'
+                    'Color': folder_colors[folder_path]
                 }))
             elif column == "Combined Motor Torque [Nm]":
                 combined_value = df[y_col[0]] + df[y_col[1]]
@@ -430,35 +429,26 @@ for i, info in enumerate(filtered_file_info):
                     'X': df[selected_x_axis].loc[smoothed_y.index],
                     'Y': smoothed_y,
                     'Label': f"{legend_label} - Combined Motor Torque",
-                    'Color': folder_colors[folder_path],
-                    'Line Style': 'dash'
+                    'Color': folder_colors[folder_path]
                 }))
             else:
                 for sub_col in y_col:
                     smoothed_y = pd.Series(uniform_filter1d(df[sub_col], size=3), index=df[sub_col].index)
-                    line_style = 'solid'
-                    if 'Torque' in sub_col:
-                        line_style = 'dash'
                     plot_data.append(pd.DataFrame({
                         'X': df[selected_x_axis].loc[smoothed_y.index],
                         'Y': smoothed_y,
                         'Label': f"{legend_label} - {sub_col}",
-                        'Color': folder_colors[folder_path],
-                        'Line Style': line_style
+                        'Color': folder_colors[folder_path]
                     }))
         else:
             smoothed_y = pd.Series(uniform_filter1d(df[y_col], size=3), index=df[y_col].index)
-            line_style = 'solid'
-            if 'Current' in y_col or 'Voltage' in y_col:
-                line_style = 'dot'
             if 'Battery power' in y_col:
                 smoothed_y = smoothed_y[smoothed_y >= 40]  # Filter battery power values below 40 kW
             plot_data.append(pd.DataFrame({
                 'X': df[selected_x_axis].loc[smoothed_y.index],
                 'Y': smoothed_y,
                 'Label': f"{legend_label} - {column}",
-                'Color': folder_colors[folder_path],
-                'Line Style': line_style
+                'Color': folder_colors[folder_path]
             }))
 
 # Convert plot data to a DataFrame
@@ -468,7 +458,7 @@ if plot_data:
     # Filter out rows where 'X' or 'Y' have NaN values to prevent lines from connecting back to the start
     plot_df.dropna(subset=['X', 'Y'], inplace=True)
 
-    fig = px.line(plot_df, x='X', y='Y', color='Label', line_dash='Line Style', labels={'X': 'Speed [kph]', 'Y': 'Values'}, color_discrete_map=folder_colors)
+    fig = px.line(plot_df, x='X', y='Y', color='Label', labels={'X': 'Speed [kph]', 'Y': 'Values'}, color_discrete_map=folder_colors)
     
     # Apply the colors and make the lines wider
     for trace in fig.data:
@@ -506,20 +496,20 @@ if plot_data:
     )
 
     st.plotly_chart(fig, use_container_width=True)
-    
+
     # Add dropdown to select colors for each line
     st.sidebar.subheader("Select Line Colors")
     unique_labels = plot_df['Label'].unique()
     color_map = {}
-    
+
     for label in unique_labels:
         color = st.sidebar.color_picker(f"Pick a color for {label}", folder_colors[label])
         color_map[label] = color
-    
+
     # Update the color in the plot
     fig.for_each_trace(lambda trace: trace.update(line_color=color_map[trace.name]))
 
+    st.plotly_chart(fig, use_container_width=True)
 
 else:
     st.write("Please select an X-axis and at least one column to plot.")
-
