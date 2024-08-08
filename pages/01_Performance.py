@@ -400,9 +400,6 @@ for i, info in enumerate(filtered_file_info):
     if 'Speed' in df.columns:
         df = df[df['Speed'].diff() > 0]
 
-    # Filter battery power and motor power
-    # df = df[(df['Battery power'] >= 20) & (df['F power'] >= 10) & (df['R power'] >= 10)]
-
     # Prepare the legend format
     legend_label = f"{info['folder']['model']} {info['folder']['variant']} {info['folder']['model_year']} {info['folder']['battery']} {info['folder']['rear_motor']} {info['folder']['acceleration_mode']} / {info['SOC']}% / {info['Cell temp mid']}°C"
 
@@ -413,6 +410,7 @@ for i, info in enumerate(filtered_file_info):
             if column == "Combined Motor Power [kW]":
                 combined_value = df[y_col[0]] + df[y_col[1]]
                 smoothed_y = uniform_filter1d(combined_value, size=15)
+                smoothed_y = smoothed_y[smoothed_y >= 20]  # Filter combined motor power values below 20 kW
                 plot_data.append(pd.DataFrame({
                     'X': df[selected_x_axis],
                     'Y': smoothed_y,
@@ -448,6 +446,8 @@ for i, info in enumerate(filtered_file_info):
             line_style = 'solid'
             if 'Current' in y_col or 'Voltage' in y_col:
                 line_style = 'dot'
+            if 'Battery power' in y_col:
+                smoothed_y = smoothed_y[smoothed_y >= 40]  # Filter battery power values below 40 kW
             plot_data.append(pd.DataFrame({
                 'X': df[selected_x_axis],
                 'Y': smoothed_y,
@@ -495,4 +495,3 @@ if plot_data:
     st.plotly_chart(fig, use_container_width=True)
 else:
     st.write("Please select an X-axis and at least one column to plot.")
-
