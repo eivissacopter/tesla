@@ -458,8 +458,12 @@ if plot_data:
     # Filter out rows where 'X' or 'Y' have NaN values to prevent lines from connecting back to the start
     plot_df.dropna(subset=['X', 'Y'], inplace=True)
 
-    fig = px.line(plot_df, x='X', y='Y', color='Label', labels={'X': 'Speed [kph]', 'Y': 'Values'}, color_discrete_map=folder_colors)
-    
+    # Create a color map for each label
+    unique_labels = plot_df['Label'].unique()
+    color_map = {label: folder_colors[label.split(" - ")[0]] for label in unique_labels}
+
+    fig = px.line(plot_df, x='X', y='Y', color='Label', labels={'X': 'Speed [kph]', 'Y': 'Values'}, color_discrete_map=color_map)
+
     # Apply the colors and make the lines wider
     for trace in fig.data:
         trace.update(line=dict(width=3))  # Set base line width
@@ -495,13 +499,12 @@ if plot_data:
         )
     )
 
+    st.plotly_chart(fig, use_container_width=True)
+
     # Add dropdown to select colors for each line
     st.sidebar.subheader("Select Line Colors")
-    unique_labels = plot_df['Label'].unique()
-    color_map = {}
-
     for label in unique_labels:
-        color = st.sidebar.color_picker(f"Pick a color for {label}", folder_colors.get(label, "#000000"))
+        color = st.sidebar.color_picker(f"Pick a color for {label}", color_map[label])
         color_map[label] = color
 
     # Update the color in the plot
@@ -511,5 +514,4 @@ if plot_data:
 
 else:
     st.write("Please select an X-axis and at least one column to plot.")
-
 
