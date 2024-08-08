@@ -405,7 +405,7 @@ for i, info in enumerate(filtered_file_info):
     # Drop rows with NaN values in the selected columns to avoid lines connecting back to the start
     df.dropna(subset=[selected_x_axis] + [col for col_list in columns_to_plot.values() for col in (col_list if isinstance(col_list, list) else [col_list])], inplace=True)
 
-    # Prepare the legend format
+    # Prepare the legend format without line style
     legend_label = f"{info['folder']['model']} {info['folder']['variant']} {info['folder']['model_year']} {info['folder']['battery']} {info['folder']['rear_motor']} {info['folder']['acceleration_mode']}"
 
     # Plot selected columns
@@ -503,7 +503,7 @@ if plot_data:
     color_map = {}
 
     for label in unique_labels:
-        color = st.sidebar.color_picker(f"Pick a color for {label}", folder_colors[label])
+        color = st.sidebar.color_picker(f"Pick a color for {label}", folder_colors[folder_path])
         color_map[label] = color
 
     # Update the color in the plot
