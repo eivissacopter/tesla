@@ -338,6 +338,10 @@ for i, info in enumerate(filtered_file_info):
     # Filter invalid values
     df = df[(df['SOC'] >= 0) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= 0) & (df['Cell temp mid'] <= 70)]
 
+    # Filter rows where speed is between 1 kph and 200 kph
+    if 'Speed' in df.columns:
+        df = df[(df['Speed'] >= 1) & (df['Speed'] <= 200)]
+    
     # Filter rows where speed is not increasing
     if 'Speed' in df.columns:
         df = df[df['Speed'].diff() > 0]
