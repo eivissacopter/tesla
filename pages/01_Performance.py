@@ -360,29 +360,25 @@ for i, info in enumerate(filtered_file_info):
             if column == "Combined Motor Power [kW]":
                 combined_value = df[y_col[0]] + df[y_col[1]]
                 combined_value = combined_value[combined_value >= 20]  # Filter combined motor power values below 20 kW
-                if smoothing_window > 1:
-                    combined_value = pd.Series(uniform_filter1d(combined_value, size=smoothing_window), index=combined_value.index)
+                smoothed_y = combined_value
                 plot_data.append(pd.DataFrame({
-                    'X': df[selected_x_axis].loc[combined_value.index],
-                    'Y': combined_value,
+                    'X': df[selected_x_axis].loc[smoothed_y.index],
+                    'Y': smoothed_y,
                     'Label': f"{legend_label} - Combined Motor Power",
                     'Color': folder_colors[folder_path]
                 }))
             elif column == "Combined Motor Torque [Nm]":
                 combined_value = df[y_col[0]] + df[y_col[1]]
-                if smoothing_window > 1:
-                    combined_value = pd.Series(uniform_filter1d(combined_value, size=smoothing_window), index=combined_value.index)
+                smoothed_y = combined_value
                 plot_data.append(pd.DataFrame({
-                    'X': df[selected_x_axis].loc[combined_value.index],
-                    'Y': combined_value,
+                    'X': df[selected_x_axis].loc[smoothed_y.index],
+                    'Y': smoothed_y,
                     'Label': f"{legend_label} - Combined Motor Torque",
                     'Color': folder_colors[folder_path]
                 }))
             else:
                 for sub_col in y_col:
                     smoothed_y = df[sub_col]
-                    if smoothing_window > 1:
-                        smoothed_y = pd.Series(uniform_filter1d(df[sub_col], size=smoothing_window), index=df[sub_col].index)
                     plot_data.append(pd.DataFrame({
                         'X': df[selected_x_axis].loc[smoothed_y.index],
                         'Y': smoothed_y,
@@ -391,8 +387,6 @@ for i, info in enumerate(filtered_file_info):
                     }))
         else:
             smoothed_y = df[y_col]
-            if smoothing_window > 1:
-                smoothed_y = pd.Series(uniform_filter1d(df[y_col], size=smoothing_window), index=df[y_col].index)
             if 'Battery power' in y_col:
                 smoothed_y = smoothed_y[smoothed_y >= 40]  # Filter battery power values below 40 kW
             plot_data.append(pd.DataFrame({
@@ -409,11 +403,28 @@ if plot_data:
     # Filter out rows where 'X' or 'Y' have NaN values to prevent lines from connecting back to the start
     plot_df.dropna(subset=['X', 'Y'], inplace=True)
 
-    fig = px.line(plot_df, x='X', y='Y', color='Label', labels={'X': 'Speed [kph]', 'Y': 'Values'}, color_discrete_map=folder_colors)
-    
+    # Add dropdown to select colors for each line
+    st.sidebar.subheader("Select Line Colors")
+    unique_labels = plot_df['Label'].unique()
+    color_map = {}
+
+    for label in unique_labels:
+        color = st.sidebar.color_picker(f"Pick a color for {label}", folder_colors.get(label.split(" - ")[0], "#000000"))
+        color_map[label] = color
+
+    # Slider for smoothing
+    smoothing_value = st.sidebar.slider("Smoothing Window Size", min_value=1, max_value=100, value=20)
+
     # Apply the colors and make the lines wider
     for trace in fig.data:
         trace.update(line=dict(width=3))  # Set base line width
+
+    fig = px.line(plot_df, x='X', y='Y', color='Label', labels={'X': 'Speed [kph]', 'Y': 'Values'}, color_discrete_map=color_map)
+    
+    # Apply smoothing if smoothing_value is greater than 1
+    if smoothing_value > 1:
+        for label in unique_labels:
+            plot_df.loc[plot_df['Label'] == label, 'Y'] = uniform_filter1d(plot_df.loc[plot_df['Label'] == label, 'Y'], size=smoothing_value)
 
     # Add watermark
     fig.add_annotation(
@@ -446,27 +457,10 @@ if plot_data:
         )
     )
 
-    # Add dropdown to select colors for each line
-    st.sidebar.subheader("Select Line Colors")
-    unique_labels = plot_df['Label'].unique()
-    color_map = {}
-
-    for label in unique_labels:
-        color = st.sidebar.color_picker(f"Pick a color for {label}", folder_colors.get(label.split(" - ")[0], "#000000"))
-        color_map[label] = color
-
-    # Update the color in the plot
-    fig.for_each_trace(lambda trace: trace.update(line_color=color_map[trace.name]))
-
     st.plotly_chart(fig, use_container_width=True)
 
 else:
     st.write("Please select an X-axis and at least one column to plot.")
-
-
-# Smoothing parameter slider
-st.sidebar.subheader("Smoothing")
-smoothing_window = st.sidebar.slider("Smoothing Window Size", min_value=1, max_value=20, value=1, step=1)
 
 ####################################################################################################
 
