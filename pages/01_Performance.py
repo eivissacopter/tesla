@@ -414,10 +414,10 @@ for i, info in enumerate(filtered_file_info):
             if column == "Combined Motor Power [kW]":
                 combined_value = df[y_col[0]] + df[y_col[1]]
                 smoothed_y = uniform_filter1d(combined_value, size=15)
-                smoothed_y = smoothed_y[smoothed_y >= 20]  # Filter combined motor power values below 20 kW
+                valid_indices = smoothed_y >= 20  # Filter combined motor power values below 20 kW
                 plot_data.append(pd.DataFrame({
-                    'X': df[selected_x_axis][:len(smoothed_y)],
-                    'Y': smoothed_y,
+                    'X': df[selected_x_axis].iloc[valid_indices],
+                    'Y': smoothed_y[valid_indices],
                     'Label': f"{legend_label} - Combined Motor Power",
                     'Color': label_colors[base_label],
                     'Line Style': 'solid'
@@ -451,14 +451,14 @@ for i, info in enumerate(filtered_file_info):
             if 'Current' in y_col or 'Voltage' in y_col:
                 line_style = 'dot'
             if 'Battery power' in y_col:
-                smoothed_y = smoothed_y[smoothed_y >= 40]  # Filter battery power values below 40 kW
-            plot_data.append(pd.DataFrame({
-                'X': df[selected_x_axis][:len(smoothed_y)],
-                'Y': smoothed_y,
-                'Label': f"{legend_label} - {column}",
-                'Color': label_colors[base_label],
-                'Line Style': line_style
-            }))
+                valid_indices = smoothed_y >= 40  # Filter battery power values below 40 kW
+                plot_data.append(pd.DataFrame({
+                    'X': df[selected_x_axis].iloc[valid_indices],
+                    'Y': smoothed_y[valid_indices],
+                    'Label': f"{legend_label} - {column}",
+                    'Color': label_colors[base_label],
+                    'Line Style': line_style
+                }))
 
 if plot_data:
     plot_df = pd.concat(plot_data)
@@ -499,3 +499,4 @@ if plot_data:
     st.plotly_chart(fig, use_container_width=True)
 else:
     st.write("Please select an X-axis and at least one column to plot.")
+
