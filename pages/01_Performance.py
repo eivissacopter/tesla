@@ -272,138 +272,125 @@ selected_x_axis = "Speed"
 
 ####################################################################################################
 
-# Plotting the data using Plotly
-if selected_x_axis and selected_columns and filtered_file_info:
-    plot_data = []
+# Predefined list of colors for different cars
+predefined_colors = ['blue', 'red', 'orange', 'green', 'purple', 'brown', 'pink', 'grey', 'olive', 'cyan']
 
-    # Define a function to get the color based on SOC
-    def get_color(value, min_val, max_val, base_color):
-        norm = mcolors.Normalize(vmin=min_val, vmax=max_val)
-        cmap = plt.get_cmap(base_color)
-        return mcolors.to_hex(cmap(norm(value)))
+# Prepare plot data with fixed colors for each unique subfolder
+folder_colors = {}
+for i, info in enumerate(filtered_file_info):
+    folder_path = info['folder']['path']
+    if folder_path not in folder_colors:
+        folder_colors[folder_path] = predefined_colors[len(folder_colors) % len(predefined_colors)]
+    
+    response = requests.get(info['path'])
+    content = response.content.decode('utf-8')
+    df = pd.read_csv(StringIO(content))
 
-    min_soc = min(info['SOC'] for info in file_info)
-    max_soc = max(info['SOC'] for info in file_info)
+    # Fill forward and backward to handle NaN values
+    df = df.ffill().bfill()
 
-    # Base colors for different folders
-    base_colors = ['Blues', 'Reds', 'Oranges', 'Greens', 'Purples']
+    # Filter invalid values
+    df = df[(df['SOC'] >= 0) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= 0) & (df['Cell temp mid'] <= 70)]
 
-    # Prepare plot data
-    folder_colors = {}
-    for i, info in enumerate(filtered_file_info):
-        folder_path = info['folder']['path']
-        if folder_path not in folder_colors:
-            folder_colors[folder_path] = base_colors[i % len(base_colors)]
-        
-        response = requests.get(info['path'])
-        content = response.content.decode('utf-8')
-        df = pd.read_csv(StringIO(content))
+    # Filter rows where speed is not increasing
+    if 'Speed' in df.columns:
+        df = df[df['Speed'].diff() > 0]
 
-        # Fill forward and backward to handle NaN values
-        df = df.ffill().bfill()
+    # Prepare the legend format
+    legend_label = f"{info['folder']['model']} {info['folder']['variant']} {info['folder']['model_year']} {info['folder']['battery']} {info['folder']['rear_motor']} {info['folder']['acceleration_mode']} / {info['SOC']}% / {info['Cell temp mid']}°C"
 
-        # Filter invalid values
-        df = df[(df['SOC'] >= 0) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= 0) & (df['Cell temp mid'] <= 70)]
-
-        # Filter rows where speed is not increasing
-        if 'Speed' in df.columns:
-            df = df[df['Speed'].diff() > 0]
-
-        # Prepare the legend format
-        legend_label = f"{info['folder']['model']} {info['folder']['variant']} {info['folder']['model_year']} {info['folder']['battery']} {info['folder']['rear_motor']} {info['folder']['acceleration_mode']} / {info['SOC']}% / {info['Cell temp mid']}°C"
-
-        # Plot selected columns
-        for column in selected_columns:
-            y_col = columns_to_plot[column]
-            if isinstance(y_col, list):
-                if column == "Combined Motor Power [kW]":
-                    combined_value = df[y_col[0]] + df[y_col[1]]
-                    smoothed_y = uniform_filter1d(combined_value, size=15)
-                    plot_data.append(pd.DataFrame({
-                        'X': df[selected_x_axis],
-                        'Y': smoothed_y,
-                        'Label': f"{legend_label} - Combined Motor Power",
-                        'Color': get_color(info['SOC'], min_soc, max_soc, folder_colors[folder_path])
-                    }))
-                elif column == "Combined Motor Torque [Nm]":
-                    combined_value = df[y_col[0]] + df[y_col[1]]
-                    smoothed_y = uniform_filter1d(combined_value, size=15)
-                    plot_data.append(pd.DataFrame({
-                        'X': df[selected_x_axis],
-                        'Y': smoothed_y,
-                        'Label': f"{legend_label} - Combined Motor Torque",
-                        'Color': get_color(info['SOC'], min_soc, max_soc, folder_colors[folder_path])
-                    }))
-                else:
-                    for sub_col in y_col:
-                        smoothed_y = uniform_filter1d(df[sub_col], size=15)
-                        plot_data.append(pd.DataFrame({
-                            'X': df[selected_x_axis],
-                            'Y': smoothed_y,
-                            'Label': f"{legend_label} - {sub_col}",
-                            'Color': get_color(info['SOC'], min_soc, max_soc, folder_colors[folder_path])
-                        }))
-            else:
-                smoothed_y = uniform_filter1d(df[y_col], size=15)
+    # Plot selected columns
+    for column in selected_columns:
+        y_col = columns_to_plot[column]
+        if isinstance(y_col, list):
+            if column == "Combined Motor Power [kW]":
+                combined_value = df[y_col[0]] + df[y_col[1]]
+                smoothed_y = uniform_filter1d(combined_value, size=15)
                 plot_data.append(pd.DataFrame({
                     'X': df[selected_x_axis],
                     'Y': smoothed_y,
-                    'Label': f"{legend_label} - {column}",
-                    'Color': get_color(info['SOC'], min_soc, max_soc, folder_colors[folder_path])
+                    'Label': f"{legend_label} - Combined Motor Power",
+                    'Color': folder_colors[folder_path]
                 }))
+            elif column == "Combined Motor Torque [Nm]":
+                combined_value = df[y_col[0]] + df[y_col[1]]
+                smoothed_y = uniform_filter1d(combined_value, size=15)
+                plot_data.append(pd.DataFrame({
+                    'X': df[selected_x_axis],
+                    'Y': smoothed_y,
+                    'Label': f"{legend_label} - Combined Motor Torque",
+                    'Color': folder_colors[folder_path]
+                }))
+            else:
+                for sub_col in y_col:
+                    smoothed_y = uniform_filter1d(df[sub_col], size=15)
+                    plot_data.append(pd.DataFrame({
+                        'X': df[selected_x_axis],
+                        'Y': smoothed_y,
+                        'Label': f"{legend_label} - {sub_col}",
+                        'Color': folder_colors[folder_path]
+                    }))
+        else:
+            smoothed_y = uniform_filter1d(df[y_col], size=15)
+            plot_data.append(pd.DataFrame({
+                'X': df[selected_x_axis],
+                'Y': smoothed_y,
+                'Label': f"{legend_label} - {column}",
+                'Color': folder_colors[folder_path]
+            }))
 
-    if plot_data:
-        plot_df = pd.concat(plot_data)
-        fig = px.line(plot_df, x='X', y='Y', color='Label', labels={'X': selected_x_axis, 'Y': 'Values'})
-        
-        # Apply the colors and make the lines wider with a glow effect
-        for trace in fig.data:
-            trace.update(line=dict(width=2))  # Make lines wider
-            color = trace.line.color
-            fig.add_trace(go.Scatter(
-                x=trace.x, y=trace.y,
-                mode='lines',
-                line=dict(color=color, width=3),  # Outer glow
-                showlegend=False,
-                hoverinfo='skip'
-            ))
-            fig.add_trace(go.Scatter(
-                x=trace.x, y=trace.y,
-                mode='lines',
-                line=dict(color=color, width=4),  # Inner glow
-                showlegend=False,
-                hoverinfo='skip'
-            ))
+if plot_data:
+    plot_df = pd.concat(plot_data)
+    fig = px.line(plot_df, x='X', y='Y', color='Label', labels={'X': selected_x_axis, 'Y': 'Values'}, color_discrete_map=folder_colors)
+    
+    # Apply the colors and make the lines wider with a glow effect
+    for trace in fig.data:
+        trace.update(line=dict(width=2))  # Set base line width
+        color = trace.line.color
+        fig.add_trace(go.Scatter(
+            x=trace.x, y=trace.y,
+            mode='lines',
+            line=dict(color=color, width=3),  # Outer glow
+            showlegend=False,
+            hoverinfo='skip'
+        ))
+        fig.add_trace(go.Scatter(
+            x=trace.x, y=trace.y,
+            mode='lines',
+            line=dict(color=color, width=4),  # Inner glow
+            showlegend=False,
+            hoverinfo='skip'
+        ))
 
-        # Add watermark
-        fig.add_annotation(
-            text="@eivissacopter",
-            font=dict(size=20, color="lightgrey"),
-            align="center",
-            xref="paper",
-            yref="paper",
-            x=0.5,
-            y=0.5,
-            opacity=0.05,
-            showarrow=False
+    # Add watermark
+    fig.add_annotation(
+        text="@eivissacopter",
+        font=dict(size=20, color="lightgrey"),
+        align="center",
+        xref="paper",
+        yref="paper",
+        x=0.5,
+        y=0.5,
+        opacity=0.05,
+        showarrow=False
+    )
+
+    fig.update_layout(
+        title="Performance Data Plot",
+        xaxis_title=selected_x_axis,
+        yaxis_title="Values" if len(selected_columns) > 1 else selected_columns[0],
+        width=800,  # Adjust width as needed
+        height=800,  # Adjust height as needed
+        margin=dict(l=50, r=50, t=50, b=150),  # Add margin to the bottom for legend
+        legend=dict(
+            orientation="h",  # Horizontal legend
+            yanchor="top",
+            y=-0.3,  # Position the legend below the plot
+            xanchor="center",
+            x=0.5
         )
+    )
 
-        fig.update_layout(
-            title="Performance Data Plot",
-            xaxis_title=selected_x_axis,
-            yaxis_title="Values" if len(selected_columns) > 1 else selected_columns[0],
-            width=800,  # Adjust width as needed
-            height=800,  # Adjust height as needed
-            margin=dict(l=50, r=50, t=50, b=150),  # Add margin to the bottom for legend
-            legend=dict(
-                orientation="h",  # Horizontal legend
-                yanchor="top",
-                y=-0.3,  # Position the legend below the plot
-                xanchor="center",
-                x=0.5
-            )
-        )
-
-        st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True)
 else:
     st.write("Please select an X-axis and at least one column to plot.")
