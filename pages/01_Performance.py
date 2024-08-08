@@ -281,7 +281,7 @@ if selected_x_axis and selected_columns and filtered_file_info:
     # Define a function to get the color based on SOC
     def get_color(value, min_val, max_val, base_color):
         norm = mcolors.Normalize(vmin=min_val, vmax=max_val)
-        cmap = cm.get_cmap(base_color)
+        cmap = plt.get_cmap(base_color)
         return mcolors.to_hex(cmap(norm(value)))
 
     min_soc = min(info['SOC'] for info in file_info)
@@ -343,8 +343,8 @@ if selected_x_axis and selected_columns and filtered_file_info:
         for trace, color in zip(fig.data, plot_df['Color'].unique()):
             trace.update(line=dict(color=color))
 
-        # Add watermark to the bar chart
-        bar_fig.add_annotation(
+        # Add watermark
+        fig.add_annotation(
             text="@eivissacopter",
             font=dict(size=20, color="lightgrey"),
             align="center",
