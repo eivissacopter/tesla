@@ -437,7 +437,6 @@ if plot_data:
     )
 
     # Add dropdown to select colors for each line
-    st.sidebar.subheader("Select Line Colors")
     for label in unique_labels:
         color = st.sidebar.color_picker(f"Pick a color for {label}", color_map[label])
         color_map[label] = color
