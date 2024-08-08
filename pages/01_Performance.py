@@ -379,22 +379,14 @@ plot_data = []
 # Predefined list of colors for different cars
 predefined_colors = ['blue', 'red', 'orange', 'green', 'purple', 'brown', 'pink', 'grey', 'olive', 'cyan']
 
-# Determine if only one unique vehicle and acceleration mode is selected
-single_color_mode = (
-    len(set(info['folder']['model'] for info in filtered_file_info)) == 1 and
-    len(set(info['folder']['acceleration_mode'] for info in filtered_file_info)) == 1
-)
-
-# Prepare plot data with fixed colors for each unique subfolder
-folder_colors = {}
+# Prepare plot data with fixed colors for each unique label
+label_colors = {}
 for i, info in enumerate(filtered_file_info):
-    folder_path = info['folder']['path']
-    if folder_path not in folder_colors:
-        if single_color_mode:
-            folder_colors[folder_path] = 'blue'  # Single color mode
-        else:
-            folder_colors[folder_path] = predefined_colors[len(folder_colors) % len(predefined_colors)]
-    
+    # Generate a label ignoring SOC and Cell temp mid
+    label_key = f"{info['folder']['model']} {info['folder']['variant']} {info['folder']['model_year']} {info['folder']['battery']} {info['folder']['rear_motor']} {info['folder']['acceleration_mode']}"
+    if label_key not in label_colors:
+        label_colors[label_key] = predefined_colors[len(label_colors) % len(predefined_colors)]
+
     response = requests.get(info['path'])
     content = response.content.decode('utf-8')
     df = pd.read_csv(StringIO(content))
@@ -410,7 +402,7 @@ for i, info in enumerate(filtered_file_info):
         df = df[df['Speed'].diff() > 0]
 
     # Prepare the legend format
-    legend_label = f"{info['folder']['model']} {info['folder']['variant']} {info['folder']['model_year']} {info['folder']['battery']} {info['folder']['rear_motor']} {info['folder']['acceleration_mode']} / {info['SOC']}% / {info['Cell temp mid']}°C"
+    legend_label = f"{label_key} / {info['SOC']}% / {info['Cell temp mid']}°C"
 
     # Plot selected columns
     for column in selected_columns:
@@ -419,12 +411,12 @@ for i, info in enumerate(filtered_file_info):
             if column == "Combined Motor Power [kW]":
                 combined_value = df[y_col[0]] + df[y_col[1]]
                 smoothed_y = uniform_filter1d(combined_value, size=15)
-                valid_indices = smoothed_y >= 20  # Filter combined motor power values below 20 kW
+                smoothed_y = smoothed_y[smoothed_y >= 20]  # Filter combined motor power values below 20 kW
                 plot_data.append(pd.DataFrame({
-                    'X': df[selected_x_axis][valid_indices],
-                    'Y': smoothed_y[valid_indices],
+                    'X': df[selected_x_axis],
+                    'Y': smoothed_y,
                     'Label': f"{legend_label} - Combined Motor Power",
-                    'Color': folder_colors[folder_path],
+                    'Color': label_colors[label_key],
                     'Line Style': 'solid'
                 }))
             elif column == "Combined Motor Torque [Nm]":
@@ -434,7 +426,7 @@ for i, info in enumerate(filtered_file_info):
                     'X': df[selected_x_axis],
                     'Y': smoothed_y,
                     'Label': f"{legend_label} - Combined Motor Torque",
-                    'Color': folder_colors[folder_path],
+                    'Color': label_colors[label_key],
                     'Line Style': 'dash'
                 }))
             else:
@@ -447,7 +439,7 @@ for i, info in enumerate(filtered_file_info):
                         'X': df[selected_x_axis],
                         'Y': smoothed_y,
                         'Label': f"{legend_label} - {sub_col}",
-                        'Color': folder_colors[folder_path],
+                        'Color': label_colors[label_key],
                         'Line Style': line_style
                     }))
         else:
@@ -456,26 +448,18 @@ for i, info in enumerate(filtered_file_info):
             if 'Current' in y_col or 'Voltage' in y_col:
                 line_style = 'dot'
             if 'Battery power' in y_col:
-                valid_indices = smoothed_y >= 40  # Filter battery power values below 40 kW
-                plot_data.append(pd.DataFrame({
-                    'X': df[selected_x_axis][valid_indices],
-                    'Y': smoothed_y[valid_indices],
-                    'Label': f"{legend_label} - {column}",
-                    'Color': folder_colors[folder_path],
-                    'Line Style': line_style
-                }))
-            else:
-                plot_data.append(pd.DataFrame({
-                    'X': df[selected_x_axis],
-                    'Y': smoothed_y,
-                    'Label': f"{legend_label} - {column}",
-                    'Color': folder_colors[folder_path],
-                    'Line Style': line_style
-                }))
+                smoothed_y = smoothed_y[smoothed_y >= 40]  # Filter battery power values below 40 kW
+            plot_data.append(pd.DataFrame({
+                'X': df[selected_x_axis],
+                'Y': smoothed_y,
+                'Label': f"{legend_label} - {column}",
+                'Color': label_colors[label_key],
+                'Line Style': line_style
+            }))
 
 if plot_data:
     plot_df = pd.concat(plot_data)
-    fig = px.line(plot_df, x='X', y='Y', color='Label', line_dash='Line Style', labels={'X': 'Speed [kph]', 'Y': 'Values'}, color_discrete_map=folder_colors)
+    fig = px.line(plot_df, x='X', y='Y', color='Label', line_dash='Line Style', labels={'X': 'Speed [kph]', 'Y': 'Values'}, color_discrete_map=label_colors)
     
     # Apply the colors and make the lines wider
     for trace in fig.data:
