@@ -398,7 +398,6 @@ if plot_data:
     )
 
     fig.update_layout(
-        title="Performance Data Plot",
         xaxis_title=selected_x_axis,
         yaxis_title="Values" if len(selected_columns) > 1 else selected_columns[0],
         width=800,  # Adjust width as needed
