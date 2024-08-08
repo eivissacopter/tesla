@@ -495,20 +495,20 @@ if plot_data:
         )
     )
 
-    st.plotly_chart(fig, use_container_width=True)
-
     # Add dropdown to select colors for each line
     st.sidebar.subheader("Select Line Colors")
     unique_labels = plot_df['Label'].unique()
     color_map = {}
 
     for label in unique_labels:
-        color = st.sidebar.color_picker(f"Pick a color for {label}", folder_colors[folder_path])
+        # Use folder_colors.get with a default color to avoid KeyError
+        color = st.sidebar.color_picker(f"Pick a color for {label}", folder_colors.get(label, '#000000'))
         color_map[label] = color
 
     # Update the color in the plot
     fig.for_each_trace(lambda trace: trace.update(line_color=color_map[trace.name]))
 
+    # Display the chart once with updated colors
     st.plotly_chart(fig, use_container_width=True)
 
 else:
