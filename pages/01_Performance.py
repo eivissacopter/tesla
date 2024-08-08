@@ -13,6 +13,8 @@ from matplotlib import colors as mcolors
 import matplotlib.pyplot as plt
 from scipy.ndimage import uniform_filter1d
 
+###################################################################################################
+
 # Set page config
 st.set_page_config(page_title="Tesla Performance Analysis", page_icon=":racing_car:", layout="wide")
 
@@ -96,7 +98,7 @@ def get_unique_values(classified_folders, key, filters={}):
 
 selected_filters = {}
 
-###################################################################################
+###################################################################################################
 
 # Sidebar filters
 st.sidebar.header("Filter Options")
@@ -155,6 +157,8 @@ acceleration_modes_ordered = ["Chill", "Standard", "Sport"]
 selected_acceleration_mode = st.sidebar.multiselect("Acceleration Mode", acceleration_modes_ordered, default=acceleration_modes_ordered if len(acceleration_modes_ordered) == 1 else [])
 if selected_acceleration_mode:
     selected_filters['acceleration_mode'] = selected_acceleration_mode
+
+###################################################################################################
 
 # Function to fetch CSV headers and first valid values
 def fetch_csv_headers_and_first_valid_values(url):
@@ -224,6 +228,8 @@ if filtered_folders:
 # Save metadata cache
 save_metadata_cache(metadata_cache)
 
+####################################################################################################
+
 # Sidebar sliders for SOC and Cell temp mid
 if file_info:
     min_soc = min(info['SOC'] for info in file_info)
@@ -249,6 +255,8 @@ if file_info:
         if selected_soc_range[0] <= info['SOC'] <= selected_soc_range[1]
         and (min_temp is None or selected_temp_range[0] <= info['Cell temp mid'] <= selected_temp_range[1])
     ]
+
+####################################################################################################
 
 # Y-Axis selection checkboxes
 st.sidebar.subheader("Select Y-Axis")
@@ -277,6 +285,7 @@ predefined_colors = ['blue', 'red', 'orange', 'green', 'purple', 'brown', 'pink'
 
 # Prepare plot data with fixed colors for each unique subfolder
 folder_colors = {}
+plot_data = []  # Define plot_data before using it
 for i, info in enumerate(filtered_file_info):
     folder_path = info['folder']['path']
     if folder_path not in folder_colors:
