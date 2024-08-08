@@ -270,10 +270,6 @@ for label in columns_to_plot.keys():
 # X-Axis selection
 selected_x_axis = "Speed"
 
-# Additional options
-st.sidebar.subheader("Options")
-show_legend = st.sidebar.checkbox("Show Legend", value=True)
-
 ####################################################################################################
 
 # Plotting the data using Plotly
