@@ -417,10 +417,9 @@ for i, info in enumerate(filtered_file_info):
             if column == "Combined Motor Power [kW]":
                 combined_value = df[y_col[0]] + df[y_col[1]]
                 combined_value = combined_value[combined_value >= 20]  # Filter combined motor power values below 20 kW
-                smoothed_y = uniform_filter1d(combined_value, size=3)
-                x_values = df[selected_x_axis].values[:len(smoothed_y)]
+                smoothed_y = pd.Series(uniform_filter1d(combined_value, size=3), index=combined_value.index)
                 plot_data.append(pd.DataFrame({
-                    'X': x_values,
+                    'X': df[selected_x_axis].loc[smoothed_y.index],
                     'Y': smoothed_y,
                     'Label': f"{legend_label} - Combined Motor Power",
                     'Color': folder_colors[folder_path],
@@ -428,10 +427,9 @@ for i, info in enumerate(filtered_file_info):
                 }))
             elif column == "Combined Motor Torque [Nm]":
                 combined_value = df[y_col[0]] + df[y_col[1]]
-                smoothed_y = uniform_filter1d(combined_value, size=3)
-                x_values = df[selected_x_axis].values[:len(smoothed_y)]
+                smoothed_y = pd.Series(uniform_filter1d(combined_value, size=3), index=combined_value.index)
                 plot_data.append(pd.DataFrame({
-                    'X': x_values,
+                    'X': df[selected_x_axis].loc[smoothed_y.index],
                     'Y': smoothed_y,
                     'Label': f"{legend_label} - Combined Motor Torque",
                     'Color': folder_colors[folder_path],
@@ -439,29 +437,26 @@ for i, info in enumerate(filtered_file_info):
                 }))
             else:
                 for sub_col in y_col:
-                    smoothed_y = uniform_filter1d(df[sub_col], size=3)
-                    x_values = df[selected_x_axis].values[:len(smoothed_y)]
+                    smoothed_y = pd.Series(uniform_filter1d(df[sub_col], size=3), index=df[sub_col].index)
                     line_style = 'solid'
                     if 'Torque' in sub_col:
                         line_style = 'dash'
                     plot_data.append(pd.DataFrame({
-                        'X': x_values,
+                        'X': df[selected_x_axis].loc[smoothed_y.index],
                         'Y': smoothed_y,
                         'Label': f"{legend_label} - {sub_col}",
                         'Color': folder_colors[folder_path],
                         'Line Style': line_style
                     }))
         else:
-            smoothed_y = uniform_filter1d(df[y_col], size=3)
-            x_values = df[selected_x_axis].values[:len(smoothed_y)]
+            smoothed_y = pd.Series(uniform_filter1d(df[y_col], size=3), index=df[y_col].index)
             line_style = 'solid'
             if 'Current' in y_col or 'Voltage' in y_col:
                 line_style = 'dot'
             if 'Battery power' in y_col:
                 smoothed_y = smoothed_y[smoothed_y >= 40]  # Filter battery power values below 40 kW
-                x_values = x_values[:len(smoothed_y)]
             plot_data.append(pd.DataFrame({
-                'X': x_values,
+                'X': df[selected_x_axis].loc[smoothed_y.index],
                 'Y': smoothed_y,
                 'Label': f"{legend_label} - {column}",
                 'Color': folder_colors[folder_path],
@@ -494,23 +489,31 @@ if plot_data:
         showarrow=False
     )
 
+    # Move legend inside the chart
     fig.update_layout(
         xaxis_title='Speed [kph]',
         yaxis_title="Values" if len(selected_columns) > 1 else selected_columns[0],
         width=800,  # Adjust width as needed
         height=800,  # Adjust height as needed
-        margin=dict(l=50, r=50, t=50, b=150),  # Add margin to the bottom for legend
+        margin=dict(l=50, r=50, t=50, b=50),  # Adjust margin
         legend=dict(
             orientation="h",  # Horizontal legend
             yanchor="top",
-            y=-0.3,  # Position the legend below the plot
+            y=1.1,  # Position the legend above the plot
             xanchor="center",
             x=0.5
         )
     )
 
     st.plotly_chart(fig, use_container_width=True)
+
+    # Add dropdown to select colors for each line
+    st.sidebar.subheader("Select Line Colors")
+    unique_labels = plot_df['Label'].unique()
+    for label in unique_labels:
+        color = st.sidebar.color_picker(f"Pick a color for {label}", folder_colors[info['folder']['path']])
+        fig.for_each_trace(lambda trace: trace.update(line_color=color) if trace.name == label else ())
+
 else:
     st.write("Please select an X-axis and at least one column to plot.")
-
 
