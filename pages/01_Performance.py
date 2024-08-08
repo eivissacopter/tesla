@@ -278,17 +278,25 @@ if selected_x_axis and selected_columns and filtered_file_info:
     plot_data = []
 
     # Define a function to get the color based on SOC
-    def get_color(value, min_val, max_val):
+    def get_color(value, min_val, max_val, base_color):
         norm = mcolors.Normalize(vmin=min_val, vmax=max_val)
-        cmap = cm.get_cmap('RdBu')
+        cmap = cm.get_cmap(base_color)
         return mcolors.to_hex(cmap(norm(value)))
 
     min_soc = min(info['SOC'] for info in file_info)
     max_soc = max(info['SOC'] for info in file_info)
 
+    # Base colors for different folders
+    base_colors = ['Blues', 'Reds', 'Oranges', 'Greens', 'Purples']
+
     # Prepare plot data
-    for info in filtered_file_info:
-        response = requests.get(info['path'])
+    folder_colors = {}
+    for i, folder in enumerate(filtered_file_info):
+        folder_path = folder['folder']['path']
+        if folder_path not in folder_colors:
+            folder_colors[folder_path] = base_colors[i % len(base_colors)]
+        
+        response = requests.get(folder['path'])
         content = response.content.decode('utf-8')
         df = pd.read_csv(StringIO(content))
 
@@ -303,7 +311,7 @@ if selected_x_axis and selected_columns and filtered_file_info:
             df = df[df['Speed'].diff() > 0]
 
         # Prepare the legend format
-        legend_label = f"{info['folder']['model']}_{info['folder']['variant']}_{info['folder']['model_year']}_{info['folder']['battery']}_{info['folder']['rear_motor']}_{info['folder']['acceleration_mode']}_{info['SOC']}% SOC_{info['Cell temp mid']}°C"
+        legend_label = f"{folder['folder']['model']}_{folder['folder']['variant']}_{folder['folder']['model_year']}_{folder['folder']['battery']}_{folder['folder']['rear_motor']}_{folder['folder']['acceleration_mode']}_{folder['SOC']}% SOC_{folder['Cell temp mid']}°C"
 
         # Plot selected columns
         for column in selected_columns:
@@ -315,7 +323,7 @@ if selected_x_axis and selected_columns and filtered_file_info:
                         'X': df[selected_x_axis],
                         'Y': smoothed_y,
                         'Label': f"{legend_label} - {sub_col}",
-                        'Color': get_color(info['SOC'], min_soc, max_soc)
+                        'Color': get_color(folder['SOC'], min_soc, max_soc, folder_colors[folder_path])
                     }))
             else:
                 smoothed_y = uniform_filter1d(df[y_col], size=15)
@@ -323,7 +331,7 @@ if selected_x_axis and selected_columns and filtered_file_info:
                     'X': df[selected_x_axis],
                     'Y': smoothed_y,
                     'Label': f"{legend_label} - {column}",
-                    'Color': get_color(info['SOC'], min_soc, max_soc)
+                    'Color': get_color(folder['SOC'], min_soc, max_soc, folder_colors[folder_path])
                 }))
 
     if plot_data:
