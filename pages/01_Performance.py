@@ -381,7 +381,7 @@ st.sidebar.markdown(
 plot_data = []
 
 # Predefined list of colors for different cars
-predefined_colors = ['blue', 'red', 'orange', 'green', 'purple', 'brown', 'pink', 'grey', 'olive', 'cyan']
+predefined_colors = ['#0000FF', '#FF0000', '#FFA500', '#008000', '#800080', '#A52A2A', '#FFC0CB', '#808080', '#808000', '#00FFFF']
 
 # Prepare plot data with fixed colors for each unique subfolder
 folder_colors = {}
@@ -489,8 +489,9 @@ if plot_data:
         showarrow=False
     )
 
-    # Move legend inside the chart
+    # Move legend inside the chart and remove the "Label, Line Style"
     fig.update_layout(
+        showlegend=True,
         xaxis_title='Speed [kph]',
         yaxis_title="Values" if len(selected_columns) > 1 else selected_columns[0],
         width=800,  # Adjust width as needed
@@ -501,7 +502,8 @@ if plot_data:
             yanchor="top",
             y=1.1,  # Position the legend above the plot
             xanchor="center",
-            x=0.5
+            x=0.5,
+            title=None  # Remove title "Label, Line Style"
         )
     )
 
@@ -516,4 +518,3 @@ if plot_data:
 
 else:
     st.write("Please select an X-axis and at least one column to plot.")
-
