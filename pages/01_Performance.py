@@ -342,7 +342,7 @@ for i, info in enumerate(filtered_file_info):
     if 'Speed' in df.columns:
         df = df[(df['Speed'] >= 1) & (df['Speed'] <= 200)]
 
-    # Ensure speed values are strictly increasing by removing non-increasing rows
+    # Aggressively remove any non-increasing speed values
     df = df[df['Speed'].diff().fillna(0) > 0]
 
     # Debugging output for checking speed values
