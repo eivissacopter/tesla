@@ -280,12 +280,14 @@ selected_x_axis = "Speed"
 
 ####################################################################################################
 
+# Initialize plot data
+plot_data = []
+
 # Predefined list of colors for different cars
 predefined_colors = ['blue', 'red', 'orange', 'green', 'purple', 'brown', 'pink', 'grey', 'olive', 'cyan']
 
 # Prepare plot data with fixed colors for each unique subfolder
 folder_colors = {}
-plot_data = []  # Define plot_data before using it
 for i, info in enumerate(filtered_file_info):
     folder_path = info['folder']['path']
     if folder_path not in folder_colors:
@@ -319,7 +321,8 @@ for i, info in enumerate(filtered_file_info):
                     'X': df[selected_x_axis],
                     'Y': smoothed_y,
                     'Label': f"{legend_label} - Combined Motor Power",
-                    'Color': folder_colors[folder_path]
+                    'Color': folder_colors[folder_path],
+                    'Line Style': 'solid'
                 }))
             elif column == "Combined Motor Torque [Nm]":
                 combined_value = df[y_col[0]] + df[y_col[1]]
@@ -328,45 +331,55 @@ for i, info in enumerate(filtered_file_info):
                     'X': df[selected_x_axis],
                     'Y': smoothed_y,
                     'Label': f"{legend_label} - Combined Motor Torque",
-                    'Color': folder_colors[folder_path]
+                    'Color': folder_colors[folder_path],
+                    'Line Style': 'dash'
                 }))
             else:
                 for sub_col in y_col:
                     smoothed_y = uniform_filter1d(df[sub_col], size=15)
+                    line_style = 'solid'
+                    if 'Torque' in sub_col:
+                        line_style = 'dash'
                     plot_data.append(pd.DataFrame({
                         'X': df[selected_x_axis],
                         'Y': smoothed_y,
                         'Label': f"{legend_label} - {sub_col}",
-                        'Color': folder_colors[folder_path]
+                        'Color': folder_colors[folder_path],
+                        'Line Style': line_style
                     }))
         else:
             smoothed_y = uniform_filter1d(df[y_col], size=15)
+            line_style = 'solid'
+            if 'Current' in y_col or 'Voltage' in y_col:
+                line_style = 'dot'
             plot_data.append(pd.DataFrame({
                 'X': df[selected_x_axis],
                 'Y': smoothed_y,
                 'Label': f"{legend_label} - {column}",
-                'Color': folder_colors[folder_path]
+                'Color': folder_colors[folder_path],
+                'Line Style': line_style
             }))
 
 if plot_data:
     plot_df = pd.concat(plot_data)
-    fig = px.line(plot_df, x='X', y='Y', color='Label', labels={'X': selected_x_axis, 'Y': 'Values'}, color_discrete_map=folder_colors)
+    fig = px.line(plot_df, x='X', y='Y', color='Label', line_dash='Line Style', labels={'X': selected_x_axis, 'Y': 'Values'}, color_discrete_map=folder_colors)
     
     # Apply the colors and make the lines wider with a glow effect
     for trace in fig.data:
         trace.update(line=dict(width=2))  # Set base line width
         color = trace.line.color
+        line_dash = trace.line.dash
         fig.add_trace(go.Scatter(
             x=trace.x, y=trace.y,
             mode='lines',
-            line=dict(color=color, width=3),  # Outer glow
+            line=dict(color=color, width=3, dash=line_dash),  # Outer glow
             showlegend=False,
             hoverinfo='skip'
         ))
         fig.add_trace(go.Scatter(
             x=trace.x, y=trace.y,
             mode='lines',
-            line=dict(color=color, width=4),  # Inner glow
+            line=dict(color=color, width=4, dash=line_dash),  # Inner glow
             showlegend=False,
             hoverinfo='skip'
         ))
