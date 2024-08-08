@@ -405,7 +405,7 @@ for i, info in enumerate(filtered_file_info):
         df = df[df['Speed'].diff() > 0]
 
     # Prepare the legend format
-    legend_label = f"{base_label} / {info['SOC']}% / {info['Cell temp mid']}°C"
+    legend_label = f"{base_label}"
 
     # Plot selected columns
     for column in selected_columns:
