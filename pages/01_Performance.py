@@ -418,8 +418,9 @@ for i, info in enumerate(filtered_file_info):
                 combined_value = df[y_col[0]] + df[y_col[1]]
                 combined_value = combined_value[combined_value >= 20]  # Filter combined motor power values below 20 kW
                 smoothed_y = uniform_filter1d(combined_value, size=3)  # Light smoothing with window
+                x_values = df[selected_x_axis][combined_value.index]
                 plot_data.append(pd.DataFrame({
-                    'X': df[selected_x_axis],
+                    'X': x_values,
                     'Y': smoothed_y,
                     'Label': f"{legend_label} - Combined Motor Power",
                     'Color': folder_colors[folder_path],
@@ -428,8 +429,9 @@ for i, info in enumerate(filtered_file_info):
             elif column == "Combined Motor Torque [Nm]":
                 combined_value = df[y_col[0]] + df[y_col[1]]
                 smoothed_y = uniform_filter1d(combined_value, size=3)  # Light smoothing with window
+                x_values = df[selected_x_axis][combined_value.index]
                 plot_data.append(pd.DataFrame({
-                    'X': df[selected_x_axis],
+                    'X': x_values,
                     'Y': smoothed_y,
                     'Label': f"{legend_label} - Combined Motor Torque",
                     'Color': folder_colors[folder_path],
@@ -438,11 +440,12 @@ for i, info in enumerate(filtered_file_info):
             else:
                 for sub_col in y_col:
                     smoothed_y = uniform_filter1d(df[sub_col], size=3)  # Light smoothing with window
+                    x_values = df[selected_x_axis][df[sub_col].index]
                     line_style = 'solid'
                     if 'Torque' in sub_col:
                         line_style = 'dash'
                     plot_data.append(pd.DataFrame({
-                        'X': df[selected_x_axis],
+                        'X': x_values,
                         'Y': smoothed_y,
                         'Label': f"{legend_label} - {sub_col}",
                         'Color': folder_colors[folder_path],
@@ -450,13 +453,15 @@ for i, info in enumerate(filtered_file_info):
                     }))
         else:
             smoothed_y = uniform_filter1d(df[y_col], size=3)  # Light smoothing with window
+            x_values = df[selected_x_axis][df[y_col].index]
             line_style = 'solid'
             if 'Current' in y_col or 'Voltage' in y_col:
                 line_style = 'dot'
             if 'Battery power' in y_col:
                 smoothed_y = smoothed_y[smoothed_y >= 40]  # Filter battery power values below 40 kW
+                x_values = x_values[smoothed_y.index]
             plot_data.append(pd.DataFrame({
-                'X': df[selected_x_axis],
+                'X': x_values,
                 'Y': smoothed_y,
                 'Label': f"{legend_label} - {column}",
                 'Color': folder_colors[folder_path],
@@ -507,3 +512,4 @@ if plot_data:
     st.plotly_chart(fig, use_container_width=True)
 else:
     st.write("Please select an X-axis and at least one column to plot.")
+
