@@ -409,16 +409,16 @@ if plot_data:
     # Slider for smoothing
     smoothing_value = st.sidebar.slider("Smoothing Window Size", min_value=1, max_value=100, value=20)
 
-    # Apply the colors and make the lines wider
-    for trace in fig.data:
-        trace.update(line=dict(width=3))  # Set base line width
-
-    fig = px.line(plot_df, x='X', y='Y', color='Label', labels={'X': 'Speed [kph]', 'Y': 'Values'}, color_discrete_map=color_map)
-    
     # Apply smoothing if smoothing_value is greater than 1
     if smoothing_value > 1:
         for label in unique_labels:
             plot_df.loc[plot_df['Label'] == label, 'Y'] = uniform_filter1d(plot_df.loc[plot_df['Label'] == label, 'Y'], size=smoothing_value)
+
+    fig = px.line(plot_df, x='X', y='Y', color='Label', labels={'X': 'Speed [kph]', 'Y': 'Values'}, color_discrete_map=color_map)
+
+    # Apply the colors and make the lines wider
+    for trace in fig.data:
+        trace.update(line=dict(width=3))  # Set base line width
 
     # Add watermark
     fig.add_annotation(
@@ -455,6 +455,7 @@ if plot_data:
 
 else:
     st.write("Please select an X-axis and at least one column to plot.")
+
 
 ####################################################################################################
 
