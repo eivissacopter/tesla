@@ -340,11 +340,10 @@ for i, info in enumerate(filtered_file_info):
 
     # Filter rows where speed is between 1 kph and 200 kph
     if 'Speed' in df.columns:
-        df = df[(df['Speed'] >= 5) & (df['Speed'] <= 200)]
-    
-    # Filter rows where speed is not increasing
-    if 'Speed' in df.columns:
-        df = df[df['Speed'].diff() > 0]
+        df = df[(df['Speed'] >= 1) & (df['Speed'] <= 200)]
+
+    # Ensure speed values are strictly increasing
+    df = df[df['Speed'].diff().fillna(1) > 0]
 
     # Drop rows with NaN values in the selected columns to avoid lines connecting back to the start
     df.dropna(subset=[selected_x_axis] + [col for col_list in columns_to_plot.values() for col in (col_list if isinstance(col_list, list) else [col_list])], inplace=True)
