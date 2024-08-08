@@ -343,19 +343,19 @@ if selected_x_axis and selected_columns and filtered_file_info:
         
         # Apply the colors and make the lines wider with a glow effect
         for trace in fig.data:
-            trace.update(line=dict(width=3))  # Make lines wider
+            trace.update(line=dict(width=2))  # Make lines wider
             color = trace.line.color
             fig.add_trace(go.Scatter(
                 x=trace.x, y=trace.y,
                 mode='lines',
-                line=dict(color=color, width=4),  # Outer glow
+                line=dict(color=color, width=3),  # Outer glow
                 showlegend=False,
                 hoverinfo='skip'
             ))
             fig.add_trace(go.Scatter(
                 x=trace.x, y=trace.y,
                 mode='lines',
-                line=dict(color=color, width=5),  # Inner glow
+                line=dict(color=color, width=4),  # Inner glow
                 showlegend=False,
                 hoverinfo='skip'
             ))
