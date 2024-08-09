@@ -342,6 +342,10 @@ for i, info in enumerate(filtered_file_info):
     if 'Speed' in df.columns:
         df = df[(df['Speed'] >= 1) & (df['Speed'] <= 200)]
 
+    # After loading data and before sorting
+    print("Original Speed values:")
+    print(df['Speed'].head(100))  # Print the first 100 rows for inspection
+    
     # Sort by speed to ensure values are strictly increasing
     df = df.sort_values(by='Speed')
 
@@ -450,6 +454,11 @@ if plot_data:
     # Filter out rows where 'X' or 'Y' have NaN values to prevent lines from connecting back to the start
     plot_df.dropna(subset=['X', 'Y'], inplace=True)
 
+    # After sorting
+    df = df.sort_values(by='Speed')
+    print("Sorted Speed values:")
+    print(df['Speed'].head(100))
+    
     # Create a color map for each label
     unique_labels = plot_df['Label'].unique()
     color_map = {label: folder_colors[label.split(" - ")[0]] for label in unique_labels}
