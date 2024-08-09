@@ -342,14 +342,8 @@ for i, info in enumerate(filtered_file_info):
     if 'Speed' in df.columns:
         df = df[(df['Speed'] >= 1) & (df['Speed'] <= 200)]
 
-    # Aggressively remove any non-increasing speed values
-    df = df[df['Speed'].diff().fillna(0) > 0]
-
-    # Debugging output for checking speed values
-    if df['Speed'].is_monotonic_increasing:
-        st.write(f"Speed values are strictly increasing for file: {info['path']}")
-    else:
-        st.write(f"Speed values are NOT strictly increasing for file: {info['path']}")
+    # Sort by speed to ensure values are strictly increasing
+    df = df.sort_values(by='Speed')
 
     # Drop rows with NaN values in the selected columns to avoid lines connecting back to the start
     df.dropna(subset=[selected_x_axis] + [col for col_list in columns_to_plot.values() for col in (col_list if isinstance(col_list, list) else [col_list])], inplace=True)
