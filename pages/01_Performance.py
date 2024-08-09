@@ -331,24 +331,25 @@ for i, info in enumerate(filtered_file_info):
     response = requests.get(info['path'])
     content = response.content.decode('utf-8')
     df = pd.read_csv(StringIO(content))
-
+    
+    # Ensure the DataFrame has the Speed column
+    if 'Speed' in df.columns:
+        # Sort the DataFrame by Speed right after loading
+        df = df.sort_values(by='Speed')
+    
     # Fill forward and backward to handle NaN values
     df = df.ffill().bfill()
-
+    
     # Filter invalid values
     df = df[(df['SOC'] >= 0) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= 0) & (df['Cell temp mid'] <= 70)]
-
+    
     # Filter rows where speed is between 1 kph and 200 kph
-    if 'Speed' in df.columns:
-        df = df[(df['Speed'] >= 1) & (df['Speed'] <= 200)]
+    df = df[(df['Speed'] >= 1) & (df['Speed'] <= 200)]
+    
+    # After sorting by Speed
+    st.write("Speed values after initial sorting:")
+    st.write(df[['Speed']].head(10))  # Display the first 10 rows to verify sorting
 
-    # After loading data and before sorting
-    st.write("Original Speed values:")
-    st.write(df['Speed'].head(100))  # Display the first 100 rows for inspection
-    
-    # Sort by speed to ensure values are strictly increasing
-    df = df.sort_values(by='Speed')
-    
     # Identify discontinuities (where speed is not strictly increasing)
     df['Speed_diff'] = df['Speed'].diff().fillna(0)
     discontinuities = df[df['Speed_diff'] < 0].index
