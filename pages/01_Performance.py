@@ -343,11 +343,19 @@ for i, info in enumerate(filtered_file_info):
         df = df[(df['Speed'] >= 1) & (df['Speed'] <= 200)]
 
     # After loading data and before sorting
-    print("Original Speed values:")
-    print(df['Speed'].head(100))  # Print the first 100 rows for inspection
+    st.write("Original Speed values:")
+    st.write(df['Speed'].head(100))  # Display the first 100 rows for inspection
     
     # Sort by speed to ensure values are strictly increasing
     df = df.sort_values(by='Speed')
+    
+    # Identify discontinuities (where speed is not strictly increasing)
+    df['Speed_diff'] = df['Speed'].diff().fillna(0)
+    discontinuities = df[df['Speed_diff'] < 0].index
+    
+    # Display sorted speed values for verification
+    st.write("Sorted Speed values:")
+    st.write(df['Speed'].head(100))  # Display the first 100 rows for inspection
 
     # Identify discontinuities (where speed is not strictly increasing)
     df['Speed_diff'] = df['Speed'].diff().fillna(0)
@@ -453,11 +461,6 @@ if plot_data:
 
     # Filter out rows where 'X' or 'Y' have NaN values to prevent lines from connecting back to the start
     plot_df.dropna(subset=['X', 'Y'], inplace=True)
-
-    # After sorting
-    df = df.sort_values(by='Speed')
-    print("Sorted Speed values:")
-    print(df['Speed'].head(100))
     
     # Create a color map for each label
     unique_labels = plot_df['Label'].unique()
