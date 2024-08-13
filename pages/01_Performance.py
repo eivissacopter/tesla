@@ -403,20 +403,13 @@ if plot_data:
     if 'SOC' in plot_df.columns:
         plot_df['SOC'] = pd.to_numeric(plot_df['SOC'], errors='coerce')
         plot_df['SOC'].fillna(1, inplace=True)  # Replace NaNs with a default size of 1
-
+    
         # Scale down SOC values to reduce the size of the dots
-        plot_df['SOC'] = plot_df['SOC'] * 0.3  # Adjust the factor as needed
+        plot_df['SOC'] = plot_df['SOC'] * 0.3  # Adjust the factor as needed (smaller value = smaller dots)
     else:
         st.error("SOC column not found in the data.")
         plot_df['SOC'] = 1  # Fallback to a default size if SOC is missing
-
-    # Filter out rows where 'X' or 'Y' have NaN values to prevent issues with plotting
-    plot_df.dropna(subset=['X', 'Y'], inplace=True)
-
-    # Create a color map for each label
-    unique_labels = plot_df['Label'].unique()
-    color_map = {label: folder_colors[label.split(" - ")[0]] for label in unique_labels}
-
+    
     # Create the scatter plot with adjusted dot sizes
     fig = px.scatter(
         plot_df, 
@@ -426,13 +419,13 @@ if plot_data:
         size='SOC',  # Use SOC to determine the size of the dots
         labels={'X': 'Speed [kph]', 'Y': 'Values'}, 
         color_discrete_map=color_map,
-        size_max=10  # Adjust this value to limit the maximum size of the dots
+        size_max=10  # Adjust this value to limit the maximum size of the dots (lower value = smaller dots)
     )
-
+    
     # Apply the colors and make the lines wider
     for trace in fig.data:
         trace.update(marker=dict(opacity=0.7))  # Adjust opacity for better visibility
-
+    
     # Add watermark
     fig.add_annotation(
         text="@eivissacopter",
@@ -445,7 +438,7 @@ if plot_data:
         opacity=0.15,
         showarrow=False
     )
-
+    
     # Move legend inside the chart and remove the "Label, Line Style"
     fig.update_layout(
         showlegend=True,
@@ -463,15 +456,37 @@ if plot_data:
             title=None  # Remove title "Label, Line Style"
         )
     )
-
-    # Add dropdown to select colors for each line
-    for label in unique_labels:
-        color = st.sidebar.color_picker(f"Pick a color for {label}", color_map[label])
-        color_map[label] = color
-
-    # Update the color in the plot
-    fig.for_each_trace(lambda trace: trace.update(marker_color=color_map.get(trace.name, trace.marker.color)))
-
+    
+    # Add custom legend for SOC/dot size at the top right corner
+    fig.add_annotation(
+        text="SOC / Dot Size Legend",
+        font=dict(size=12, color="black"),
+        align="left",
+        xref="paper",
+        yref="paper",
+        x=1.02,
+        y=1.1,
+        showarrow=False,
+        xanchor="left"
+    )
+    
+    # Example sizes for SOC
+    sizes = [20, 50, 80, 100]
+    size_positions = [0.9, 0.85, 0.8, 0.75]
+    
+    for i, size in enumerate(sizes):
+        fig.add_trace(go.Scatter(
+            x=[1.05],
+            y=[size_positions[i]],
+            mode="markers+text",
+            marker=dict(size=size * 0.3, color="blue"),  # Adjust size as per the scaling factor
+            text=[f"{size}%"],
+            textposition="middle right",
+            showlegend=False,
+            xaxis="x2",  # Use the same axis
+            yaxis="y2"
+        ))
+    
     st.plotly_chart(fig, use_container_width=True)
 
 else:
