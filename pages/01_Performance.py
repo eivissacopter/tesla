@@ -359,6 +359,7 @@ for i, info in enumerate(filtered_file_info):
                 plot_data.append(pd.DataFrame({
                     'X': df[selected_x_axis].loc[smoothed_y.index],
                     'Y': smoothed_y,
+                    'SOC': df['SOC'].loc[smoothed_y.index],  # Add SOC to plot data
                     'Label': f"{legend_label} - Combined Motor Power",
                     'Color': folder_colors[legend_label]
                 }))
@@ -368,6 +369,7 @@ for i, info in enumerate(filtered_file_info):
                 plot_data.append(pd.DataFrame({
                     'X': df[selected_x_axis].loc[smoothed_y.index],
                     'Y': smoothed_y,
+                    'SOC': df['SOC'].loc[smoothed_y.index],  # Add SOC to plot data
                     'Label': f"{legend_label} - Combined Motor Torque",
                     'Color': folder_colors[legend_label]
                 }))
@@ -377,6 +379,7 @@ for i, info in enumerate(filtered_file_info):
                     plot_data.append(pd.DataFrame({
                         'X': df[selected_x_axis].loc[smoothed_y.index],
                         'Y': smoothed_y,
+                        'SOC': df['SOC'].loc[smoothed_y.index],  # Add SOC to plot data
                         'Label': f"{legend_label} - {sub_col}",
                         'Color': folder_colors[legend_label]
                     }))
@@ -387,11 +390,12 @@ for i, info in enumerate(filtered_file_info):
             plot_data.append(pd.DataFrame({
                 'X': df[selected_x_axis].loc[smoothed_y.index],
                 'Y': smoothed_y,
+                'SOC': df['SOC'].loc[smoothed_y.index],  # Add SOC to plot data
                 'Label': f"{legend_label} - {column}",
                 'Color': folder_colors[legend_label]
             }))
 
-# Create a scatter plot with dot size representing SOC
+# Convert plot data to a DataFrame
 if plot_data:
     plot_df = pd.concat(plot_data)
 
