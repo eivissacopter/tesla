@@ -395,82 +395,88 @@ for i, info in enumerate(filtered_file_info):
                 'Color': folder_colors[legend_label]
             }))
 
-# Ensure SOC exists and is numerical
-if 'SOC' in plot_df.columns:
-    plot_df['SOC'] = pd.to_numeric(plot_df['SOC'], errors='coerce')
-    plot_df['SOC'].fillna(1, inplace=True)  # Replace NaNs with a default size of 1
-    
-    # Scale down SOC values to reduce the size of the dots
-    plot_df['SOC'] = plot_df['SOC'] * 0.3  # Adjust the factor as needed (smaller value = smaller dots)
-else:
-    st.error("SOC column not found in the data.")
-    plot_df['SOC'] = 1  # Fallback to a default size if SOC is missing
+# Only proceed if there is plot data
+if plot_data:
+    # Convert plot data to a DataFrame
+    plot_df = pd.concat(plot_data)
 
-# Create the scatter plot with adjusted dot sizes
-fig = px.scatter(
-    plot_df, 
-    x='X', 
-    y='Y', 
-    color='Label', 
-    size='SOC',  # Use SOC to determine the size of the dots
-    labels={'X': 'Speed [kph]', 'Y': 'Values'}, 
-    color_discrete_map=folder_colors,
-    size_max=10  # Adjust this value to limit the maximum size of the dots (lower value = smaller dots)
-)
+    # Ensure SOC exists and is numerical
+    if 'SOC' in plot_df.columns:
+        plot_df['SOC'] = pd.to_numeric(plot_df['SOC'], errors='coerce')
+        plot_df['SOC'].fillna(1, inplace=True)  # Replace NaNs with a default size of 1
 
-# Apply the colors and make the lines wider
-for trace in fig.data:
-    trace.update(marker=dict(opacity=0.7))  # Adjust opacity for better visibility
+        # Scale down SOC values to reduce the size of the dots
+        plot_df['SOC'] = plot_df['SOC'] * 0.3  # Adjust the factor as needed (smaller value = smaller dots)
+    else:
+        st.error("SOC column not found in the data.")
+        plot_df['SOC'] = 1  # Fallback to a default size if SOC is missing
 
-# Add watermark
-fig.add_annotation(
-    text="@eivissacopter",
-    font=dict(size=20, color="lightgrey"),
-    align="center",
-    xref="paper",
-    yref="paper",
-    x=0.5,
-    y=0.5,
-    opacity=0.15,
-    showarrow=False
-)
+    # Create the scatter plot with adjusted dot sizes
+    fig = px.scatter(
+        plot_df, 
+        x='X', 
+        y='Y', 
+        color='Label', 
+        size='SOC',  # Use SOC to determine the size of the dots
+        labels={'X': 'Speed [kph]', 'Y': 'Values'}, 
+        color_discrete_map=folder_colors,
+        size_max=10  # Adjust this value to limit the maximum size of the dots (lower value = smaller dots)
+    )
 
-# Move legend inside the chart and remove the "Label, Line Style"
-fig.update_layout(
-    showlegend=True,
-    xaxis_title='Speed [kph]',
-    yaxis_title="Values" if len(selected_columns) > 1 else selected_columns[0],
-    width=800,  # Adjust width as needed
-    height=800,  # Adjust height as needed
-    margin=dict(l=50, r=50, t=50, b=50),  # Adjust margin
-    legend=dict(
-        orientation="h",  # Horizontal legend
-        yanchor="top",
-        y=1.1,  # Position the legend above the plot
-        xanchor="center",
+    # Apply the colors and make the lines wider
+    for trace in fig.data:
+        trace.update(marker=dict(opacity=0.7))  # Adjust opacity for better visibility
+
+    # Add watermark
+    fig.add_annotation(
+        text="@eivissacopter",
+        font=dict(size=20, color="lightgrey"),
+        align="center",
+        xref="paper",
+        yref="paper",
         x=0.5,
-        title=None  # Remove title "Label, Line Style"
-    )
-)
-
-# Add a simple legend for SOC/dot size at the top right corner
-sizes = [20, 50, 80, 100]
-size_texts = [f"{size}% SOC" for size in sizes]
-x_positions = [0.98] * len(sizes)  # Position all the dots at the top right
-
-for i, size in enumerate(sizes):
-    fig.add_scatter(
-        x=[x_positions[i]],
-        y=[1.05 - i*0.05],
-        mode="markers+text",
-        marker=dict(size=size * 0.3, color="blue"),
-        text=[size_texts[i]],
-        textposition="middle right",
-        showlegend=False
+        y=0.5,
+        opacity=0.15,
+        showarrow=False
     )
 
-st.plotly_chart(fig, use_container_width=True)
+    # Move legend inside the chart and remove the "Label, Line Style"
+    fig.update_layout(
+        showlegend=True,
+        xaxis_title='Speed [kph]',
+        yaxis_title="Values" if len(selected_columns) > 1 else selected_columns[0],
+        width=800,  # Adjust width as needed
+        height=800,  # Adjust height as needed
+        margin=dict(l=50, r=50, t=50, b=50),  # Adjust margin
+        legend=dict(
+            orientation="h",  # Horizontal legend
+            yanchor="top",
+            y=1.1,  # Position the legend above the plot
+            xanchor="center",
+            x=0.5,
+            title=None  # Remove title "Label, Line Style"
+        )
+    )
 
+    # Add a simple legend for SOC/dot size at the top right corner
+    sizes = [20, 50, 80, 100]
+    size_texts = [f"{size}% SOC" for size in sizes]
+    x_positions = [0.98] * len(sizes)  # Position all the dots at the top right
+
+    for i, size in enumerate(sizes):
+        fig.add_scatter(
+            x=[x_positions[i]],
+            y=[1.05 - i*0.05],
+            mode="markers+text",
+            marker=dict(size=size * 0.3, color="blue"),
+            text=[size_texts[i]],
+            textposition="middle right",
+            showlegend=False
+        )
+
+    st.plotly_chart(fig, use_container_width=True)
+else:
+    st.write("No data available to plot. Please adjust the filters or selections.")
 
 ####################################################################################################
 
