@@ -426,7 +426,7 @@ if plot_data:
         size='SOC',  # Use SOC to determine the size of the dots
         labels={'X': 'Speed [kph]', 'Y': 'Values'}, 
         color_discrete_map=color_map,
-        size_max=20  # Adjust this value to limit the maximum size of the dots
+        size_max=10  # Adjust this value to limit the maximum size of the dots
     )
 
     # Apply the colors and make the lines wider
