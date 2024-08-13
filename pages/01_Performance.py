@@ -405,7 +405,7 @@ if plot_data:
         plot_df['SOC'].fillna(1, inplace=True)  # Replace NaNs with a default size of 1
 
         # Scale down SOC values to reduce the size of the dots
-        plot_df['SOC'] = plot_df['SOC'] * 0.5  # Adjust the factor as needed
+        plot_df['SOC'] = plot_df['SOC'] * 0.3  # Adjust the factor as needed
     else:
         st.error("SOC column not found in the data.")
         plot_df['SOC'] = 1  # Fallback to a default size if SOC is missing
