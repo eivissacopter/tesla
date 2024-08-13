@@ -331,130 +331,65 @@ for i, info in enumerate(filtered_file_info):
     response = requests.get(info['path'])
     content = response.content.decode('utf-8')
     df = pd.read_csv(StringIO(content))
-    
-    # Ensure the DataFrame has the Speed column
-    if 'Speed' in df.columns:
-        # Sort the DataFrame by Speed right after loading
-        df = df.sort_values(by='Speed')
-    
+
     # Fill forward and backward to handle NaN values
     df = df.ffill().bfill()
-    
+
     # Filter invalid values
     df = df[(df['SOC'] >= 0) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= 0) & (df['Cell temp mid'] <= 70)]
-    
+
     # Filter rows where speed is between 1 kph and 200 kph
-    df = df[(df['Speed'] >= 1) & (df['Speed'] <= 200)]
-    
-    # After sorting by Speed
-    st.write("Speed values after initial sorting:")
-    st.write(df[['Speed']].head(10))  # Display the first 10 rows to verify sorting
+    if 'Speed' in df.columns:
+        df = df[(df['Speed'] >= 0) & (df['Speed'] <= 210)]
 
-    # Identify discontinuities (where speed is not strictly increasing)
-    df['Speed_diff'] = df['Speed'].diff().fillna(0)
-    discontinuities = df[df['Speed_diff'] < 0].index
-    
-    # Display sorted speed values for verification
-    st.write("Sorted Speed values:")
-    st.write(df['Speed'].head(100))  # Display the first 100 rows for inspection
+    # Ensure speed values are strictly increasing
+    df = df[df['Speed'].diff().fillna(1) > 0]
 
-    # Identify discontinuities (where speed is not strictly increasing)
-    df['Speed_diff'] = df['Speed'].diff().fillna(0)
-    discontinuities = df[df['Speed_diff'] < 0].index
+    # Drop rows with NaN values in the selected columns to avoid lines connecting back to the start
+    df.dropna(subset=[selected_x_axis] + [col for col_list in columns_to_plot.values() for col in (col_list if isinstance(col_list, list) else [col_list])], inplace=True)
 
-    # If discontinuities exist, split the data into separate traces
-    if not discontinuities.empty:
-        trace_start_idx = 0
-        for idx in discontinuities:
-            trace_df = df.iloc[trace_start_idx:idx].copy()
-            trace_start_idx = idx + 1
-            trace_df.drop(columns='Speed_diff', inplace=True)
-            # Continue with plotting as usual for each trace_df
-            for column in selected_columns:
-                y_col = columns_to_plot[column]
-                if isinstance(y_col, list):
-                    if column == "Combined Motor Power [kW]":
-                        combined_value = trace_df[y_col[0]] + trace_df[y_col[1]]
-                        combined_value = combined_value[combined_value >= 20]  # Filter combined motor power values below 20 kW
-                        smoothed_y = combined_value
-                        plot_data.append(pd.DataFrame({
-                            'X': trace_df[selected_x_axis].loc[smoothed_y.index],
-                            'Y': smoothed_y,
-                            'Label': f"{legend_label} - Combined Motor Power",
-                            'Color': folder_colors[legend_label]
-                        }))
-                    elif column == "Combined Motor Torque [Nm]":
-                        combined_value = trace_df[y_col[0]] + trace_df[y_col[1]]
-                        smoothed_y = combined_value
-                        plot_data.append(pd.DataFrame({
-                            'X': trace_df[selected_x_axis].loc[smoothed_y.index],
-                            'Y': smoothed_y,
-                            'Label': f"{legend_label} - Combined Motor Torque",
-                            'Color': folder_colors[legend_label]
-                        }))
-                    else:
-                        for sub_col in y_col:
-                            smoothed_y = trace_df[sub_col]
-                            plot_data.append(pd.DataFrame({
-                                'X': trace_df[selected_x_axis].loc[smoothed_y.index],
-                                'Y': smoothed_y,
-                                'Label': f"{legend_label} - {sub_col}",
-                                'Color': folder_colors[legend_label]
-                            }))
-                else:
-                    smoothed_y = trace_df[y_col]
-                    if 'Battery power' in y_col:
-                        smoothed_y = smoothed_y[smoothed_y >= 40]  # Filter battery power values below 40 kW
-                    plot_data.append(pd.DataFrame({
-                        'X': trace_df[selected_x_axis].loc[smoothed_y.index],
-                        'Y': smoothed_y,
-                        'Label': f"{legend_label} - {column}",
-                        'Color': folder_colors[legend_label]
-                    }))
-    else:
-        df.drop(columns='Speed_diff', inplace=True)
-        # Continue with plotting as usual for the full DataFrame
-        for column in selected_columns:
-            y_col = columns_to_plot[column]
-            if isinstance(y_col, list):
-                if column == "Combined Motor Power [kW]":
-                    combined_value = df[y_col[0]] + df[y_col[1]]
-                    combined_value = combined_value[combined_value >= 20]  # Filter combined motor power values below 20 kW
-                    smoothed_y = combined_value
-                    plot_data.append(pd.DataFrame({
-                        'X': df[selected_x_axis].loc[smoothed_y.index],
-                        'Y': smoothed_y,
-                        'Label': f"{legend_label} - Combined Motor Power",
-                        'Color': folder_colors[legend_label]
-                    }))
-                elif column == "Combined Motor Torque [Nm]":
-                    combined_value = df[y_col[0]] + df[y_col[1]]
-                    smoothed_y = combined_value
-                    plot_data.append(pd.DataFrame({
-                        'X': df[selected_x_axis].loc[smoothed_y.index],
-                        'Y': smoothed_y,
-                        'Label': f"{legend_label} - Combined Motor Torque",
-                        'Color': folder_colors[legend_label]
-                    }))
-                else:
-                    for sub_col in y_col:
-                        smoothed_y = df[sub_col]
-                        plot_data.append(pd.DataFrame({
-                            'X': df[selected_x_axis].loc[smoothed_y.index],
-                            'Y': smoothed_y,
-                            'Label': f"{legend_label} - {sub_col}",
-                            'Color': folder_colors[legend_label]
-                        }))
-            else:
-                smoothed_y = df[y_col]
-                if 'Battery power' in y_col:
-                    smoothed_y = smoothed_y[smoothed_y >= 40]  # Filter battery power values below 40 kW
+    # Plot selected columns
+    for column in selected_columns:
+        y_col = columns_to_plot[column]
+        if isinstance(y_col, list):
+            if column == "Combined Motor Power [kW]":
+                combined_value = df[y_col[0]] + df[y_col[1]]
+                combined_value = combined_value[combined_value >= 20]  # Filter combined motor power values below 20 kW
+                smoothed_y = combined_value
                 plot_data.append(pd.DataFrame({
                     'X': df[selected_x_axis].loc[smoothed_y.index],
                     'Y': smoothed_y,
-                    'Label': f"{legend_label} - {column}",
+                    'Label': f"{legend_label} - Combined Motor Power",
                     'Color': folder_colors[legend_label]
                 }))
+            elif column == "Combined Motor Torque [Nm]":
+                combined_value = df[y_col[0]] + df[y_col[1]]
+                smoothed_y = combined_value
+                plot_data.append(pd.DataFrame({
+                    'X': df[selected_x_axis].loc[smoothed_y.index],
+                    'Y': smoothed_y,
+                    'Label': f"{legend_label} - Combined Motor Torque",
+                    'Color': folder_colors[legend_label]
+                }))
+            else:
+                for sub_col in y_col:
+                    smoothed_y = df[sub_col]
+                    plot_data.append(pd.DataFrame({
+                        'X': df[selected_x_axis].loc[smoothed_y.index],
+                        'Y': smoothed_y,
+                        'Label': f"{legend_label} - {sub_col}",
+                        'Color': folder_colors[legend_label]
+                    }))
+        else:
+            smoothed_y = df[y_col]
+            if 'Battery power' in y_col:
+                smoothed_y = smoothed_y[smoothed_y >= 40]  # Filter battery power values below 40 kW
+            plot_data.append(pd.DataFrame({
+                'X': df[selected_x_axis].loc[smoothed_y.index],
+                'Y': smoothed_y,
+                'Label': f"{legend_label} - {column}",
+                'Color': folder_colors[legend_label]
+            }))
 
 # Convert plot data to a DataFrame
 if plot_data:
@@ -462,7 +397,7 @@ if plot_data:
 
     # Filter out rows where 'X' or 'Y' have NaN values to prevent lines from connecting back to the start
     plot_df.dropna(subset=['X', 'Y'], inplace=True)
-    
+
     # Create a color map for each label
     unique_labels = plot_df['Label'].unique()
     color_map = {label: folder_colors[label.split(" - ")[0]] for label in unique_labels}
@@ -513,7 +448,7 @@ if plot_data:
     fig.for_each_trace(lambda trace: trace.update(line_color=color_map.get(trace.name, trace.line.color)))
 
     # Slider for smoothing
-    smoothing_value = st.sidebar.slider("Smoothing Window Size", min_value=0, max_value=20, value=20)
+    smoothing_value = st.sidebar.slider("Line Smoothing", min_value=0, max_value=20, value=20)
 
     # Apply smoothing if smoothing_value is greater than 0
     if smoothing_value > 0:
