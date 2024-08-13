@@ -391,22 +391,31 @@ for i, info in enumerate(filtered_file_info):
                 'Color': folder_colors[legend_label]
             }))
 
-# Convert plot data to a DataFrame
+# Create a scatter plot with dot size representing SOC
 if plot_data:
     plot_df = pd.concat(plot_data)
 
-    # Filter out rows where 'X' or 'Y' have NaN values to prevent lines from connecting back to the start
+    # Filter out rows where 'X' or 'Y' have NaN values to prevent issues with plotting
     plot_df.dropna(subset=['X', 'Y'], inplace=True)
 
     # Create a color map for each label
     unique_labels = plot_df['Label'].unique()
     color_map = {label: folder_colors[label.split(" - ")[0]] for label in unique_labels}
 
-    fig = px.line(plot_df, x='X', y='Y', color='Label', labels={'X': 'Speed [kph]', 'Y': 'Values'}, color_discrete_map=color_map)
+    # Create the scatter plot
+    fig = px.scatter(
+        plot_df, 
+        x='X', 
+        y='Y', 
+        color='Label', 
+        size='SOC',  # Use SOC to determine the size of the dots
+        labels={'X': 'Speed [kph]', 'Y': 'Values'}, 
+        color_discrete_map=color_map
+    )
 
     # Apply the colors and make the lines wider
     for trace in fig.data:
-        trace.update(line=dict(width=3))  # Set base line width
+        trace.update(marker=dict(opacity=0.7))  # Adjust opacity for better visibility
 
     # Add watermark
     fig.add_annotation(
@@ -445,21 +454,12 @@ if plot_data:
         color_map[label] = color
 
     # Update the color in the plot
-    fig.for_each_trace(lambda trace: trace.update(line_color=color_map.get(trace.name, trace.line.color)))
+    fig.for_each_trace(lambda trace: trace.update(marker_color=color_map.get(trace.name, trace.marker.color)))
 
-    # Slider for smoothing
-    smoothing_value = st.sidebar.slider("Line Smoothing", min_value=0, max_value=20, value=20)
-
-    # Apply smoothing if smoothing_value is greater than 0
-    if smoothing_value > 0:
-        for label in unique_labels:
-            plot_df.loc[plot_df['Label'] == label, 'Y'] = uniform_filter1d(plot_df.loc[plot_df['Label'] == label, 'Y'], size=smoothing_value)
-    
     st.plotly_chart(fig, use_container_width=True)
 
 else:
     st.write("Please select an X-axis and at least one column to plot.")
-
 
 ####################################################################################################
 
