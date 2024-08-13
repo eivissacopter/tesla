@@ -359,7 +359,6 @@ for i, info in enumerate(filtered_file_info):
                 plot_data.append(pd.DataFrame({
                     'X': df[selected_x_axis].loc[smoothed_y.index],
                     'Y': smoothed_y,
-                    'SOC': df['SOC'].loc[smoothed_y.index],  # Add SOC to plot data
                     'Label': f"{legend_label} - Combined Motor Power",
                     'Color': folder_colors[legend_label]
                 }))
@@ -369,7 +368,6 @@ for i, info in enumerate(filtered_file_info):
                 plot_data.append(pd.DataFrame({
                     'X': df[selected_x_axis].loc[smoothed_y.index],
                     'Y': smoothed_y,
-                    'SOC': df['SOC'].loc[smoothed_y.index],  # Add SOC to plot data
                     'Label': f"{legend_label} - Combined Motor Torque",
                     'Color': folder_colors[legend_label]
                 }))
@@ -379,7 +377,6 @@ for i, info in enumerate(filtered_file_info):
                     plot_data.append(pd.DataFrame({
                         'X': df[selected_x_axis].loc[smoothed_y.index],
                         'Y': smoothed_y,
-                        'SOC': df['SOC'].loc[smoothed_y.index],  # Add SOC to plot data
                         'Label': f"{legend_label} - {sub_col}",
                         'Color': folder_colors[legend_label]
                     }))
@@ -390,42 +387,26 @@ for i, info in enumerate(filtered_file_info):
             plot_data.append(pd.DataFrame({
                 'X': df[selected_x_axis].loc[smoothed_y.index],
                 'Y': smoothed_y,
-                'SOC': df['SOC'].loc[smoothed_y.index],  # Add SOC to plot data
                 'Label': f"{legend_label} - {column}",
                 'Color': folder_colors[legend_label]
             }))
 
-# Only proceed if there is plot data
+# Convert plot data to a DataFrame
 if plot_data:
-    # Convert plot data to a DataFrame
     plot_df = pd.concat(plot_data)
 
-    # Ensure SOC exists and is numerical
-    if 'SOC' in plot_df.columns:
-        plot_df['SOC'] = pd.to_numeric(plot_df['SOC'], errors='coerce')
-        plot_df['SOC'].fillna(1, inplace=True)  # Replace NaNs with a default size of 1
+    # Filter out rows where 'X' or 'Y' have NaN values to prevent lines from connecting back to the start
+    plot_df.dropna(subset=['X', 'Y'], inplace=True)
 
-        # Scale down SOC values to reduce the size of the dots
-        plot_df['SOC'] = plot_df['SOC'] * 0.3  # Adjust the factor as needed (smaller value = smaller dots)
-    else:
-        st.error("SOC column not found in the data.")
-        plot_df['SOC'] = 1  # Fallback to a default size if SOC is missing
+    # Create a color map for each label
+    unique_labels = plot_df['Label'].unique()
+    color_map = {label: folder_colors[label.split(" - ")[0]] for label in unique_labels}
 
-    # Create the scatter plot with adjusted dot sizes
-    fig = px.scatter(
-        plot_df, 
-        x='X', 
-        y='Y', 
-        color='Label', 
-        size='SOC',  # Use SOC to determine the size of the dots
-        labels={'X': 'Speed [kph]', 'Y': 'Values'}, 
-        color_discrete_map=folder_colors,
-        size_max=10  # Adjust this value to limit the maximum size of the dots (lower value = smaller dots)
-    )
+    fig = px.line(plot_df, x='X', y='Y', color='Label', labels={'X': 'Speed [kph]', 'Y': 'Values'}, color_discrete_map=color_map)
 
     # Apply the colors and make the lines wider
     for trace in fig.data:
-        trace.update(marker=dict(opacity=0.7))  # Adjust opacity for better visibility
+        trace.update(line=dict(width=3))  # Set base line width
 
     # Add watermark
     fig.add_annotation(
@@ -458,25 +439,27 @@ if plot_data:
         )
     )
 
-    # Add a simple legend for SOC/dot size at the top right corner
-    sizes = [20, 50, 80, 100]
-    size_texts = [f"{size}% SOC" for size in sizes]
-    x_positions = [0.98] * len(sizes)  # Position all the dots at the top right
+    # Add dropdown to select colors for each line
+    for label in unique_labels:
+        color = st.sidebar.color_picker(f"Pick a color for {label}", color_map[label])
+        color_map[label] = color
 
-    for i, size in enumerate(sizes):
-        fig.add_scatter(
-            x=[x_positions[i]],
-            y=[1.05 - i*0.05],
-            mode="markers+text",
-            marker=dict(size=size * 0.3, color="blue"),
-            text=[size_texts[i]],
-            textposition="middle right",
-            showlegend=False
-        )
+    # Update the color in the plot
+    fig.for_each_trace(lambda trace: trace.update(line_color=color_map.get(trace.name, trace.line.color)))
 
+    # Slider for smoothing
+    smoothing_value = st.sidebar.slider("Line Smoothing", min_value=0, max_value=20, value=20)
+
+    # Apply smoothing if smoothing_value is greater than 0
+    if smoothing_value > 0:
+        for label in unique_labels:
+            plot_df.loc[plot_df['Label'] == label, 'Y'] = uniform_filter1d(plot_df.loc[plot_df['Label'] == label, 'Y'], size=smoothing_value)
+    
     st.plotly_chart(fig, use_container_width=True)
+
 else:
-    st.write("No data available to plot. Please adjust the filters or selections.")
+    st.write("Please select an X-axis and at least one column to plot.")
+
 
 ####################################################################################################
 
