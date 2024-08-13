@@ -395,6 +395,14 @@ for i, info in enumerate(filtered_file_info):
 if plot_data:
     plot_df = pd.concat(plot_data)
 
+    # Ensure SOC exists and is numerical
+    if 'SOC' in plot_df.columns:
+        plot_df['SOC'] = pd.to_numeric(plot_df['SOC'], errors='coerce')
+        plot_df['SOC'].fillna(1, inplace=True)  # Replace NaNs with a default size of 1
+    else:
+        st.error("SOC column not found in the data.")
+        plot_df['SOC'] = 1  # Fallback to a default size if SOC is missing
+
     # Filter out rows where 'X' or 'Y' have NaN values to prevent issues with plotting
     plot_df.dropna(subset=['X', 'Y'], inplace=True)
 
