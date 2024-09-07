@@ -417,8 +417,8 @@ st.sidebar.markdown(
     <div class="sidebar-content">
         <a href="https://tff-forum.de/t/wiki-akkuwiki-model-3-model-y-cybertruck/107641?u=eivissa" target="_blank">
             <div>
-                <img src="https://i.ibb.co/vBvVFTg/TFF-Logo-ohne-Schrift-removebg-preview.png" class="akku-wiki" alt="Akku Wiki">
-                <div class="text">Akku Wiki</div>
+                <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExNWFuaThuc3FxZ254M3ZtcGIwNXl4bzgza3BnNHhjNmQxN3ZkY3oydCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/S7jznj1TlqH9otxZux/giphy.webp" class="akku-wiki" alt="Akku Wiki">
+                <div class="text">Buy a Tesla</div>
             </div>
         </a>
         <a href="https://buymeacoffee.com/eivissa" target="_blank">
