@@ -415,9 +415,9 @@ st.sidebar.markdown(
         }
     </style>
     <div class="sidebar-content">
-        <a href="https://tff-forum.de/t/wiki-akkuwiki-model-3-model-y-cybertruck/107641?u=eivissa" target="_blank">
+        <a href="https://www.tesla.com/de_de/referral/julien95870" target="_blank">
             <div>
-                <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExNWFuaThuc3FxZ254M3ZtcGIwNXl4bzgza3BnNHhjNmQxN3ZkY3oydCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/S7jznj1TlqH9otxZux/giphy.webp" class="akku-wiki" alt="Akku Wiki">
+                <img src="https://static.vecteezy.com/system/resources/previews/020/975/563/original/tesla-logo-tesla-icon-transparent-free-png.png" class="akku-wiki" alt="Akku Wiki">
                 <div class="text">Buy a Tesla</div>
             </div>
         </a>
