@@ -381,10 +381,9 @@ st.session_state.filtered_df = st.session_state.filtered_df[(st.session_state.fi
 
 # Add a refresh button and reset button in the sidebar
 refresh, reset = st.sidebar.columns(2)
-if refresh.button("Refresh Data", key="refresh_data"):
-    # Remove the cache clearing line
-    # st.cache_data.clear()  # Clear the cache
-    st.experimental_rerun()  # Rerun the app to refresh with new data
+if refresh.button("Clear Cache and Refresh", key="clear_cache_refresh"):
+    st.cache_data.clear()  # Clear the cache
+    st.success("Cache cleared! Please rerun the app.")
 
 # Show number of rows in filtered data
 st.sidebar.write(f"Filtered Data Rows: {st.session_state.filtered_df.shape[0]}")
