@@ -496,10 +496,10 @@ st.sidebar.markdown(
         }
     </style>
     <div class="sidebar-content">
-        <a href="https://tff-forum.de/t/wiki-akkuwiki-model-3-model-y-cybertruck/107641?u=eivissa" target="_blank">
+        <a href="https://www.tesla.com/de_de/referral/julien95870" target="_blank">
             <div>
-                <img src="https://i.ibb.co/vBvVFTg/TFF-Logo-ohne-Schrift-removebg-preview.png" class="akku-wiki" alt="Akku Wiki">
-                <div class="text">Akku Wiki</div>
+                <img src="https://static.vecteezy.com/system/resources/previews/020/975/563/original/tesla-logo-tesla-icon-transparent-free-png.png" class="akku-wiki" alt="Akku Wiki">
+                <div class="text">Referral</div>
             </div>
         </a>
         <a href="https://buymeacoffee.com/eivissa" target="_blank">
