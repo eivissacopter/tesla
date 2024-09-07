@@ -374,9 +374,16 @@ st.session_state.filtered_df = st.session_state.filtered_df[(st.session_state.fi
 st.session_state.filtered_df = st.session_state.filtered_df[(st.session_state.filtered_df["Odometer"] >= min_odo) & (st.session_state.filtered_df["Odometer"] <= max_odo)]
 
 # Add a refresh button and reset button in the sidebar
+# refresh, reset = st.sidebar.columns(2)
+# if refresh.button("Refresh Data", key="refresh_data"):
+#    st.cache_data.clear()  # Clear the cache
+#    st.experimental_rerun()  # Rerun the app to refresh with new data
+
+# Add a refresh button and reset button in the sidebar
 refresh, reset = st.sidebar.columns(2)
 if refresh.button("Refresh Data", key="refresh_data"):
-    st.cache_data.clear()  # Clear the cache
+    # Remove the cache clearing line
+    # st.cache_data.clear()  # Clear the cache
     st.experimental_rerun()  # Rerun the app to refresh with new data
 
 # Show number of rows in filtered data
