@@ -498,7 +498,7 @@ st.sidebar.markdown(
     <div class="sidebar-content">
         <a href="https://www.tesla.com/de_de/referral/julien95870" target="_blank">
             <div>
-                <img src="https://static.vecteezy.com/system/resources/previews/020/975/563/original/tesla-logo-tesla-icon-transparent-free-png.png" class="akku-wiki" alt="Akku Wiki">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Tesla_T_symbol.svg/482px-Tesla_T_symbol.svg.png" class="akku-wiki" alt="Akku Wiki">
                 <div class="text">Referral</div>
             </div>
         </a>
