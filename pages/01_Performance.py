@@ -355,64 +355,51 @@ for i, info in enumerate(filtered_file_info):
         st.warning(f"Failed to read {info['path']}: {e}")
         continue  # Skip this file on error
 
-    # Drop rows with NaN values in critical columns (like Torque, Battery Current, and Speed)
-    df_clean = df.dropna(subset=['F torque', 'R torque', 'Battery current', 'Speed'])
+    # Handle missing values more gently
+    df['Speed'] = df['Speed'].fillna(0)
+    df['F torque'] = df['F torque'].fillna(0)
+    df['R torque'] = df['R torque'].fillna(0)
+    df['Battery current'] = df['Battery current'].fillna(0)
 
-    # Ensure speed values are strictly increasing to avoid jumps
-    df_clean = df_clean[df_clean['Speed'].diff().fillna(1) > 0]
+    # Ensure speed values are strictly increasing
+    df = df[df['Speed'].diff().fillna(1) > 0]
 
-    # Filter rows where speed is between 0 kph and 210 kph
-    df_clean = df_clean[(df_clean['Speed'] >= 0) & (df_clean['Speed'] <= 210)]
+    # Combine motor torque for plotting
+    df['Combined Motor Torque'] = df['F torque'] + df['R torque']
 
-    # Combine motor torque if plotting Combined Motor Torque
-    df_clean['Combined Motor Torque'] = df_clean['F torque'] + df_clean['R torque']
-
-    # Remove duplicate X values within each label
-    df_clean = df_clean.sort_values(by=selected_x_axis).drop_duplicates(subset=[selected_x_axis])
-
-    # Plot selected columns without any aggressive smoothing or filling
+    # Plot selected columns without any smoothing or filtering
     for column in selected_columns:
         y_col = columns_to_plot[column]
-        if isinstance(y_col, list):  # Handle combined columns (e.g., Motor Power, Torque)
+        if isinstance(y_col, list):
             if column == "Combined Motor Power [kW]":
-                combined_value = df_clean[y_col[0]] + df_clean[y_col[1]]
-                combined_value = combined_value[combined_value >= 20]  # Filter small values
+                combined_value = df[y_col[0]] + df[y_col[1]]
+                combined_value = combined_value[combined_value >= 20]  # Filter combined motor power values below 20 kW
                 if combined_value.empty:
-                    continue  # Skip if no data
+                    continue  # Skip if no data after filtering
                 temp_df = pd.DataFrame({
-                    'X': df_clean[selected_x_axis].loc[combined_value.index],
+                    'X': df[selected_x_axis].loc[combined_value.index],
                     'Y': combined_value,
                     'Label': f"{trace_label} - Combined Motor Power"
                 })
                 plot_data.append(temp_df)
             elif column == "Combined Motor Torque [Nm]":
-                combined_value = df_clean[y_col[0]] + df_clean[y_col[1]]
+                combined_value = df[y_col[0]] + df[y_col[1]]
                 if combined_value.empty:
                     continue  # Skip if no data
                 temp_df = pd.DataFrame({
-                    'X': df_clean[selected_x_axis].loc[combined_value.index],
+                    'X': df[selected_x_axis].loc[combined_value.index],
                     'Y': combined_value,
                     'Label': f"{trace_label} - Combined Motor Torque"
                 })
                 plot_data.append(temp_df)
-            else:
-                for sub_col in y_col:
-                    y_values = df_clean[sub_col].values
-                    temp_df = pd.DataFrame({
-                        'X': df_clean[selected_x_axis].loc[df_clean[sub_col].index],
-                        'Y': y_values,
-                        'Label': f"{trace_label} - {sub_col}"
-                    })
-                    plot_data.append(temp_df)
         else:  # Handle single columns
-            y_values = df_clean[y_col].values
+            y_values = df[y_col].values
             temp_df = pd.DataFrame({
-                'X': df_clean[selected_x_axis],
+                'X': df[selected_x_axis],
                 'Y': y_values,
                 'Label': f"{trace_label} - {column}"
             })
             plot_data.append(temp_df)
-
 
 ####################################################################################################
 
