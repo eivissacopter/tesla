@@ -323,8 +323,8 @@ predefined_colors = ['#0000FF', '#FF0000', '#FFA500', '#008000', '#800080', '#A5
 folder_colors = {}
 for i, info in enumerate(filtered_file_info):
     folder_path = info['folder']['path']
-    # Create a unique legend label
-    legend_label = f"{info['folder']['model']} {info['folder']['variant']} {info['folder']['model_year']} {info['folder']['battery']} {info['folder']['rear_motor']} {info['folder']['acceleration_mode']}"
+    # Create a unique legend label by including the file name
+    legend_label = f"{info['folder']['model']} {info['folder']['variant']} {info['folder']['model_year']} {info['folder']['battery']} {info['folder']['rear_motor']} {info['folder']['acceleration_mode']} - {info['name']}"
     if legend_label not in folder_colors:
         folder_colors[legend_label] = predefined_colors[len(folder_colors) % len(predefined_colors)]
     
@@ -364,22 +364,24 @@ for i, info in enumerate(filtered_file_info):
             if column == "Combined Motor Power [kW]":
                 combined_value = df[y_col[0]] + df[y_col[1]]
                 combined_value = combined_value[combined_value >= 20]  # Filter combined motor power values below 20 kW
+                if combined_value.empty:
+                    continue  # Skip if no data after filtering
                 smoothed_y = combined_value
                 temp_df = pd.DataFrame({
                     'X': df[selected_x_axis].loc[smoothed_y.index],
                     'Y': smoothed_y,
-                    'Label': f"{legend_label} - Combined Motor Power",
-                    'Color': folder_colors[legend_label]
+                    'Label': f"{legend_label} - Combined Motor Power"
                 })
                 plot_data.append(temp_df)
             elif column == "Combined Motor Torque [Nm]":
                 combined_value = df[y_col[0]] + df[y_col[1]]
                 smoothed_y = combined_value
+                if smoothed_y.empty:
+                    continue  # Skip if no data
                 temp_df = pd.DataFrame({
                     'X': df[selected_x_axis].loc[smoothed_y.index],
                     'Y': smoothed_y,
-                    'Label': f"{legend_label} - Combined Motor Torque",
-                    'Color': folder_colors[legend_label]
+                    'Label': f"{legend_label} - Combined Motor Torque"
                 })
                 plot_data.append(temp_df)
             else:
@@ -388,29 +390,21 @@ for i, info in enumerate(filtered_file_info):
                     temp_df = pd.DataFrame({
                         'X': df[selected_x_axis].loc[smoothed_y.index],
                         'Y': smoothed_y,
-                        'Label': f"{legend_label} - {sub_col}",
-                        'Color': folder_colors[legend_label]
+                        'Label': f"{legend_label} - {sub_col}"
                     })
                     plot_data.append(temp_df)
         else:
             smoothed_y = df[y_col]
             if 'Battery power' in y_col:
                 smoothed_y = smoothed_y[smoothed_y >= 40]  # Filter battery power values below 40 kW
-                temp_df = pd.DataFrame({
-                    'X': df[selected_x_axis].loc[smoothed_y.index],
-                    'Y': smoothed_y,
-                    'Label': f"{legend_label} - {column}",
-                    'Color': folder_colors[legend_label]
-                })
-                plot_data.append(temp_df)
-            else:
-                temp_df = pd.DataFrame({
-                    'X': df[selected_x_axis].loc[smoothed_y.index],
-                    'Y': smoothed_y,
-                    'Label': f"{legend_label} - {column}",
-                    'Color': folder_colors[legend_label]
-                })
-                plot_data.append(temp_df)
+                if smoothed_y.empty:
+                    continue  # Skip if no data after filtering
+            temp_df = pd.DataFrame({
+                'X': df[selected_x_axis].loc[smoothed_y.index],
+                'Y': smoothed_y,
+                'Label': f"{legend_label} - {column}"
+            })
+            plot_data.append(temp_df)
 
 # Convert plot data to a DataFrame
 if plot_data:
@@ -434,6 +428,8 @@ if plot_data:
     # Add traces for each unique label
     for label in unique_labels:
         df_label = plot_df[plot_df['Label'] == label].sort_values(by='X')
+        if df_label.empty:
+            continue  # Skip empty datasets
         fig.add_trace(go.Scatter(
             x=df_label['X'],
             y=df_label['Y'],
@@ -483,7 +479,7 @@ if plot_data:
         trace.line.color = color_map.get(trace.name, trace.line.color)
 
     # Slider for smoothing
-    smoothing_value = st.sidebar.slider("Line Smoothing", min_value=0, max_value=20, value=20)
+    smoothing_value = st.sidebar.slider("Line Smoothing", min_value=0, max_value=20, value=0)
 
     # Apply smoothing if smoothing_value is greater than 0
     if smoothing_value > 0:
