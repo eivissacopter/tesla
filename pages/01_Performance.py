@@ -295,7 +295,11 @@ if file_info:
     else:
         selected_temp_range = st.sidebar.slider("Battery Temperature [°C]", min_temp, max_temp, (min_temp, max_temp))
 
-    # Filter files based on selected ranges
+    # Minimum speed filter (exclude speeds below 20 kph)
+    min_speed = st.sidebar.slider("Minimum Speed [kph]", min_value=0, max_value=50, value=20)
+    st.sidebar.write(f"Filtering out data below {min_speed} kph.")
+
+    # Filter files based on selected ranges and minimum speed
     filtered_file_info = [
         info for info in file_info
         if selected_soc_range[0] <= info['SOC'] <= selected_soc_range[1]
@@ -362,9 +366,9 @@ for i, info in enumerate(filtered_file_info):
     # Filter invalid values
     df = df[(df['SOC'] >= 0) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= 0) & (df['Cell temp mid'] <= 70)]
 
-    # Filter rows where speed is between 0 kph and 210 kph
+    # Filter rows where speed is above the minimum speed
     if 'Speed' in df.columns:
-        df = df[(df['Speed'] >= 0) & (df['Speed'] <= 210)]
+        df = df[df['Speed'] >= min_speed]
     else:
         st.warning(f"'Speed' column not found in {info['path']}. Skipping this file.")
         continue  # Skip if 'Speed' column is missing
@@ -392,7 +396,9 @@ for i, info in enumerate(filtered_file_info):
                     continue  # Skip if no data after filtering
                 # Apply Savitzky-Golay smoothing
                 try:
-                    smoothed_y = savgol_filter(combined_value.values, window_length=5 if len(combined_value) >= 5 else len(combined_value), polyorder=2)
+                    window_length = 5 if len(combined_value) >= 5 else len(combined_value) if len(combined_value) % 2 != 0 else len(combined_value) - 1
+                    window_length = max(3, window_length)  # Minimum window_length for Savitzky-Golay
+                    smoothed_y = savgol_filter(combined_value.values, window_length=window_length, polyorder=2)
                 except Exception as e:
                     st.warning(f"Failed to apply smoothing on {trace_label} - Combined Motor Power: {e}")
                     smoothed_y = combined_value.values  # Fallback to unsmoothed data
@@ -405,12 +411,13 @@ for i, info in enumerate(filtered_file_info):
                 plot_data.append(temp_df)
             elif column == "Combined Motor Torque [Nm]":
                 combined_value = df[y_col[0]] + df[y_col[1]]
-                smoothed_y = combined_value
                 if combined_value.empty:
                     continue  # Skip if no data
                 # Apply Savitzky-Golay smoothing
                 try:
-                    smoothed_y = savgol_filter(combined_value.values, window_length=5 if len(combined_value) >= 5 else len(combined_value), polyorder=2)
+                    window_length = 5 if len(combined_value) >= 5 else len(combined_value) if len(combined_value) % 2 != 0 else len(combined_value) - 1
+                    window_length = max(3, window_length)  # Minimum window_length for Savitzky-Golay
+                    smoothed_y = savgol_filter(combined_value.values, window_length=window_length, polyorder=2)
                 except Exception as e:
                     st.warning(f"Failed to apply smoothing on {trace_label} - Combined Motor Torque: {e}")
                     smoothed_y = combined_value.values  # Fallback to unsmoothed data
@@ -426,7 +433,9 @@ for i, info in enumerate(filtered_file_info):
                     smoothed_y = df[sub_col].values
                     # Apply Savitzky-Golay smoothing
                     try:
-                        smoothed_y = savgol_filter(smoothed_y, window_length=5 if len(smoothed_y) >= 5 else len(smoothed_y), polyorder=2)
+                        window_length = 5 if len(smoothed_y) >= 5 else len(smoothed_y) if len(smoothed_y) % 2 != 0 else len(smoothed_y) - 1
+                        window_length = max(3, window_length)  # Minimum window_length for Savitzky-Golay
+                        smoothed_y = savgol_filter(smoothed_y, window_length=window_length, polyorder=2)
                     except Exception as e:
                         st.warning(f"Failed to apply smoothing on {trace_label} - {sub_col}: {e}")
                         smoothed_y = df[sub_col].values  # Fallback to unsmoothed data
@@ -449,7 +458,9 @@ for i, info in enumerate(filtered_file_info):
 
             # Apply Savitzky-Golay smoothing
             try:
-                smoothed_y = savgol_filter(smoothed_y, window_length=5 if len(smoothed_y) >= 5 else len(smoothed_y), polyorder=2)
+                window_length = 5 if len(smoothed_y) >= 5 else len(smoothed_y) if len(smoothed_y) % 2 != 0 else len(smoothed_y) - 1
+                window_length = max(3, window_length)  # Minimum window_length for Savitzky-Golay
+                smoothed_y = savgol_filter(smoothed_y, window_length=window_length, polyorder=2)
             except Exception as e:
                 st.warning(f"Failed to apply smoothing on {trace_label} - {column}: {e}")
                 smoothed_y = smoothed_y  # Fallback to unsmoothed data
@@ -550,6 +561,7 @@ if plot_data:
 
     # Slider for smoothing (default set to 5)
     smoothing_value = st.sidebar.slider("Line Smoothing", min_value=0, max_value=20, value=5)
+    st.sidebar.write(f"Current smoothing value: {smoothing_value}")
 
     # Apply smoothing if smoothing_value is greater than 0
     if smoothing_value > 0:
