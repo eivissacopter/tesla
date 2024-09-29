@@ -355,27 +355,40 @@ for i, info in enumerate(filtered_file_info):
         st.warning(f"Failed to read {info['path']}: {e}")
         continue  # Skip this file on error
 
-    # Handle missing values more gently
-    df['Speed'] = df['Speed'].fillna(0)
-    df['F torque'] = df['F torque'].fillna(0)
-    df['R torque'] = df['R torque'].fillna(0)
-    df['Battery current'] = df['Battery current'].fillna(0)
+    # Inspect how much data is missing
+    st.write(f"Data before cleaning: {len(df)} rows")
 
-    # Ensure speed values are strictly increasing
+    # Interpolate missing values rather than dropping them
+    df['Speed'] = df['Speed'].interpolate(method='linear')
+    df['F torque'] = df['F torque'].interpolate(method='linear')
+    df['R torque'] = df['R torque'].interpolate(method='linear')
+    df['Battery current'] = df['Battery current'].interpolate(method='linear')
+
+    # Ensure speed values are strictly increasing to avoid plotting errors
     df = df[df['Speed'].diff().fillna(1) > 0]
+
+    # Filter for reasonable values (optional: can be adjusted based on the dataset's actual values)
+    df = df[(df['Speed'] >= 0) & (df['Speed'] <= 210)]
 
     # Combine motor torque for plotting
     df['Combined Motor Torque'] = df['F torque'] + df['R torque']
 
+    st.write(f"Data after cleaning: {len(df)} rows")
+
+    # If data still has too many missing points after interpolation, skip the dataset
+    if df.isna().sum().sum() > 0:
+        st.warning(f"Skipping file with excessive missing data: {trace_label}")
+        continue
+
     # Plot selected columns without any smoothing or filtering
     for column in selected_columns:
         y_col = columns_to_plot[column]
-        if isinstance(y_col, list):
+        if isinstance(y_col, list):  # Handle combined columns (e.g., Motor Power, Torque)
             if column == "Combined Motor Power [kW]":
                 combined_value = df[y_col[0]] + df[y_col[1]]
-                combined_value = combined_value[combined_value >= 20]  # Filter combined motor power values below 20 kW
+                combined_value = combined_value[combined_value >= 20]  # Filter small values
                 if combined_value.empty:
-                    continue  # Skip if no data after filtering
+                    continue  # Skip if no data
                 temp_df = pd.DataFrame({
                     'X': df[selected_x_axis].loc[combined_value.index],
                     'Y': combined_value,
@@ -400,6 +413,7 @@ for i, info in enumerate(filtered_file_info):
                 'Label': f"{trace_label} - {column}"
             })
             plot_data.append(temp_df)
+
 
 ####################################################################################################
 
