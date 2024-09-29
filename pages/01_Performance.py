@@ -345,9 +345,6 @@ for i, info in enumerate(filtered_file_info):
     # Ensure speed values are strictly increasing
     df = df[df['Speed'].diff().fillna(1) > 0]
 
-    # Sort the data by Speed to ensure proper plotting order
-    df = df.sort_values(by=[selected_x_axis])
-
     # Drop rows with NaN values in the selected columns to avoid lines connecting back to the start
     df.dropna(subset=[selected_x_axis] + [col for col_list in columns_to_plot.values() for col in (col_list if isinstance(col_list, list) else [col_list])], inplace=True)
 
@@ -499,10 +496,10 @@ st.sidebar.markdown(
         }
     </style>
     <div class="sidebar-content">
-        <a href="https://tff-forum.de/t/wiki-akkuwiki-model-3-model-y-cybertruck/107641?u=eivissa" target="_blank">
+        <a href="https://www.tesla.com/de_de/referral/julien95870" target="_blank">
             <div>
-                <img src="https://i.ibb.co/vBvVFTg/TFF-Logo-ohne-Schrift-removebg-preview.png" class="akku-wiki" alt="Akku Wiki">
-                <div class="text">Akku Wiki</div>
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Tesla_T_symbol.svg/482px-Tesla_T_symbol.svg.png" class="akku-wiki" alt="Akku Wiki">
+                <div class="text">Referral</div>
             </div>
         </a>
         <a href="https://buymeacoffee.com/eivissa" target="_blank">
