@@ -8,8 +8,6 @@ import urllib.parse
 import json
 import os
 import re
-from matplotlib import colors as mcolors
-import matplotlib.pyplot as plt
 from scipy.ndimage import uniform_filter1d
 
 ###################################################################################################
@@ -138,12 +136,6 @@ st.markdown(
 
 ###################################################################################################
 
-# Prefill function
-def prefill_filter(options, label):
-    if len(options) == 1:
-        return st.sidebar.multiselect(label, options, default=options)
-    return st.sidebar.multiselect(label, options)
-
 # Model and Variant filters
 col1, col2 = st.sidebar.columns(2)
 models = get_unique_values(classified_folders, 'model')
@@ -211,25 +203,20 @@ def fetch_csv_headers_and_first_valid_values(url):
         metadata_cache[url] = {'headers': headers, 'SOC': None, 'Cell temp mid': None}
         return headers, None, None
 
-    # Scan entire DataFrame until valid values are found
+    # Fill forward and backward to handle NaN values
     df['SOC'] = df['SOC'].ffill().bfill()
     df['Cell temp mid'] = df['Cell temp mid'].ffill().bfill()
 
     # Filter invalid values
     df = df[(df['SOC'] >= -5) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= -30) & (df['Cell temp mid'] <= 70)]
 
-    # Find the first valid values
-    for index, row in df.iterrows():
-        soc_value = row['SOC']
-        cell_temp_mid_value = row['Cell temp mid']
-        if pd.notna(soc_value) and pd.notna(cell_temp_mid_value):
-            headers = df.columns.tolist()
-            metadata_cache[url] = {'headers': headers, 'SOC': round(soc_value), 'Cell temp mid': round(cell_temp_mid_value)}
-            return headers, round(soc_value), round(cell_temp_mid_value)
+    # Find the first valid SOC and Temp values
+    soc_value = df['SOC'].iloc[0]
+    cell_temp_mid_value = df['Cell temp mid'].iloc[0]
 
     headers = df.columns.tolist()
-    metadata_cache[url] = {'headers': headers, 'SOC': None, 'Cell temp mid': None}
-    return headers, None, None
+    metadata_cache[url] = {'headers': headers, 'SOC': round(soc_value), 'Cell temp mid': round(cell_temp_mid_value)}
+    return headers, round(soc_value), round(cell_temp_mid_value)
 
 # Filter folders based on selections
 filtered_folders = [f for f in classified_folders if
@@ -250,13 +237,11 @@ if filtered_folders:
             if 'SOC' not in headers or 'Cell temp mid' not in headers:
                 continue  # Skip the file if it doesn't have the required columns
             if soc_value is not None and cell_temp_mid_value is not None:
-                # Create a short name for the file
-                short_name = file.split('/')[-1].replace('.csv', '')
+                # Append file info
                 file_info.append({
                     'path': file_url,
                     'SOC': soc_value,
                     'Cell temp mid': cell_temp_mid_value,
-                    'name': short_name,
                     'folder': folder  # Add folder info for legend
                 })
 
@@ -264,6 +249,9 @@ if filtered_folders:
 save_metadata_cache(metadata_cache)
 
 ####################################################################################################
+
+# Initialize filtered_file_info as an empty list to prevent NameError
+filtered_file_info = []
 
 # Sidebar sliders for SOC and Cell temp mid
 if file_info:
@@ -293,6 +281,7 @@ if file_info:
 
 ####################################################################################################
 
+# Define columns to plot
 columns_to_plot = {
     "Max Discharge Power [kW]": "Max discharge power",
     "Battery Power [kW]": "Battery power",
@@ -303,6 +292,7 @@ columns_to_plot = {
     "Front/Rear Motor Torque [Nm]": ["F torque", "R torque"],
     "Combined Motor Torque [Nm]": ["F torque", "R torque"]
 }
+
 selected_columns = []
 for label in columns_to_plot.keys():
     if st.sidebar.checkbox(label, key=f"y_{label}"):
@@ -325,18 +315,22 @@ for i, info in enumerate(filtered_file_info):
     folder = info['folder']
     # Create a unique base label without the file name
     base_label = f"{folder['model']} {folder['variant']} {folder['model_year']} {folder['battery']} {folder['rear_motor']} {folder['acceleration_mode']}"
-    
+
     # Assign a color to the folder if not already assigned
     if base_label not in folder_color_map:
         folder_color_map[base_label] = predefined_colors[len(folder_color_map) % len(predefined_colors)]
-    
+
     # Construct the trace label using SOC and Temp values
-    trace_label = f"{base_label} - SOC {info['SOC']}% / Temp {info['Cell temp mid']}°C - {columns_to_plot.get('Battery Power [kW]', 'Battery Power')}"
-    
+    trace_label = f"{base_label} - SOC {info['SOC']}% / Temp {info['Cell temp mid']}°C"
+
     # Fetch the CSV data
-    response = requests.get(info['path'])
-    content = response.content.decode('utf-8')
-    df = pd.read_csv(StringIO(content))
+    try:
+        response = requests.get(info['path'])
+        content = response.content.decode('utf-8')
+        df = pd.read_csv(StringIO(content))
+    except Exception as e:
+        st.warning(f"Failed to read {info['path']}: {e}")
+        continue  # Skip this file on error
 
     # Fill forward and backward to handle NaN values
     df = df.ffill().bfill()
@@ -376,7 +370,7 @@ for i, info in enumerate(filtered_file_info):
                 temp_df = pd.DataFrame({
                     'X': df[selected_x_axis].loc[smoothed_y.index],
                     'Y': smoothed_y,
-                    'Label': f"{base_label} - SOC {info['SOC']}% / Temp {info['Cell temp mid']}°C - Combined Motor Power"
+                    'Label': f"{trace_label} - Combined Motor Power"
                 })
                 plot_data.append(temp_df)
             elif column == "Combined Motor Torque [Nm]":
@@ -387,7 +381,7 @@ for i, info in enumerate(filtered_file_info):
                 temp_df = pd.DataFrame({
                     'X': df[selected_x_axis].loc[smoothed_y.index],
                     'Y': smoothed_y,
-                    'Label': f"{base_label} - SOC {info['SOC']}% / Temp {info['Cell temp mid']}°C - Combined Motor Torque"
+                    'Label': f"{trace_label} - Combined Motor Torque"
                 })
                 plot_data.append(temp_df)
             else:
@@ -396,7 +390,7 @@ for i, info in enumerate(filtered_file_info):
                     temp_df = pd.DataFrame({
                         'X': df[selected_x_axis].loc[smoothed_y.index],
                         'Y': smoothed_y,
-                        'Label': f"{base_label} - SOC {info['SOC']}% / Temp {info['Cell temp mid']}°C - {sub_col}"
+                        'Label': f"{trace_label} - {sub_col}"
                     })
                     plot_data.append(temp_df)
         else:
@@ -408,7 +402,7 @@ for i, info in enumerate(filtered_file_info):
             temp_df = pd.DataFrame({
                 'X': df[selected_x_axis].loc[smoothed_y.index],
                 'Y': smoothed_y,
-                'Label': f"{base_label} - SOC {info['SOC']}% / Temp {info['Cell temp mid']}°C - {column}"
+                'Label': f"{trace_label} - {column}"
             })
             plot_data.append(temp_df)
 
@@ -424,15 +418,13 @@ if plot_data:
     # Further ensure no duplicate X values within each label
     plot_df = plot_df.sort_values(by=['Label', 'X']).drop_duplicates(subset=['Label', 'X'])
 
-    # Create a color map for each folder
+    # Create a color map for each label based on folder_color_map
     unique_labels = plot_df['Label'].unique()
-    
-    # Initialize color_map with folder colors
+
     color_map = {}
     for label in unique_labels:
         try:
-            # Extract base label (excluding SOC, Temp, and column name)
-            # Assuming the base label does not contain ' - SOC '
+            # Extract the base_label by removing the SOC and Temp parts
             base_label = label.split(' - SOC ')[0]
             color_map[label] = folder_color_map[base_label]
         except KeyError:
