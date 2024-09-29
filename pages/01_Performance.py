@@ -355,87 +355,64 @@ for i, info in enumerate(filtered_file_info):
         st.warning(f"Failed to read {info['path']}: {e}")
         continue  # Skip this file on error
 
-    # Fill forward and backward to handle NaN values
-    df = df.ffill().bfill()
+    # Drop rows with NaN values in critical columns (like Torque, Battery Current, and Speed)
+    df_clean = df.dropna(subset=['F torque', 'R torque', 'Battery current', 'Speed'])
 
-    # Filter invalid values
-    df = df[(df['SOC'] >= 0) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= 0) & (df['Cell temp mid'] <= 70)]
+    # Ensure speed values are strictly increasing to avoid jumps
+    df_clean = df_clean[df_clean['Speed'].diff().fillna(1) > 0]
 
     # Filter rows where speed is between 0 kph and 210 kph
-    if 'Speed' in df.columns:
-        df = df[(df['Speed'] >= 0) & (df['Speed'] <= 210)]
-    else:
-        st.warning(f"'Speed' column not found in {info['path']}. Skipping this file.")
-        continue  # Skip if 'Speed' column is missing
+    df_clean = df_clean[(df_clean['Speed'] >= 0) & (df_clean['Speed'] <= 210)]
 
-    # Ensure speed values are strictly increasing
-    df = df[df['Speed'].diff().fillna(1) > 0]
-
-    # Drop rows with NaN values in the selected columns to avoid lines connecting back to the start
-    required_columns = [selected_x_axis] + [
-        col for col_list in columns_to_plot.values() for col in (col_list if isinstance(col_list, list) else [col_list])
-    ]
-    df.dropna(subset=required_columns, inplace=True)
+    # Combine motor torque if plotting Combined Motor Torque
+    df_clean['Combined Motor Torque'] = df_clean['F torque'] + df_clean['R torque']
 
     # Remove duplicate X values within each label
-    df = df.sort_values(by=selected_x_axis).drop_duplicates(subset=[selected_x_axis])
+    df_clean = df_clean.sort_values(by=selected_x_axis).drop_duplicates(subset=[selected_x_axis])
 
-    # Plot selected columns without any smoothing or filtering
+    # Plot selected columns without any aggressive smoothing or filling
     for column in selected_columns:
         y_col = columns_to_plot[column]
-        if isinstance(y_col, list):
+        if isinstance(y_col, list):  # Handle combined columns (e.g., Motor Power, Torque)
             if column == "Combined Motor Power [kW]":
-                combined_value = df[y_col[0]] + df[y_col[1]]
-                combined_value = combined_value[combined_value >= 20]  # Filter combined motor power values below 20 kW
+                combined_value = df_clean[y_col[0]] + df_clean[y_col[1]]
+                combined_value = combined_value[combined_value >= 20]  # Filter small values
                 if combined_value.empty:
-                    continue  # Skip if no data after filtering
+                    continue  # Skip if no data
                 temp_df = pd.DataFrame({
-                    'X': df[selected_x_axis].loc[combined_value.index],
+                    'X': df_clean[selected_x_axis].loc[combined_value.index],
                     'Y': combined_value,
                     'Label': f"{trace_label} - Combined Motor Power"
                 })
                 plot_data.append(temp_df)
             elif column == "Combined Motor Torque [Nm]":
-                combined_value = df[y_col[0]] + df[y_col[1]]
-                combined_value = combined_value  # No filtering applied
+                combined_value = df_clean[y_col[0]] + df_clean[y_col[1]]
                 if combined_value.empty:
                     continue  # Skip if no data
                 temp_df = pd.DataFrame({
-                    'X': df[selected_x_axis].loc[combined_value.index],
+                    'X': df_clean[selected_x_axis].loc[combined_value.index],
                     'Y': combined_value,
                     'Label': f"{trace_label} - Combined Motor Torque"
                 })
                 plot_data.append(temp_df)
             else:
                 for sub_col in y_col:
-                    y_values = df[sub_col].values
+                    y_values = df_clean[sub_col].values
                     temp_df = pd.DataFrame({
-                        'X': df[selected_x_axis].loc[df[sub_col].index],
+                        'X': df_clean[selected_x_axis].loc[df_clean[sub_col].index],
                         'Y': y_values,
                         'Label': f"{trace_label} - {sub_col}"
                     })
                     plot_data.append(temp_df)
-        else:
-            y_values = df[y_col].values
-            if 'Battery power' in y_col:
-                mask = df[y_col] >= 40  # Create a boolean mask
-                df_selected = df.loc[mask, y_col]  # Filter the DataFrame
-                if df_selected.empty:
-                    continue  # Skip if no data after filtering
-                temp_df = pd.DataFrame({
-                    'X': df.loc[mask, selected_x_axis],
-                    'Y': df_selected.values,
-                    'Label': f"{trace_label} - {column}"
-                })
-                plot_data.append(temp_df)
-            else:
-                df_selected = df[y_col]
-                temp_df = pd.DataFrame({
-                    'X': df[selected_x_axis],
-                    'Y': y_values,
-                    'Label': f"{trace_label} - {column}"
-                })
-                plot_data.append(temp_df)
+        else:  # Handle single columns
+            y_values = df_clean[y_col].values
+            temp_df = pd.DataFrame({
+                'X': df_clean[selected_x_axis],
+                'Y': y_values,
+                'Label': f"{trace_label} - {column}"
+            })
+            plot_data.append(temp_df)
+
 
 ####################################################################################################
 
