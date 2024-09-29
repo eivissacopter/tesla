@@ -8,7 +8,7 @@ import urllib.parse
 import json
 import os
 import re
-from scipy.ndimage import uniform_filter1d
+from scipy.signal import savgol_filter  # Import Savitzky-Golay filter
 
 ###################################################################################################
 
@@ -390,7 +390,13 @@ for i, info in enumerate(filtered_file_info):
                 combined_value = combined_value[combined_value >= 20]  # Filter combined motor power values below 20 kW
                 if combined_value.empty:
                     continue  # Skip if no data after filtering
-                smoothed_y = combined_value
+                # Apply Savitzky-Golay smoothing
+                try:
+                    smoothed_y = savgol_filter(combined_value.values, window_length=5 if len(combined_value) >= 5 else len(combined_value), polyorder=2)
+                except Exception as e:
+                    st.warning(f"Failed to apply smoothing on {trace_label} - Combined Motor Power: {e}")
+                    smoothed_y = combined_value.values  # Fallback to unsmoothed data
+
                 temp_df = pd.DataFrame({
                     'X': df[selected_x_axis].loc[combined_value.index],
                     'Y': smoothed_y,
@@ -400,8 +406,15 @@ for i, info in enumerate(filtered_file_info):
             elif column == "Combined Motor Torque [Nm]":
                 combined_value = df[y_col[0]] + df[y_col[1]]
                 smoothed_y = combined_value
-                if smoothed_y.empty:
+                if combined_value.empty:
                     continue  # Skip if no data
+                # Apply Savitzky-Golay smoothing
+                try:
+                    smoothed_y = savgol_filter(combined_value.values, window_length=5 if len(combined_value) >= 5 else len(combined_value), polyorder=2)
+                except Exception as e:
+                    st.warning(f"Failed to apply smoothing on {trace_label} - Combined Motor Torque: {e}")
+                    smoothed_y = combined_value.values  # Fallback to unsmoothed data
+
                 temp_df = pd.DataFrame({
                     'X': df[selected_x_axis].loc[combined_value.index],
                     'Y': smoothed_y,
@@ -410,21 +423,39 @@ for i, info in enumerate(filtered_file_info):
                 plot_data.append(temp_df)
             else:
                 for sub_col in y_col:
-                    smoothed_y = df[sub_col]
+                    smoothed_y = df[sub_col].values
+                    # Apply Savitzky-Golay smoothing
+                    try:
+                        smoothed_y = savgol_filter(smoothed_y, window_length=5 if len(smoothed_y) >= 5 else len(smoothed_y), polyorder=2)
+                    except Exception as e:
+                        st.warning(f"Failed to apply smoothing on {trace_label} - {sub_col}: {e}")
+                        smoothed_y = df[sub_col].values  # Fallback to unsmoothed data
+
                     temp_df = pd.DataFrame({
-                        'X': df[selected_x_axis].loc[smoothed_y.index],
+                        'X': df[selected_x_axis].loc[df[sub_col].index],
                         'Y': smoothed_y,
                         'Label': f"{trace_label} - {sub_col}"
                     })
                     plot_data.append(temp_df)
         else:
-            smoothed_y = df[y_col]
+            smoothed_y = df[y_col].values
             if 'Battery power' in y_col:
                 smoothed_y = smoothed_y[smoothed_y >= 40]  # Filter battery power values below 40 kW
-                if smoothed_y.empty:
+                df_selected = df[y_col].loc[smoothed_y.index]
+                if smoothed_y.size == 0:
                     continue  # Skip if no data after filtering
+            else:
+                df_selected = df[y_col].loc[df[y_col].index]
+
+            # Apply Savitzky-Golay smoothing
+            try:
+                smoothed_y = savgol_filter(smoothed_y, window_length=5 if len(smoothed_y) >= 5 else len(smoothed_y), polyorder=2)
+            except Exception as e:
+                st.warning(f"Failed to apply smoothing on {trace_label} - {column}: {e}")
+                smoothed_y = smoothed_y  # Fallback to unsmoothed data
+
             temp_df = pd.DataFrame({
-                'X': df[selected_x_axis].loc[smoothed_y.index],
+                'X': df[selected_x_axis].loc[df_selected.index],
                 'Y': smoothed_y,
                 'Label': f"{trace_label} - {column}"
             })
@@ -486,18 +517,18 @@ if plot_data:
         showarrow=False
     )
 
-    # Update layout
+    # Update layout to position legend below the chart
     fig.update_layout(
         showlegend=True,
         xaxis_title='Speed [kph]',
         yaxis_title="Values" if len(selected_columns) > 1 else selected_columns[0],
         width=800,  # Adjust width as needed
         height=800,  # Adjust height as needed
-        margin=dict(l=50, r=50, t=50, b=50),  # Adjust margin
+        margin=dict(l=50, r=50, t=50, b=100),  # Increased bottom margin for legend
         legend=dict(
             orientation="h",  # Horizontal legend
             yanchor="top",
-            y=1.1,  # Position the legend above the plot
+            y=-0.2,  # Position the legend below the plot
             xanchor="center",
             x=0.5,
             title=None  # Remove title "Label, Line Style"
@@ -517,18 +548,33 @@ if plot_data:
     for trace in fig.data:
         trace.line.color = color_map.get(trace.name, trace.line.color)
 
-    # Slider for smoothing
-    smoothing_value = st.sidebar.slider("Line Smoothing", min_value=0, max_value=20, value=0)
+    # Slider for smoothing (default set to 5)
+    smoothing_value = st.sidebar.slider("Line Smoothing", min_value=0, max_value=20, value=5)
 
     # Apply smoothing if smoothing_value is greater than 0
     if smoothing_value > 0:
         for label in unique_labels:
             mask = plot_df['Label'] == label
-            plot_df.loc[mask, 'Y'] = uniform_filter1d(plot_df.loc[mask, 'Y'], size=smoothing_value)
-            # Update the trace with smoothed data
-            df_label = plot_df[plot_df['Label'] == label].sort_values(by='X')
-            trace_index = list(unique_labels).index(label)
-            fig.data[trace_index].y = df_label['Y']
+            y_values = plot_df.loc[mask, 'Y'].values
+            if len(y_values) < 3:
+                # Savitzky-Golay requires window_length <= size and window_length must be odd
+                st.warning(f"Not enough data points to apply smoothing for {label}. Skipping smoothing for this trace.")
+                continue
+            window_length = smoothing_value if smoothing_value % 2 != 0 else smoothing_value + 1  # Ensure window_length is odd
+            if window_length > len(y_values):
+                window_length = len(y_values) if len(y_values) % 2 != 0 else len(y_values) - 1
+            if window_length < 3:
+                window_length = 3  # Minimum window_length for Savitzky-Golay
+            try:
+                smoothed_y = savgol_filter(y_values, window_length=window_length, polyorder=2)
+                plot_df.loc[mask, 'Y'] = smoothed_y
+                # Update the trace with smoothed data
+                df_label = plot_df[plot_df['Label'] == label].sort_values(by='X')
+                trace_index = list(unique_labels).index(label)
+                fig.data[trace_index].y = df_label['Y']
+            except Exception as e:
+                st.warning(f"Failed to apply smoothing on {label}: {e}")
+                continue  # Skip smoothing for this trace on error
 
     st.plotly_chart(fig, use_container_width=True)
 
