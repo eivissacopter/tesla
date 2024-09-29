@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
 import requests
 from bs4 import BeautifulSoup
@@ -201,24 +200,24 @@ def fetch_csv_headers_and_first_valid_values(url):
     # Use cached metadata if available
     if url in metadata_cache:
         return metadata_cache[url]['headers'], metadata_cache[url]['SOC'], metadata_cache[url]['Cell temp mid']
-    
+
     response = requests.get(url)
     content = response.content.decode('utf-8')
     df = pd.read_csv(StringIO(content))
-    
+
     # Check if the required columns are present
     if 'SOC' not in df.columns or 'Cell temp mid' not in df.columns:
         headers = df.columns.tolist()
         metadata_cache[url] = {'headers': headers, 'SOC': None, 'Cell temp mid': None}
         return headers, None, None
-    
+
     # Scan entire DataFrame until valid values are found
     df['SOC'] = df['SOC'].ffill().bfill()
     df['Cell temp mid'] = df['Cell temp mid'].ffill().bfill()
-    
+
     # Filter invalid values
     df = df[(df['SOC'] >= -5) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= -30) & (df['Cell temp mid'] <= 70)]
-    
+
     # Find the first valid values
     for index, row in df.iterrows():
         soc_value = row['SOC']
@@ -227,7 +226,7 @@ def fetch_csv_headers_and_first_valid_values(url):
             headers = df.columns.tolist()
             metadata_cache[url] = {'headers': headers, 'SOC': round(soc_value), 'Cell temp mid': round(cell_temp_mid_value)}
             return headers, round(soc_value), round(cell_temp_mid_value)
-    
+
     headers = df.columns.tolist()
     metadata_cache[url] = {'headers': headers, 'SOC': None, 'Cell temp mid': None}
     return headers, None, None
@@ -289,7 +288,7 @@ if file_info:
     filtered_file_info = [
         info for info in file_info
         if selected_soc_range[0] <= info['SOC'] <= selected_soc_range[1]
-        and (min_temp is None or selected_temp_range[0] <= info['Cell temp mid'] <= selected_temp_range[1])
+        and (info['Cell temp mid'] is None or selected_temp_range[0] <= info['Cell temp mid'] <= selected_temp_range[1])
     ]
 
 ####################################################################################################
@@ -324,6 +323,7 @@ predefined_colors = ['#0000FF', '#FF0000', '#FFA500', '#008000', '#800080', '#A5
 folder_colors = {}
 for i, info in enumerate(filtered_file_info):
     folder_path = info['folder']['path']
+    # Create a unique legend label
     legend_label = f"{info['folder']['model']} {info['folder']['variant']} {info['folder']['model_year']} {info['folder']['battery']} {info['folder']['rear_motor']} {info['folder']['acceleration_mode']}"
     if legend_label not in folder_colors:
         folder_colors[legend_label] = predefined_colors[len(folder_colors) % len(predefined_colors)]
@@ -338,15 +338,24 @@ for i, info in enumerate(filtered_file_info):
     # Filter invalid values
     df = df[(df['SOC'] >= 0) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= 0) & (df['Cell temp mid'] <= 70)]
 
-    # Filter rows where speed is between 1 kph and 200 kph
+    # Filter rows where speed is between 0 kph and 210 kph
     if 'Speed' in df.columns:
         df = df[(df['Speed'] >= 0) & (df['Speed'] <= 210)]
+    else:
+        st.warning(f"'Speed' column not found in {info['path']}. Skipping this file.")
+        continue  # Skip if 'Speed' column is missing
 
     # Ensure speed values are strictly increasing
     df = df[df['Speed'].diff().fillna(1) > 0]
 
     # Drop rows with NaN values in the selected columns to avoid lines connecting back to the start
-    df.dropna(subset=[selected_x_axis] + [col for col_list in columns_to_plot.values() for col in (col_list if isinstance(col_list, list) else [col_list])], inplace=True)
+    required_columns = [selected_x_axis] + [
+        col for col_list in columns_to_plot.values() for col in (col_list if isinstance(col_list, list) else [col_list])
+    ]
+    df.dropna(subset=required_columns, inplace=True)
+
+    # Remove duplicate X values within each label
+    df = df.sort_values(by=selected_x_axis).drop_duplicates(subset=[selected_x_axis])
 
     # Plot selected columns
     for column in selected_columns:
@@ -356,57 +365,82 @@ for i, info in enumerate(filtered_file_info):
                 combined_value = df[y_col[0]] + df[y_col[1]]
                 combined_value = combined_value[combined_value >= 20]  # Filter combined motor power values below 20 kW
                 smoothed_y = combined_value
-                plot_data.append(pd.DataFrame({
+                temp_df = pd.DataFrame({
                     'X': df[selected_x_axis].loc[smoothed_y.index],
                     'Y': smoothed_y,
                     'Label': f"{legend_label} - Combined Motor Power",
                     'Color': folder_colors[legend_label]
-                }))
+                })
+                plot_data.append(temp_df)
             elif column == "Combined Motor Torque [Nm]":
                 combined_value = df[y_col[0]] + df[y_col[1]]
                 smoothed_y = combined_value
-                plot_data.append(pd.DataFrame({
+                temp_df = pd.DataFrame({
                     'X': df[selected_x_axis].loc[smoothed_y.index],
                     'Y': smoothed_y,
                     'Label': f"{legend_label} - Combined Motor Torque",
                     'Color': folder_colors[legend_label]
-                }))
+                })
+                plot_data.append(temp_df)
             else:
                 for sub_col in y_col:
                     smoothed_y = df[sub_col]
-                    plot_data.append(pd.DataFrame({
+                    temp_df = pd.DataFrame({
                         'X': df[selected_x_axis].loc[smoothed_y.index],
                         'Y': smoothed_y,
                         'Label': f"{legend_label} - {sub_col}",
                         'Color': folder_colors[legend_label]
-                    }))
+                    })
+                    plot_data.append(temp_df)
         else:
             smoothed_y = df[y_col]
             if 'Battery power' in y_col:
                 smoothed_y = smoothed_y[smoothed_y >= 40]  # Filter battery power values below 40 kW
-            plot_data.append(pd.DataFrame({
-                'X': df[selected_x_axis].loc[smoothed_y.index],
-                'Y': smoothed_y,
-                'Label': f"{legend_label} - {column}",
-                'Color': folder_colors[legend_label]
-            }))
+                temp_df = pd.DataFrame({
+                    'X': df[selected_x_axis].loc[smoothed_y.index],
+                    'Y': smoothed_y,
+                    'Label': f"{legend_label} - {column}",
+                    'Color': folder_colors[legend_label]
+                })
+                plot_data.append(temp_df)
+            else:
+                temp_df = pd.DataFrame({
+                    'X': df[selected_x_axis].loc[smoothed_y.index],
+                    'Y': smoothed_y,
+                    'Label': f"{legend_label} - {column}",
+                    'Color': folder_colors[legend_label]
+                })
+                plot_data.append(temp_df)
 
 # Convert plot data to a DataFrame
 if plot_data:
     plot_df = pd.concat(plot_data)
 
-    # Filter out rows where 'X' or 'Y' have NaN values to prevent lines from connecting back to the start
-    plot_df.dropna(subset=['X', 'Y'], inplace=True)
+    # Validate the plot_df
+    st.sidebar.write("**Data Validation:**")
+    st.sidebar.write(f"Total data points: {len(plot_df)}")
+    st.sidebar.write(f"Unique Labels: {plot_df['Label'].nunique()}")
+
+    # Further ensure no duplicate X values within each label
+    plot_df = plot_df.sort_values(by=['Label', 'X']).drop_duplicates(subset=['Label', 'X'])
 
     # Create a color map for each label
     unique_labels = plot_df['Label'].unique()
     color_map = {label: folder_colors[label.split(" - ")[0]] for label in unique_labels}
 
-    fig = px.line(plot_df, x='X', y='Y', color='Label', labels={'X': 'Speed [kph]', 'Y': 'Values'}, color_discrete_map=color_map)
+    # Initialize Plotly Figure
+    fig = go.Figure()
 
-    # Apply the colors and make the lines wider
-    for trace in fig.data:
-        trace.update(line=dict(width=3))  # Set base line width
+    # Add traces for each unique label
+    for label in unique_labels:
+        df_label = plot_df[plot_df['Label'] == label].sort_values(by='X')
+        fig.add_trace(go.Scatter(
+            x=df_label['X'],
+            y=df_label['Y'],
+            mode='lines',
+            name=label,
+            line=dict(color=color_map[label], width=3)
+        ))
 
     # Add watermark
     fig.add_annotation(
@@ -421,7 +455,7 @@ if plot_data:
         showarrow=False
     )
 
-    # Move legend inside the chart and remove the "Label, Line Style"
+    # Update layout
     fig.update_layout(
         showlegend=True,
         xaxis_title='Speed [kph]',
@@ -439,13 +473,14 @@ if plot_data:
         )
     )
 
-    # Add dropdown to select colors for each line
+    # Add color pickers for each label
     for label in unique_labels:
         color = st.sidebar.color_picker(f"Pick a color for {label}", color_map[label])
         color_map[label] = color
 
     # Update the color in the plot
-    fig.for_each_trace(lambda trace: trace.update(line_color=color_map.get(trace.name, trace.line.color)))
+    for trace in fig.data:
+        trace.line.color = color_map.get(trace.name, trace.line.color)
 
     # Slider for smoothing
     smoothing_value = st.sidebar.slider("Line Smoothing", min_value=0, max_value=20, value=20)
@@ -453,13 +488,16 @@ if plot_data:
     # Apply smoothing if smoothing_value is greater than 0
     if smoothing_value > 0:
         for label in unique_labels:
-            plot_df.loc[plot_df['Label'] == label, 'Y'] = uniform_filter1d(plot_df.loc[plot_df['Label'] == label, 'Y'], size=smoothing_value)
-    
+            mask = plot_df['Label'] == label
+            plot_df.loc[mask, 'Y'] = uniform_filter1d(plot_df.loc[mask, 'Y'], size=smoothing_value)
+            # Update the trace with smoothed data
+            df_label = plot_df[plot_df['Label'] == label].sort_values(by='X')
+            fig.data[unique_labels.tolist().index(label)].y = df_label['Y']
+
     st.plotly_chart(fig, use_container_width=True)
 
 else:
     st.write("Please select an X-axis and at least one column to plot.")
-
 
 ####################################################################################################
 
