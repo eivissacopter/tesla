@@ -36,13 +36,15 @@ metadata_cache = load_metadata_cache()
 @st.cache_data(ttl=600)
 def scan_and_classify_folders(base_url):
     def parse_directory(url):
-        response = requests.get(url)
-        if response.status_code != 200:
-            st.error(f"Failed to access {url}")
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.content, 'html.parser')
+            dirs = [a['href'] for a in soup.find_all('a', href=True) if a['href'].endswith('/')]
+            return dirs
+        except requests.RequestException as e:
+            st.error(f"Failed to access {url}: {e}")
             return []
-        soup = BeautifulSoup(response.content, 'html.parser')
-        dirs = [a['href'] for a in soup.find_all('a', href=True) if a['href'].endswith('/')]
-        return dirs
 
     def classify_folder(folder_name):
         pattern = re.compile(r"(?P<manufacturer>[^_]+)_"
@@ -81,7 +83,7 @@ classified_folders = scan_and_classify_folders(BASE_URL)
 
 # Check if any classified folders were found
 if not classified_folders:
-    st.error("The directory structure is empty. No options available.")
+    st.error("The directory structure is empty or inaccessible. No options available.")
     st.stop()
 
 # Create dynamic filters based on the classified information
@@ -193,14 +195,21 @@ def fetch_csv_headers_and_first_valid_values(url):
     if url in metadata_cache:
         return metadata_cache[url]['headers'], metadata_cache[url]['SOC'], metadata_cache[url]['Cell temp mid']
 
-    response = requests.get(url)
-    content = response.content.decode('utf-8')
-    df = pd.read_csv(StringIO(content))
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        content = response.content.decode('utf-8')
+        df = pd.read_csv(StringIO(content))
+    except Exception as e:
+        st.warning(f"Failed to read {url}: {e}")
+        metadata_cache[url] = {'headers': [], 'SOC': None, 'Cell temp mid': None}
+        return [], None, None
 
     # Check if the required columns are present
     if 'SOC' not in df.columns or 'Cell temp mid' not in df.columns:
         headers = df.columns.tolist()
         metadata_cache[url] = {'headers': headers, 'SOC': None, 'Cell temp mid': None}
+        st.warning(f"'SOC' or 'Cell temp mid' column not found in {url}. Skipping this file.")
         return headers, None, None
 
     # Fill forward and backward to handle NaN values
@@ -208,11 +217,16 @@ def fetch_csv_headers_and_first_valid_values(url):
     df['Cell temp mid'] = df['Cell temp mid'].ffill().bfill()
 
     # Filter invalid values
-    df = df[(df['SOC'] >= -5) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= -30) & (df['Cell temp mid'] <= 70)]
+    df_filtered = df[(df['SOC'] >= 0) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= 0) & (df['Cell temp mid'] <= 70)]
 
-    # Find the first valid SOC and Temp values
-    soc_value = df['SOC'].iloc[0]
-    cell_temp_mid_value = df['Cell temp mid'].iloc[0]
+    if df_filtered.empty:
+        st.warning(f"No valid SOC and Cell temp mid data in {url}. Skipping this file.")
+        metadata_cache[url] = {'headers': df.columns.tolist(), 'SOC': None, 'Cell temp mid': None}
+        return df.columns.tolist(), None, None
+
+    # Use the first valid SOC and Temp values
+    soc_value = df_filtered['SOC'].iloc[0]
+    cell_temp_mid_value = df_filtered['Cell temp mid'].iloc[0]
 
     headers = df.columns.tolist()
     metadata_cache[url] = {'headers': headers, 'SOC': round(soc_value), 'Cell temp mid': round(cell_temp_mid_value)}
@@ -228,22 +242,31 @@ file_info = []
 # Collect SOC and Cell temp mid values
 if filtered_folders:
     for folder in filtered_folders:
-        response = requests.get(folder['path'])
-        soup = BeautifulSoup(response.content, 'html.parser')
-        files = [a['href'] for a in soup.find_all('a', href=True) if a['href'].endswith('.csv')]
-        for file in files:
-            file_url = urllib.parse.urljoin(folder['path'], file)
-            headers, soc_value, cell_temp_mid_value = fetch_csv_headers_and_first_valid_values(file_url)
-            if 'SOC' not in headers or 'Cell temp mid' not in headers:
-                continue  # Skip the file if it doesn't have the required columns
-            if soc_value is not None and cell_temp_mid_value is not None:
-                # Append file info
-                file_info.append({
-                    'path': file_url,
-                    'SOC': soc_value,
-                    'Cell temp mid': cell_temp_mid_value,
-                    'folder': folder  # Add folder info for legend
-                })
+        try:
+            response = requests.get(folder['path'])
+            response.raise_for_status()
+            soup = BeautifulSoup(response.content, 'html.parser')
+            files = [a['href'] for a in soup.find_all('a', href=True) if a['href'].endswith('.csv')]
+            if not files:
+                st.warning(f"No CSV files found in folder: {folder['model']} {folder['variant']} {folder['model_year']} {folder['battery']} {folder['rear_motor']} {folder['acceleration_mode']}")
+                continue  # Skip if no CSV files are found
+
+            for file in files:
+                file_url = urllib.parse.urljoin(folder['path'], file)
+                headers, soc_value, cell_temp_mid_value = fetch_csv_headers_and_first_valid_values(file_url)
+                if 'SOC' not in headers or 'Cell temp mid' not in headers:
+                    continue  # Skip the file if it doesn't have the required columns
+                if soc_value is not None and cell_temp_mid_value is not None:
+                    # Append file info
+                    file_info.append({
+                        'path': file_url,
+                        'SOC': soc_value,
+                        'Cell temp mid': cell_temp_mid_value,
+                        'folder': folder  # Add folder info for legend
+                    })
+        except requests.RequestException as e:
+            st.error(f"Failed to access folder {folder['path']}: {e}")
+            continue  # Skip this folder on error
 
 # Save metadata cache
 save_metadata_cache(metadata_cache)
@@ -326,6 +349,7 @@ for i, info in enumerate(filtered_file_info):
     # Fetch the CSV data
     try:
         response = requests.get(info['path'])
+        response.raise_for_status()
         content = response.content.decode('utf-8')
         df = pd.read_csv(StringIO(content))
     except Exception as e:
@@ -368,7 +392,7 @@ for i, info in enumerate(filtered_file_info):
                     continue  # Skip if no data after filtering
                 smoothed_y = combined_value
                 temp_df = pd.DataFrame({
-                    'X': df[selected_x_axis].loc[smoothed_y.index],
+                    'X': df[selected_x_axis].loc[combined_value.index],
                     'Y': smoothed_y,
                     'Label': f"{trace_label} - Combined Motor Power"
                 })
@@ -379,7 +403,7 @@ for i, info in enumerate(filtered_file_info):
                 if smoothed_y.empty:
                     continue  # Skip if no data
                 temp_df = pd.DataFrame({
-                    'X': df[selected_x_axis].loc[smoothed_y.index],
+                    'X': df[selected_x_axis].loc[combined_value.index],
                     'Y': smoothed_y,
                     'Label': f"{trace_label} - Combined Motor Torque"
                 })
@@ -405,6 +429,8 @@ for i, info in enumerate(filtered_file_info):
                 'Label': f"{trace_label} - {column}"
             })
             plot_data.append(temp_df)
+
+####################################################################################################
 
 # Convert plot data to a DataFrame
 if plot_data:
@@ -507,7 +533,12 @@ if plot_data:
     st.plotly_chart(fig, use_container_width=True)
 
 else:
-    st.write("Please select an X-axis and at least one column to plot.")
+    if not filtered_folders:
+        st.info("No folders match the selected filters. Please adjust your selections.")
+    elif not file_info:
+        st.info("No CSV files found in the selected folders with valid SOC and Temperature data.")
+    else:
+        st.info("No data available to plot after applying filters. Please adjust your selections.")
 
 ####################################################################################################
 
