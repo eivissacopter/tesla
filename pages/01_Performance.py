@@ -422,7 +422,15 @@ if plot_data:
     unique_labels = plot_df['Label'].unique()
     
     # **Fixing the KeyError: Use full labels when accessing folder_colors**
-    color_map = {label: folder_colors[label] for label in unique_labels}  # Changed from label.split(" - ")[0] to label
+    # Extract the base_label by removing the last ' - ' and the column name
+    color_map = {}
+    for label in unique_labels:
+        try:
+            base_label = label.rsplit(" - ", 1)[0]
+            color_map[label] = folder_colors[base_label]
+        except KeyError:
+            st.error(f"Color not found for label: {label}")
+            color_map[label] = '#000000'  # Default to black or any default color
 
     # Initialize Plotly Figure
     fig = go.Figure()
@@ -490,7 +498,8 @@ if plot_data:
             plot_df.loc[mask, 'Y'] = uniform_filter1d(plot_df.loc[mask, 'Y'], size=smoothing_value)
             # Update the trace with smoothed data
             df_label = plot_df[plot_df['Label'] == label].sort_values(by='X')
-            fig.data[unique_labels.tolist().index(label)].y = df_label['Y']
+            trace_index = list(unique_labels).index(label)
+            fig.data[trace_index].y = df_label['Y']
 
     st.plotly_chart(fig, use_container_width=True)
 
