@@ -380,7 +380,7 @@ for i, info in enumerate(filtered_file_info):
     # Remove duplicate X values within each label
     df = df.sort_values(by=selected_x_axis).drop_duplicates(subset=[selected_x_axis])
 
-    # Plot selected columns without any smoothing or filtering
+    # Plot selected columns with Rolling Mean Smoothing
     for column in selected_columns:
         y_col = columns_to_plot[column]
         if isinstance(y_col, list):
@@ -389,9 +389,12 @@ for i, info in enumerate(filtered_file_info):
                 combined_value = combined_value[combined_value >= 20]  # Filter combined motor power values below 20 kW
                 if combined_value.empty:
                     continue  # Skip if no data after filtering
+                # Apply Rolling Mean Smoothing
+                smoothed_y = combined_value.rolling(window=5, min_periods=1).mean()
+                
                 temp_df = pd.DataFrame({
                     'X': df[selected_x_axis].loc[combined_value.index],
-                    'Y': combined_value,
+                    'Y': smoothed_y,
                     'Label': f"{trace_label} - Combined Motor Power"
                 })
                 plot_data.append(temp_df)
@@ -400,39 +403,50 @@ for i, info in enumerate(filtered_file_info):
                 combined_value = combined_value  # No filtering applied
                 if combined_value.empty:
                     continue  # Skip if no data
+                # Apply Rolling Mean Smoothing
+                smoothed_y = combined_value.rolling(window=5, min_periods=1).mean()
+                
                 temp_df = pd.DataFrame({
                     'X': df[selected_x_axis].loc[combined_value.index],
-                    'Y': combined_value,
+                    'Y': smoothed_y,
                     'Label': f"{trace_label} - Combined Motor Torque"
                 })
                 plot_data.append(temp_df)
             else:
                 for sub_col in y_col:
-                    y_values = df[sub_col].values
+                    y_values = df[sub_col]
+                    # Apply Rolling Mean Smoothing
+                    smoothed_y = y_values.rolling(window=5, min_periods=1).mean()
+                    
                     temp_df = pd.DataFrame({
-                        'X': df[selected_x_axis].loc[df[sub_col].index],
-                        'Y': y_values,
+                        'X': df[selected_x_axis].loc[y_values.index],
+                        'Y': smoothed_y,
                         'Label': f"{trace_label} - {sub_col}"
                     })
                     plot_data.append(temp_df)
         else:
-            y_values = df[y_col].values
             if 'Battery power' in y_col:
                 mask = df[y_col] >= 40  # Create a boolean mask
                 df_selected = df.loc[mask, y_col]  # Filter the DataFrame
                 if df_selected.empty:
                     continue  # Skip if no data after filtering
+                # Apply Rolling Mean Smoothing
+                smoothed_y = df_selected.rolling(window=5, min_periods=1).mean()
+                
                 temp_df = pd.DataFrame({
                     'X': df.loc[mask, selected_x_axis],
-                    'Y': df_selected.values,
+                    'Y': smoothed_y,
                     'Label': f"{trace_label} - {column}"
                 })
                 plot_data.append(temp_df)
             else:
-                df_selected = df[y_col]
+                y_values = df[y_col]
+                # Apply Rolling Mean Smoothing
+                smoothed_y = y_values.rolling(window=5, min_periods=1).mean()
+                
                 temp_df = pd.DataFrame({
                     'X': df[selected_x_axis],
-                    'Y': y_values,
+                    'Y': smoothed_y,
                     'Label': f"{trace_label} - {column}"
                 })
                 plot_data.append(temp_df)
@@ -500,11 +514,11 @@ if plot_data:
         yaxis_title="Values" if len(selected_columns) > 1 else selected_columns[0],
         width=800,  # Adjust width as needed
         height=800,  # Adjust height as needed
-        margin=dict(l=50, r=50, t=50, b=100),  # Increased bottom margin for legend
+        margin=dict(l=50, r=50, t=50, b=150),  # Increased bottom margin for legend
         legend=dict(
             orientation="h",  # Horizontal legend
             yanchor="top",
-            y=-0.2,  # Position the legend below the plot
+            y=-0.3,  # Position the legend below the plot
             xanchor="center",
             x=0.5,
             title=None  # Remove title "Label, Line Style"
