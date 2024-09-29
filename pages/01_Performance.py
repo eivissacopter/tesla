@@ -420,7 +420,9 @@ if plot_data:
 
     # Create a color map for each label
     unique_labels = plot_df['Label'].unique()
-    color_map = {label: folder_colors[label.split(" - ")[0]] for label in unique_labels}
+    
+    # **Fixing the KeyError: Use full labels when accessing folder_colors**
+    color_map = {label: folder_colors[label] for label in unique_labels}  # Changed from label.split(" - ")[0] to label
 
     # Initialize Plotly Figure
     fig = go.Figure()
