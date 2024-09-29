@@ -316,18 +316,24 @@ selected_x_axis = "Speed"
 # Initialize plot data
 plot_data = []
 
-# Predefined list of colors for different cars
+# Predefined list of colors for different folders
 predefined_colors = ['#0000FF', '#FF0000', '#FFA500', '#008000', '#800080', '#A52A2A', '#FFC0CB', '#808080', '#808000', '#00FFFF']
 
-# Prepare plot data with fixed colors for each unique subfolder
-folder_colors = {}
+# Prepare plot data with fixed colors for each unique folder
+folder_color_map = {}
 for i, info in enumerate(filtered_file_info):
-    folder_path = info['folder']['path']
-    # Create a unique legend label by including the file name
-    legend_label = f"{info['folder']['model']} {info['folder']['variant']} {info['folder']['model_year']} {info['folder']['battery']} {info['folder']['rear_motor']} {info['folder']['acceleration_mode']} - {info['name']}"
-    if legend_label not in folder_colors:
-        folder_colors[legend_label] = predefined_colors[len(folder_colors) % len(predefined_colors)]
+    folder = info['folder']
+    # Create a unique base label without the file name
+    base_label = f"{folder['model']} {folder['variant']} {folder['model_year']} {folder['battery']} {folder['rear_motor']} {folder['acceleration_mode']}"
     
+    # Assign a color to the folder if not already assigned
+    if base_label not in folder_color_map:
+        folder_color_map[base_label] = predefined_colors[len(folder_color_map) % len(predefined_colors)]
+    
+    # Construct the trace label using SOC and Temp values
+    trace_label = f"{base_label} - SOC {info['SOC']}% / Temp {info['Cell temp mid']}°C - {columns_to_plot.get('Battery Power [kW]', 'Battery Power')}"
+    
+    # Fetch the CSV data
     response = requests.get(info['path'])
     content = response.content.decode('utf-8')
     df = pd.read_csv(StringIO(content))
@@ -370,7 +376,7 @@ for i, info in enumerate(filtered_file_info):
                 temp_df = pd.DataFrame({
                     'X': df[selected_x_axis].loc[smoothed_y.index],
                     'Y': smoothed_y,
-                    'Label': f"{legend_label} - Combined Motor Power"
+                    'Label': f"{base_label} - SOC {info['SOC']}% / Temp {info['Cell temp mid']}°C - Combined Motor Power"
                 })
                 plot_data.append(temp_df)
             elif column == "Combined Motor Torque [Nm]":
@@ -381,7 +387,7 @@ for i, info in enumerate(filtered_file_info):
                 temp_df = pd.DataFrame({
                     'X': df[selected_x_axis].loc[smoothed_y.index],
                     'Y': smoothed_y,
-                    'Label': f"{legend_label} - Combined Motor Torque"
+                    'Label': f"{base_label} - SOC {info['SOC']}% / Temp {info['Cell temp mid']}°C - Combined Motor Torque"
                 })
                 plot_data.append(temp_df)
             else:
@@ -390,7 +396,7 @@ for i, info in enumerate(filtered_file_info):
                     temp_df = pd.DataFrame({
                         'X': df[selected_x_axis].loc[smoothed_y.index],
                         'Y': smoothed_y,
-                        'Label': f"{legend_label} - {sub_col}"
+                        'Label': f"{base_label} - SOC {info['SOC']}% / Temp {info['Cell temp mid']}°C - {sub_col}"
                     })
                     plot_data.append(temp_df)
         else:
@@ -402,7 +408,7 @@ for i, info in enumerate(filtered_file_info):
             temp_df = pd.DataFrame({
                 'X': df[selected_x_axis].loc[smoothed_y.index],
                 'Y': smoothed_y,
-                'Label': f"{legend_label} - {column}"
+                'Label': f"{base_label} - SOC {info['SOC']}% / Temp {info['Cell temp mid']}°C - {column}"
             })
             plot_data.append(temp_df)
 
@@ -418,16 +424,17 @@ if plot_data:
     # Further ensure no duplicate X values within each label
     plot_df = plot_df.sort_values(by=['Label', 'X']).drop_duplicates(subset=['Label', 'X'])
 
-    # Create a color map for each label
+    # Create a color map for each folder
     unique_labels = plot_df['Label'].unique()
     
-    # **Fixing the KeyError: Use full labels when accessing folder_colors**
-    # Extract the base_label by removing the last ' - ' and the column name
+    # Initialize color_map with folder colors
     color_map = {}
     for label in unique_labels:
         try:
-            base_label = label.rsplit(" - ", 1)[0]
-            color_map[label] = folder_colors[base_label]
+            # Extract base label (excluding SOC, Temp, and column name)
+            # Assuming the base label does not contain ' - SOC '
+            base_label = label.split(' - SOC ')[0]
+            color_map[label] = folder_color_map[base_label]
         except KeyError:
             st.error(f"Color not found for label: {label}")
             color_map[label] = '#000000'  # Default to black or any default color
@@ -479,10 +486,14 @@ if plot_data:
         )
     )
 
-    # Add color pickers for each label
-    for label in unique_labels:
-        color = st.sidebar.color_picker(f"Pick a color for {label}", color_map[label])
-        color_map[label] = color
+    # Add color pickers for each folder
+    for base_label, color in folder_color_map.items():
+        new_color = st.sidebar.color_picker(f"Pick a color for {base_label}", color)
+        folder_color_map[base_label] = new_color
+        # Update color_map with new_color
+        for label in unique_labels:
+            if label.startswith(base_label):
+                color_map[label] = new_color
 
     # Update the color in the plot
     for trace in fig.data:
