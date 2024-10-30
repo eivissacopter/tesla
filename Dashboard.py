@@ -343,7 +343,7 @@ if add_trend_line:
     )
 
 # Add the "Hide Replaced Packs" checkbox below the "Trend Line" checkbox
-hide_replaced_packs = st.sidebar.checkbox("Hide Replaced Packs", value=True)
+hide_replaced_packs = st.sidebar.checkbox(":star: Hide Replaced Packs", value=True)
 
 # Add checkboxes for additional filters as a vertical switch
 filter_option = st.sidebar.radio(
