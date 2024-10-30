@@ -103,14 +103,20 @@ def fetch_data(username_filter=None):
     # Convert data to DataFrame
     df = pd.DataFrame(filtered_data[1:], columns=unique_header)
 
+    # Clean up 'Battery Pack' column
+    if 'Battery Pack' in df.columns:
+        df['Battery Pack'] = df['Battery Pack'].str.strip().str.lower()
+
     # Handle 'Age' column conversion
     df['Age'] = df['Age'].str.replace(" Months", "").str.replace(",", ".").replace('', np.nan).astype(float)
 
     # Clean up the 'Odometer' column to ensure it is numeric
     df['Odometer'] = df['Odometer'].str.replace(',', '').str.extract('(\d+)').astype(float)
     
-    # Replace all commas with dots in all columns
-    df = df.apply(lambda x: x.str.replace(',', '.') if x.dtype == "object" else x)
+    # Replace all commas with dots in all columns except 'Battery Pack'
+    columns_to_replace = df.select_dtypes(include='object').columns.tolist()
+    columns_to_replace = [col for col in columns_to_replace if col != 'Battery Pack']
+    df[columns_to_replace] = df[columns_to_replace].apply(lambda x: x.str.replace(',', '.'))
 
     # Add negative sign to specific columns if they exist
     columns_to_negate = ['Degradation']
@@ -234,7 +240,7 @@ df = fetch_data(username_filter=username)
 # Get the latest row from the filtered DataFrame
 latest_row = df.iloc[-3:][::-1]
 
-# Display the latest row at the top
+# Display the latest entries at the top
 st.markdown(
     """
     <div>
@@ -342,7 +348,7 @@ if add_trend_line:
         ['Linear Regression', 'Logarithmic Regression', 'Polynomial Regression (3rd Degree)']
     )
 
-# **Add the "Hide Replaced Packs" checkbox below the "Trend Line" checkbox**
+# Add the "Hide Replaced Packs" checkbox below the "Trend Line" checkbox
 hide_replaced_packs = st.sidebar.checkbox("Hide Replaced Packs", value=True)
 
 # Add checkboxes for additional filters as a vertical switch
@@ -372,9 +378,9 @@ elif filter_option == "AC/DC Ratio":
         (st.session_state.filtered_df["DC Ratio"].astype(float) <= dc_ratio_max)
     ]
 
-# **Apply the "Hide Replaced Packs" filter**
+# Apply the "Hide Replaced Packs" filter
 if hide_replaced_packs and 'Battery Pack' in st.session_state.filtered_df.columns:
-    st.session_state.filtered_df = st.session_state.filtered_df[st.session_state.filtered_df['Battery Pack'] != 'Replaced']
+    st.session_state.filtered_df = st.session_state.filtered_df[st.session_state.filtered_df['Battery Pack'] != 'replaced']
 
 # Filter the data based on the user-selected criteria
 st.session_state.filtered_df = st.session_state.filtered_df[(st.session_state.filtered_df["Age"] >= min_age) & (st.session_state.filtered_df["Age"] <= max_age)]
@@ -454,9 +460,9 @@ filtered_df = filtered_df.sort_values(by=x_column)
 
 ##################################################
 
-# **Create 'Marker Symbol' column based on 'Battery Pack'**
+# Create 'Marker Symbol' column based on 'Battery Pack'
 if 'Battery Pack' in filtered_df.columns:
-    filtered_df['Marker Symbol'] = filtered_df['Battery Pack'].apply(lambda x: 'star' if x == 'Replaced' else 'circle')
+    filtered_df['Marker Symbol'] = filtered_df['Battery Pack'].fillna('').apply(lambda x: 'star' if x == 'replaced' else 'circle')
 else:
     filtered_df['Marker Symbol'] = 'circle'  # Default to circle if 'Battery Pack' is missing
 
