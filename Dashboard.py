@@ -69,7 +69,7 @@ def fetch_data(username_filter=None):
     stop_index = None
     for i, col in enumerate(header):
         col = col.strip()
-        if col and not col.startswith('_') and col not in ['B', 'G', 'H', 'I', 'J', 'O', 'P', 'W', 'X', 'Y', 'AB']:
+        if col and not col.startswith('_') and col not in ['B', 'G', 'H', 'I', 'J', 'O', 'P', 'W', 'X', 'Y']:
             filtered_header.append(col)
             keep_indices.append(i)
         if col == "DC Ratio":
@@ -342,6 +342,9 @@ if add_trend_line:
         ['Linear Regression', 'Logarithmic Regression', 'Polynomial Regression (3rd Degree)']
     )
 
+# **Add the "Hide Replaced Packs" checkbox below the "Trend Line" checkbox**
+hide_replaced_packs = st.sidebar.checkbox("Hide Replaced Packs", value=True)
+
 # Add checkboxes for additional filters as a vertical switch
 filter_option = st.sidebar.radio(
     "Nerdy Options",
@@ -369,15 +372,19 @@ elif filter_option == "AC/DC Ratio":
         (st.session_state.filtered_df["DC Ratio"].astype(float) <= dc_ratio_max)
     ]
 
+# **Apply the "Hide Replaced Packs" filter**
+if hide_replaced_packs and 'Battery Pack' in st.session_state.filtered_df.columns:
+    st.session_state.filtered_df = st.session_state.filtered_df[st.session_state.filtered_df['Battery Pack'] != 'Replaced']
+
 # Filter the data based on the user-selected criteria
 st.session_state.filtered_df = st.session_state.filtered_df[(st.session_state.filtered_df["Age"] >= min_age) & (st.session_state.filtered_df["Age"] <= max_age)]
 st.session_state.filtered_df = st.session_state.filtered_df[(st.session_state.filtered_df["Odometer"] >= min_odo) & (st.session_state.filtered_df["Odometer"] <= max_odo)]
 
 # Add a refresh button and reset button in the sidebar
 refresh, reset = st.sidebar.columns(2)
-if refresh.button("Refresh Data", key="refresh_data"):
+if refresh.button("Clear Cache", key="clear_cache_refresh"):
     st.cache_data.clear()  # Clear the cache
-    st.experimental_rerun()  # Rerun the app to refresh with new data
+    st.success("Cache cleared! Please rerun the app.")
 
 # Show number of rows in filtered data
 st.sidebar.write(f"Filtered Data Rows: {st.session_state.filtered_df.shape[0]}")
@@ -415,10 +422,10 @@ st.sidebar.markdown(
         }
     </style>
     <div class="sidebar-content">
-        <a href="https://tff-forum.de/t/wiki-akkuwiki-model-3-model-y-cybertruck/107641?u=eivissa" target="_blank">
+        <a href="https://www.tesla.com/de_de/referral/julien95870" target="_blank">
             <div>
-                <img src="https://i.ibb.co/vBvVFTg/TFF-Logo-ohne-Schrift-removebg-preview.png" class="akku-wiki" alt="Akku Wiki">
-                <div class="text">Akku Wiki</div>
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Tesla_T_symbol.svg/482px-Tesla_T_symbol.svg.png" class="akku-wiki" alt="Akku Wiki">
+                <div class="text">Referral</div>
             </div>
         </a>
         <a href="https://buymeacoffee.com/eivissa" target="_blank">
@@ -434,6 +441,8 @@ st.sidebar.markdown(
 
 ####################################################################################################################
 
+from sklearn.linear_model import LinearRegression
+
 # Ensure the 'Cycles' column is numeric
 st.session_state.filtered_df[x_column] = pd.to_numeric(st.session_state.filtered_df[x_column], errors='coerce')
 
@@ -444,6 +453,12 @@ filtered_df = st.session_state.filtered_df[(st.session_state.filtered_df[x_colum
 filtered_df = filtered_df.sort_values(by=x_column)
 
 ##################################################
+
+# **Create 'Marker Symbol' column based on 'Battery Pack'**
+if 'Battery Pack' in filtered_df.columns:
+    filtered_df['Marker Symbol'] = filtered_df['Battery Pack'].apply(lambda x: 'star' if x == 'Replaced' else 'circle')
+else:
+    filtered_df['Marker Symbol'] = 'circle'  # Default to circle if 'Battery Pack' is missing
 
 # Define color map for colorbar and invert it
 color_map = "RdBu_r"
@@ -529,12 +544,15 @@ if color_column:
     fig = px.scatter(
         filtered_df, x=x_column, y=y_column, color=color_column, color_continuous_scale=color_map,
         labels={x_column: x_label, y_column: y_label, color_column: color_column},
+        symbol='Marker Symbol',
+        symbol_sequence=['circle', 'star']
     )
 else:
     fig = px.scatter(
-        filtered_df, x=x_column, y=y_column, color='Battery',
+        filtered_df, x=x_column, y=y_column, color='Battery', symbol='Marker Symbol',
         labels={x_column: x_label, y_column: y_label},
         color_discrete_sequence=color_sequence,
+        symbol_sequence=['circle', 'star']
     )
 
 # Add battery traces to ensure they appear first in the legend
