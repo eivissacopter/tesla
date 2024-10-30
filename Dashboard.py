@@ -62,50 +62,43 @@ def fetch_data(username_filter=None):
     # Check if 'Username' is in the header
     if 'Username' not in header:
         st.error("The 'Username' column is missing from the Google Sheets data.")
-        return pd.DataFrame()  # Return an empty DataFrame to avoid further errors
+        return pd.DataFrame(), None  # Return an empty DataFrame to avoid further errors
 
-    filtered_header = []
-    keep_indices = []
-    stop_index = None
-    for i, col in enumerate(header):
-        col = col.strip()
-        if col and not col.startswith('_') and col not in ['B', 'G', 'H', 'I', 'J', 'O', 'P', 'W', 'X', 'Y']:
-            filtered_header.append(col)
-            keep_indices.append(i)
-        if col == "DC Ratio":
-            stop_index = i
-            break
-    if stop_index is not None:
-        keep_indices = keep_indices[:stop_index + 1]
+    # Columns to exclude
+    exclude_columns = ['B', 'G', 'H', 'I', 'J', 'O', 'P', 'W', 'X', 'Y']
 
-    # Add 'Username' to filtered_header and keep_indices
-    filtered_header.append('Username')
-    keep_indices.append(header.index('Username'))
+    # Include all columns except the excluded ones
+    filtered_header = [col for col in header if col and not col.startswith('_') and col not in exclude_columns]
+
+    # Get indices of the filtered columns
+    keep_indices = [header.index(col) for col in filtered_header if col in header]
 
     # Filter the data based on the kept indices
     filtered_data = [[row[i] for i in keep_indices] for row in data]
 
     # Fix duplicate headers
     unique_header = []
+    duplicate_counts = {}
     for col in filtered_header:
         col = col.strip()  # Trim whitespace
         if col not in unique_header:
             unique_header.append(col)
+            duplicate_counts[col] = 1
         else:
             # Add a suffix to make the header unique
-            suffix = 1
-            new_col = f"{col}_{suffix}"
-            while new_col in unique_header:
-                suffix += 1
-                new_col = f"{col}_{suffix}"
+            duplicate_counts[col] += 1
+            new_col = f"{col}_{duplicate_counts[col]}"
             unique_header.append(new_col)
 
     # Convert data to DataFrame
     df = pd.DataFrame(filtered_data[1:], columns=unique_header)
 
-    # Clean up 'Battery Pack' column
-    if 'Battery Pack' in df.columns:
-        df['Battery Pack'] = df['Battery Pack'].str.strip().str.lower()
+    # Identify the 'Battery Pack' column
+    battery_pack_cols = [col for col in df.columns if col.startswith('Battery Pack')]
+    if battery_pack_cols:
+        battery_pack_col = battery_pack_cols[0]  # Use the first match
+    else:
+        battery_pack_col = None  # Handle missing column
 
     # Handle 'Age' column conversion
     df['Age'] = df['Age'].str.replace(" Months", "").str.replace(",", ".").replace('', np.nan).astype(float)
@@ -115,7 +108,8 @@ def fetch_data(username_filter=None):
     
     # Replace all commas with dots in all columns except 'Battery Pack'
     columns_to_replace = df.select_dtypes(include='object').columns.tolist()
-    columns_to_replace = [col for col in columns_to_replace if col != 'Battery Pack']
+    if battery_pack_col and battery_pack_col in columns_to_replace:
+        columns_to_replace.remove(battery_pack_col)
     df[columns_to_replace] = df[columns_to_replace].apply(lambda x: x.str.replace(',', '.'))
 
     # Add negative sign to specific columns if they exist
@@ -144,7 +138,7 @@ def fetch_data(username_filter=None):
     if username_filter:
         df = df[df["Username"].str.contains(username_filter, case=False, na=False)]
 
-    return df
+    return df, battery_pack_col  # Return the DataFrame and the 'Battery Pack' column name
 
 # Add the main header picture with emojis
 st.markdown(
@@ -235,7 +229,7 @@ st.markdown(
 username = st.text_input("Search by Username:", key="username")
 
 # Fetch the data
-df = fetch_data(username_filter=username)
+df, battery_pack_col = fetch_data(username_filter=username)
 
 # Get the latest row from the filtered DataFrame
 latest_row = df.iloc[-3:][::-1]
@@ -379,16 +373,16 @@ elif filter_option == "AC/DC Ratio":
     ]
 
 # Apply the "Hide Replaced Packs" filter
-if hide_replaced_packs and 'Battery Pack' in st.session_state.filtered_df.columns:
-    st.session_state.filtered_df = st.session_state.filtered_df[st.session_state.filtered_df['Battery Pack'] != 'replaced']
+if hide_replaced_packs and battery_pack_col and battery_pack_col in st.session_state.filtered_df.columns:
+    st.session_state.filtered_df = st.session_state.filtered_df[st.session_state.filtered_df[battery_pack_col] != 'Replaced']
 
 # Filter the data based on the user-selected criteria
 st.session_state.filtered_df = st.session_state.filtered_df[(st.session_state.filtered_df["Age"] >= min_age) & (st.session_state.filtered_df["Age"] <= max_age)]
 st.session_state.filtered_df = st.session_state.filtered_df[(st.session_state.filtered_df["Odometer"] >= min_odo) & (st.session_state.filtered_df["Odometer"] <= max_odo)]
 
-# Add a refresh button and reset button in the sidebar
-refresh, reset = st.sidebar.columns(2)
-if refresh.button("Clear Cache", key="clear_cache_refresh"):
+# Add a refresh button in the sidebar
+refresh = st.sidebar.button("Clear Cache", key="clear_cache_refresh")
+if refresh:
     st.cache_data.clear()  # Clear the cache
     st.success("Cache cleared! Please rerun the app.")
 
@@ -461,8 +455,10 @@ filtered_df = filtered_df.sort_values(by=x_column)
 ##################################################
 
 # Create 'Marker Symbol' column based on 'Battery Pack'
-if 'Battery Pack' in filtered_df.columns:
-    filtered_df['Marker Symbol'] = filtered_df['Battery Pack'].fillna('').apply(lambda x: 'star' if x == 'replaced' else 'circle')
+if battery_pack_col and battery_pack_col in filtered_df.columns:
+    filtered_df['Marker Symbol'] = filtered_df[battery_pack_col].fillna('Original').apply(
+        lambda x: 'star' if x.strip() == 'Replaced' else 'circle'
+    )
 else:
     filtered_df['Marker Symbol'] = 'circle'  # Default to circle if 'Battery Pack' is missing
 
@@ -551,14 +547,14 @@ if color_column:
         filtered_df, x=x_column, y=y_column, color=color_column, color_continuous_scale=color_map,
         labels={x_column: x_label, y_column: y_label, color_column: color_column},
         symbol='Marker Symbol',
-        symbol_sequence=['circle', 'star']
+        symbol_map={'circle': 'circle', 'star': 'star'}
     )
 else:
     fig = px.scatter(
         filtered_df, x=x_column, y=y_column, color='Battery', symbol='Marker Symbol',
         labels={x_column: x_label, y_column: y_label},
         color_discrete_sequence=color_sequence,
-        symbol_sequence=['circle', 'star']
+        symbol_map={'circle': 'circle', 'star': 'star'}
     )
 
 # Add battery traces to ensure they appear first in the legend
