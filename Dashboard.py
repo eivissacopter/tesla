@@ -473,46 +473,6 @@ if len(battery) == 1 and filter_option != "Off":
     elif filter_option == "AC/DC Ratio":
         color_column = "DC Ratio"
 
-####################################################################################
-
-# Create the scatter plot using go.Figure
-fig = go.Figure()
-
-# Create a mapping from 'Battery' to color
-battery_colors = dict(zip(filtered_df['Battery'].unique(), color_sequence))
-
-# Ensure the selected color column is numeric
-if color_column:
-    filtered_df[color_column] = pd.to_numeric(filtered_df[color_column], errors='coerce')
-
-# Add traces to the figure
-for battery in filtered_df['Battery'].unique():
-    battery_df = filtered_df[filtered_df['Battery'] == battery]
-    if color_column:
-        colors = battery_df[color_column]
-    else:
-        colors = [battery_colors[battery]] * len(battery_df)
-    marker_symbols = battery_df['Marker Symbol'].map({'circle': 'circle', 'star': 'star'}).tolist()
-    sizes = [12 if symbol == 'star' else 8 for symbol in marker_symbols]
-    line_widths = [2 if symbol == 'star' else 0 for symbol in marker_symbols]
-    fig.add_trace(go.Scatter(
-        x=battery_df[x_column],
-        y=battery_df[y_column],
-        mode='markers',
-        name=battery,
-        marker=dict(
-            color=colors,
-            symbol=marker_symbols,
-            size=sizes,
-            line=dict(width=line_widths, color='black')
-        ),
-        showlegend=True
-    ))
-
-# If color_column is set, update the colorbar
-if color_column:
-    fig.update_traces(marker=dict(colorbar=dict(title=color_column), colorscale=color_map), selector=dict(marker_symbol='circle'))
-
 # Add trend line if selected
 def add_trend_lines(fig, batteries, filtered_df, x_column, y_column, trend_line_type):
     for battery_type in batteries:
@@ -540,10 +500,16 @@ def add_trend_lines(fig, batteries, filtered_df, x_column, y_column, trend_line_
             x_range_poly = poly.transform(x_range)
             y_pred = poly_reg.predict(x_range_poly)
         
+        # Extract the color of the battery type from the scatter plot
+        battery_color = next(
+            (trace.marker.color for trace in fig.data if trace.name == battery_type),
+            None
+        )
+        
         # Add the trendline trace
         trend_trace = go.Scatter(
             x=x_range.flatten(), y=y_pred.flatten(), mode='lines', name=f"{battery_type} Trendline",
-            line=dict(color=battery_colors[battery_type])
+            line=dict(color=battery_color)
         )
         fig.add_trace(trend_trace)
     return fig
@@ -571,6 +537,65 @@ battery_retention_smooth = np.insert(battery_retention_smooth, 0, battery_retent
 
 ####################################################################################
 
+# Ensure the selected color column is numeric
+if color_column:
+    filtered_df[color_column] = pd.to_numeric(filtered_df[color_column], errors='coerce')
+
+# Create the scatter plot
+if color_column:
+    fig = px.scatter(
+        filtered_df, x=x_column, y=y_column, color=color_column, color_continuous_scale=color_map,
+        labels={x_column: x_label, y_column: y_label, color_column: color_column},
+        symbol='Marker Symbol',
+        symbol_map={'circle': 'circle', 'star': 'star'}
+    )
+else:
+    fig = px.scatter(
+        filtered_df, x=x_column, y=y_column, color='Battery', symbol='Marker Symbol',
+        labels={x_column: x_label, y_column: y_label},
+        color_discrete_sequence=color_sequence,
+        symbol_map={'circle': 'circle', 'star': 'star'}
+    )
+
+# Customize the appearance of 'star' symbols for better visibility
+for trace in fig.data:
+    if 'star' in str(trace.marker.symbol):
+        trace.marker.size = 12  # Increase size for stars
+        trace.marker.line.width = 2  # Add an outline
+        trace.marker.line.color = 'black'  # Outline color for contrast
+
+# Remove 'circle' and 'star' symbols from the legend
+fig.for_each_trace(
+    lambda trace: trace.update(showlegend=False) if trace.name in ['circle', 'star'] else ()
+)
+
+# Ensure the legend shows only battery names
+fig.update_layout(
+    showlegend=True,
+    legend=dict(
+        orientation="h",
+        yanchor="bottom",
+        y=1.02,
+        xanchor="left",
+        x=0
+    )
+)
+
+# Add battery traces to ensure they appear in the legend
+if 'Battery' in filtered_df.columns:
+    batteries = filtered_df['Battery'].unique()
+    for battery_type in batteries:
+        battery_color = next(
+            (trace.marker.color for trace in fig.data if trace.name == battery_type),
+            None
+        )
+        if not any(trace.name == battery_type for trace in fig.data):
+            battery_trace = go.Scatter(
+                x=[None], y=[None], mode='markers', marker=dict(color=battery_color),
+                showlegend=True, name=battery_type
+            )
+            fig.add_trace(battery_trace)
+
 # Add trend line if selected
 if add_trend_line:
     batteries = filtered_df['Battery'].unique()
@@ -583,24 +608,6 @@ if x_axis_data == 'Odometer' and y_axis_data == 'Degradation':
         mode='lines', name='Tesla Battery Retention',
         line=dict(color='rgba(0, 0, 255, 0.6)', width=8)  # Adjust the color to be semi-transparent
     ))
-
-# Set axis labels
-fig.update_layout(
-    xaxis_title=x_label,
-    yaxis_title=y_label
-)
-
-# Ensure the legend always appears
-fig.update_layout(
-    showlegend=True,
-    legend=dict(
-        orientation="h",
-        yanchor="bottom",
-        y=1.02,
-        xanchor="left",
-        x=0
-    )
-)
 
 # Add watermark to the plot
 fig.add_annotation(
