@@ -257,37 +257,47 @@ if filtered_folders:
                     'name': short_name,
                     'folder': folder  # Add folder info for legend
                 })
+else:
+    st.warning("No folders found matching the selected criteria.")
+    st.stop()
 
 # Save metadata cache
 save_metadata_cache(metadata_cache)
 
+if not file_info:
+    st.warning("No data files found after applying the filters.")
+    st.stop()
+
 ####################################################################################################
 
 # Sidebar sliders for SOC and Cell temp mid
-if file_info:
-    min_soc = min(info['SOC'] for info in file_info)
-    max_soc = max(info['SOC'] for info in file_info)
-    min_temp = min(info['Cell temp mid'] for info in file_info if info['Cell temp mid'] is not None)
-    max_temp = max(info['Cell temp mid'] for info in file_info if info['Cell temp mid'] is not None)
+min_soc = min(info['SOC'] for info in file_info)
+max_soc = max(info['SOC'] for info in file_info)
+min_temp = min(info['Cell temp mid'] for info in file_info if info['Cell temp mid'] is not None)
+max_temp = max(info['Cell temp mid'] for info in file_info if info['Cell temp mid'] is not None)
 
-    if min_soc == max_soc:
-        st.sidebar.write(f"Only one SOC value available: {min_soc}")
-        selected_soc_range = (min_soc, max_soc)
-    else:
-        selected_soc_range = st.sidebar.slider("State Of Charge [%]", min_soc, max_soc, (95, 100))
+if min_soc == max_soc:
+    st.sidebar.write(f"Only one SOC value available: {min_soc}")
+    selected_soc_range = (min_soc, max_soc)
+else:
+    selected_soc_range = st.sidebar.slider("State Of Charge [%]", min_soc, max_soc, (95, 100))
 
-    if min_temp == max_temp:
-        st.sidebar.write(f"Only one Cell Temp value available: {min_temp}")
-        selected_temp_range = (min_temp, max_temp)
-    else:
-        selected_temp_range = st.sidebar.slider("Battery Temperature [°C]", min_temp, max_temp, (min_temp, max_temp))
+if min_temp == max_temp:
+    st.sidebar.write(f"Only one Cell Temp value available: {min_temp}")
+    selected_temp_range = (min_temp, max_temp)
+else:
+    selected_temp_range = st.sidebar.slider("Battery Temperature [°C]", min_temp, max_temp, (min_temp, max_temp))
 
-    # Filter files based on selected ranges
-    filtered_file_info = [
-        info for info in file_info
-        if selected_soc_range[0] <= info['SOC'] <= selected_soc_range[1]
-        and (min_temp is None or selected_temp_range[0] <= info['Cell temp mid'] <= selected_temp_range[1])
-    ]
+# Filter files based on selected ranges
+filtered_file_info = [
+    info for info in file_info
+    if selected_soc_range[0] <= info['SOC'] <= selected_soc_range[1]
+    and (min_temp is None or selected_temp_range[0] <= info['Cell temp mid'] <= selected_temp_range[1])
+]
+
+if not filtered_file_info:
+    st.warning("No data files match the selected SOC and temperature ranges.")
+    st.stop()
 
 ####################################################################################################
 
@@ -305,6 +315,10 @@ selected_columns = []
 for label in columns_to_plot.keys():
     if st.sidebar.checkbox(label, key=f"y_{label}"):
         selected_columns.append(label)
+
+if not selected_columns:
+    st.warning("Please select at least one column to plot.")
+    st.stop()
 
 # X-Axis selection
 selected_x_axis = "Speed"
@@ -335,7 +349,7 @@ for i, info in enumerate(filtered_file_info):
     # Filter invalid values
     df = df[(df['SOC'] >= 0) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= 0) & (df['Cell temp mid'] <= 70)]
 
-    # Filter rows where speed is between 1 kph and 200 kph
+    # Filter rows where speed is between 0 kph and 210 kph
     if 'Speed' in df.columns:
         df = df[(df['Speed'] >= 0) & (df['Speed'] <= 210)]
 
@@ -369,38 +383,31 @@ for i, info in enumerate(filtered_file_info):
     for column in selected_columns:
         y_cols = columns_to_plot[column]
 
-        # Check if y_cols are present in df.columns
         if isinstance(y_cols, list):
+            # For columns that involve multiple sub-columns
+            available_cols = [col for col in y_cols if col in df.columns]
             missing_cols = [col for col in y_cols if col not in df.columns]
-        else:
-            missing_cols = [y_cols] if y_cols not in df.columns else []
 
-        if missing_cols:
-            st.warning(f"Columns {missing_cols} not found in data for {info['name']}. Skipping.")
-            continue  # Skip to the next column
-
-        if isinstance(y_cols, list):
-            if column == "Combined Motor Power [kW]":
-                combined_value = df[y_cols[0]] + df[y_cols[1]]
-                combined_value = combined_value[combined_value >= 20]  # Filter combined motor power values below 20 kW
+            if column in ["Combined Motor Power [kW]", "Combined Motor Torque [Nm]"]:
+                if not available_cols:
+                    st.warning(f"No motor data available for {column} in file {info['name']}. Skipping.")
+                    continue
+                combined_value = df[available_cols].sum(axis=1, skipna=True)
+                # Apply filters if needed
+                if column == "Combined Motor Power [kW]":
+                    combined_value = combined_value[combined_value >= 20]  # Filter combined motor power values below 20 kW
                 smoothed_y = combined_value
                 plot_data.append(pd.DataFrame({
                     'X': df[selected_x_axis].loc[smoothed_y.index],
                     'Y': smoothed_y,
-                    'Label': f"{legend_label} - Combined Motor Power",
+                    'Label': f"{legend_label} - Combined Motor {'Power' if 'Power' in column else 'Torque'}",
                     'Color': folder_colors[legend_label]
                 }))
-            elif column == "Combined Motor Torque [Nm]":
-                combined_value = df[y_cols[0]] + df[y_cols[1]]
-                smoothed_y = combined_value
-                plot_data.append(pd.DataFrame({
-                    'X': df[selected_x_axis].loc[smoothed_y.index],
-                    'Y': smoothed_y,
-                    'Label': f"{legend_label} - Combined Motor Torque",
-                    'Color': folder_colors[legend_label]
-                }))
+                if missing_cols:
+                    st.info(f"Columns {missing_cols} not found. Summing available motor data for {info['name']}.")
             else:
-                for sub_col in y_cols:
+                # For individual motor power or torque
+                for sub_col in available_cols:
                     smoothed_y = df[sub_col]
                     plot_data.append(pd.DataFrame({
                         'X': df[selected_x_axis].loc[smoothed_y.index],
@@ -408,7 +415,13 @@ for i, info in enumerate(filtered_file_info):
                         'Label': f"{legend_label} - {sub_col}",
                         'Color': folder_colors[legend_label]
                     }))
+                if missing_cols:
+                    st.info(f"Columns {missing_cols} not found in data for {info['name']}. Skipping those.")
         else:
+            # For single-column entries
+            if y_cols not in df.columns:
+                st.warning(f"Column {y_cols} not found in data for {info['name']}. Skipping.")
+                continue
             smoothed_y = df[y_cols]
             if 'Battery power' in y_cols:
                 smoothed_y = smoothed_y[smoothed_y >= 40]  # Filter battery power values below 40 kW
@@ -436,7 +449,10 @@ if plot_data:
     # Apply smoothing if smoothing_value is greater than 0
     if smoothing_value > 0:
         for label in unique_labels:
-            plot_df.loc[plot_df['Label'] == label, 'Y'] = uniform_filter1d(plot_df.loc[plot_df['Label'] == label, 'Y'], size=smoothing_value)
+            y_values = plot_df.loc[plot_df['Label'] == label, 'Y'].values
+            if len(y_values) >= smoothing_value:
+                smoothed_values = uniform_filter1d(y_values, size=smoothing_value)
+                plot_df.loc[plot_df['Label'] == label, 'Y'] = smoothed_values
 
     fig = px.line(plot_df, x='X', y='Y', color='Label', labels={'X': 'Speed [kph]', 'Y': 'Values'}, color_discrete_map=color_map)
 
@@ -486,7 +502,7 @@ if plot_data:
     st.plotly_chart(fig, use_container_width=True)
 
 else:
-    st.write("Please select an X-axis and at least one column to plot.")
+    st.write("No data available to plot with the selected options.")
 
 ####################################################################################################
 
