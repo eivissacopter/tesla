@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 import requests
 from bs4 import BeautifulSoup
 from io import StringIO
@@ -9,8 +8,6 @@ import urllib.parse
 import json
 import os
 import re
-from matplotlib import colors as mcolors
-import matplotlib.pyplot as plt
 from scipy.ndimage import uniform_filter1d
 
 ###################################################################################################
@@ -201,24 +198,24 @@ def fetch_csv_headers_and_first_valid_values(url):
     # Use cached metadata if available
     if url in metadata_cache:
         return metadata_cache[url]['headers'], metadata_cache[url]['SOC'], metadata_cache[url]['Cell temp mid']
-    
+
     response = requests.get(url)
     content = response.content.decode('utf-8')
     df = pd.read_csv(StringIO(content))
-    
+
     # Check if the required columns are present
     if 'SOC' not in df.columns or 'Cell temp mid' not in df.columns:
         headers = df.columns.tolist()
         metadata_cache[url] = {'headers': headers, 'SOC': None, 'Cell temp mid': None}
         return headers, None, None
-    
+
     # Scan entire DataFrame until valid values are found
     df['SOC'] = df['SOC'].ffill().bfill()
     df['Cell temp mid'] = df['Cell temp mid'].ffill().bfill()
-    
+
     # Filter invalid values
     df = df[(df['SOC'] >= -5) & (df['SOC'] <= 101) & (df['Cell temp mid'] >= -30) & (df['Cell temp mid'] <= 70)]
-    
+
     # Find the first valid values
     for index, row in df.iterrows():
         soc_value = row['SOC']
@@ -227,7 +224,7 @@ def fetch_csv_headers_and_first_valid_values(url):
             headers = df.columns.tolist()
             metadata_cache[url] = {'headers': headers, 'SOC': round(soc_value), 'Cell temp mid': round(cell_temp_mid_value)}
             return headers, round(soc_value), round(cell_temp_mid_value)
-    
+
     headers = df.columns.tolist()
     metadata_cache[url] = {'headers': headers, 'SOC': None, 'Cell temp mid': None}
     return headers, None, None
@@ -327,7 +324,7 @@ for i, info in enumerate(filtered_file_info):
     legend_label = f"{info['folder']['model']} {info['folder']['variant']} {info['folder']['model_year']} {info['folder']['battery']} {info['folder']['rear_motor']} {info['folder']['acceleration_mode']}"
     if legend_label not in folder_colors:
         folder_colors[legend_label] = predefined_colors[len(folder_colors) % len(predefined_colors)]
-    
+
     response = requests.get(info['path'])
     content = response.content.decode('utf-8')
     df = pd.read_csv(StringIO(content))
@@ -345,15 +342,46 @@ for i, info in enumerate(filtered_file_info):
     # Ensure speed values are strictly increasing
     df = df[df['Speed'].diff().fillna(1) > 0]
 
-    # Drop rows with NaN values in the selected columns to avoid lines connecting back to the start
-    df.dropna(subset=[selected_x_axis] + [col for col_list in columns_to_plot.values() for col in (col_list if isinstance(col_list, list) else [col_list])], inplace=True)
+    # Collect subset columns for dropna
+    subset_columns = [selected_x_axis]
+
+    # Collect columns based on user selection and their existence in df.columns
+    for column in selected_columns:
+        y_cols = columns_to_plot[column]
+        if isinstance(y_cols, list):
+            subset_columns.extend(y_cols)
+        else:
+            subset_columns.append(y_cols)
+
+    # Filter subset_columns to include only those present in df.columns
+    subset_columns = [col for col in subset_columns if col in df.columns]
+
+    # Check if subset_columns is not empty
+    if subset_columns:
+        # Drop rows with NaN in the required columns
+        df.dropna(subset=subset_columns, inplace=True)
+    else:
+        # Handle the case where none of the selected columns are present
+        st.warning(f"No valid columns found in the data for selected options in file {info['name']}. Skipping this file.")
+        continue  # Skip to the next file
 
     # Plot selected columns
     for column in selected_columns:
-        y_col = columns_to_plot[column]
-        if isinstance(y_col, list):
+        y_cols = columns_to_plot[column]
+
+        # Check if y_cols are present in df.columns
+        if isinstance(y_cols, list):
+            missing_cols = [col for col in y_cols if col not in df.columns]
+        else:
+            missing_cols = [y_cols] if y_cols not in df.columns else []
+
+        if missing_cols:
+            st.warning(f"Columns {missing_cols} not found in data for {info['name']}. Skipping.")
+            continue  # Skip to the next column
+
+        if isinstance(y_cols, list):
             if column == "Combined Motor Power [kW]":
-                combined_value = df[y_col[0]] + df[y_col[1]]
+                combined_value = df[y_cols[0]] + df[y_cols[1]]
                 combined_value = combined_value[combined_value >= 20]  # Filter combined motor power values below 20 kW
                 smoothed_y = combined_value
                 plot_data.append(pd.DataFrame({
@@ -363,7 +391,7 @@ for i, info in enumerate(filtered_file_info):
                     'Color': folder_colors[legend_label]
                 }))
             elif column == "Combined Motor Torque [Nm]":
-                combined_value = df[y_col[0]] + df[y_col[1]]
+                combined_value = df[y_cols[0]] + df[y_cols[1]]
                 smoothed_y = combined_value
                 plot_data.append(pd.DataFrame({
                     'X': df[selected_x_axis].loc[smoothed_y.index],
@@ -372,7 +400,7 @@ for i, info in enumerate(filtered_file_info):
                     'Color': folder_colors[legend_label]
                 }))
             else:
-                for sub_col in y_col:
+                for sub_col in y_cols:
                     smoothed_y = df[sub_col]
                     plot_data.append(pd.DataFrame({
                         'X': df[selected_x_axis].loc[smoothed_y.index],
@@ -381,8 +409,8 @@ for i, info in enumerate(filtered_file_info):
                         'Color': folder_colors[legend_label]
                     }))
         else:
-            smoothed_y = df[y_col]
-            if 'Battery power' in y_col:
+            smoothed_y = df[y_cols]
+            if 'Battery power' in y_cols:
                 smoothed_y = smoothed_y[smoothed_y >= 40]  # Filter battery power values below 40 kW
             plot_data.append(pd.DataFrame({
                 'X': df[selected_x_axis].loc[smoothed_y.index],
@@ -401,6 +429,14 @@ if plot_data:
     # Create a color map for each label
     unique_labels = plot_df['Label'].unique()
     color_map = {label: folder_colors[label.split(" - ")[0]] for label in unique_labels}
+
+    # Slider for smoothing
+    smoothing_value = st.sidebar.slider("Line Smoothing", min_value=0, max_value=20, value=20)
+
+    # Apply smoothing if smoothing_value is greater than 0
+    if smoothing_value > 0:
+        for label in unique_labels:
+            plot_df.loc[plot_df['Label'] == label, 'Y'] = uniform_filter1d(plot_df.loc[plot_df['Label'] == label, 'Y'], size=smoothing_value)
 
     fig = px.line(plot_df, x='X', y='Y', color='Label', labels={'X': 'Speed [kph]', 'Y': 'Values'}, color_discrete_map=color_map)
 
@@ -447,19 +483,10 @@ if plot_data:
     # Update the color in the plot
     fig.for_each_trace(lambda trace: trace.update(line_color=color_map.get(trace.name, trace.line.color)))
 
-    # Slider for smoothing
-    smoothing_value = st.sidebar.slider("Line Smoothing", min_value=0, max_value=20, value=20)
-
-    # Apply smoothing if smoothing_value is greater than 0
-    if smoothing_value > 0:
-        for label in unique_labels:
-            plot_df.loc[plot_df['Label'] == label, 'Y'] = uniform_filter1d(plot_df.loc[plot_df['Label'] == label, 'Y'], size=smoothing_value)
-    
     st.plotly_chart(fig, use_container_width=True)
 
 else:
     st.write("Please select an X-axis and at least one column to plot.")
-
 
 ####################################################################################################
 
