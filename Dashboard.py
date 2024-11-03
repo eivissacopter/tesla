@@ -565,37 +565,11 @@ for trace in fig.data:
         trace.marker.line.color = 'black'  # Outline color for contrast
 
 # Remove 'circle' and 'star' symbols from the legend
-for trace in fig.data:
-    if trace.name in ['circle', 'star']:
-        trace.showlegend = False  # Hide from legend
+fig.for_each_trace(
+    lambda trace: trace.update(showlegend=False) if trace.name in ['circle', 'star'] else ()
+)
 
-# Add battery traces to ensure they appear first in the legend
-batteries = filtered_df['Battery'].unique()
-for battery_type in batteries:
-    battery_color = next(
-        (trace.marker.color for trace in fig.data if trace.name == battery_type),
-        None
-    )
-    if not any(trace.name == battery_type for trace in fig.data):
-        battery_trace = go.Scatter(
-            x=[None], y=[None], mode='markers', marker=dict(color=battery_color),
-            showlegend=True, name=battery_type
-        )
-        fig.add_trace(battery_trace)
-
-# Add trend line if selected
-if add_trend_line:
-    fig = add_trend_lines(fig, batteries, filtered_df, x_column, y_column, trend_line_type)
-
-# Add the green line to the scatter plot if Odometer is selected
-if x_axis_data == 'Odometer' and y_axis_data == 'Degradation':
-    fig.add_trace(go.Scatter(
-        x=odometer_km_smooth, y=battery_retention_smooth,
-        mode='lines', name='Tesla Battery Retention',
-        line=dict(color='rgba(0, 0, 255, 0.6)', width=8)  # Adjust the color to be semi-transparent
-    ))
-
-# Ensure the legend always appears
+# Ensure the legend shows only battery names
 fig.update_layout(
     showlegend=True,
     legend=dict(
@@ -606,6 +580,34 @@ fig.update_layout(
         x=0
     )
 )
+
+# Add battery traces to ensure they appear in the legend
+if 'Battery' in filtered_df.columns:
+    batteries = filtered_df['Battery'].unique()
+    for battery_type in batteries:
+        battery_color = next(
+            (trace.marker.color for trace in fig.data if trace.name == battery_type),
+            None
+        )
+        if not any(trace.name == battery_type for trace in fig.data):
+            battery_trace = go.Scatter(
+                x=[None], y=[None], mode='markers', marker=dict(color=battery_color),
+                showlegend=True, name=battery_type
+            )
+            fig.add_trace(battery_trace)
+
+# Add trend line if selected
+if add_trend_line:
+    batteries = filtered_df['Battery'].unique()
+    fig = add_trend_lines(fig, batteries, filtered_df, x_column, y_column, trend_line_type)
+
+# Add the green line to the scatter plot if Odometer is selected
+if x_axis_data == 'Odometer' and y_axis_data == 'Degradation':
+    fig.add_trace(go.Scatter(
+        x=odometer_km_smooth, y=battery_retention_smooth,
+        mode='lines', name='Tesla Battery Retention',
+        line=dict(color='rgba(0, 0, 255, 0.6)', width=8)  # Adjust the color to be semi-transparent
+    ))
 
 # Add watermark to the plot
 fig.add_annotation(
@@ -624,6 +626,228 @@ fig.add_annotation(
 st.plotly_chart(fig, use_container_width=True)
 
 ####################################################################################################################
+
+from sklearn.linear_model import LinearRegression
+
+# Function to predict SOH 70% projection
+def predict_soh_70(X, y, soh_70_degradation=-30):
+    if len(X) > 1 and len(y) > 1:
+        lin_reg = LinearRegression()
+        lin_reg.fit(X, y)
+        predicted_x_value = (soh_70_degradation - lin_reg.intercept_) / lin_reg.coef_
+        return predicted_x_value
+    return None
+
+# Perform SOH 70% projection for each selected battery
+result_texts = []
+
+if battery:  # Check if any battery filter is applied
+    for battery_type in battery:
+        selected_battery_df = filtered_df[filtered_df["Battery"] == battery_type]
+        
+        # Clean data: drop rows with NaN or infinite values
+        selected_battery_df = selected_battery_df.replace([np.inf, -np.inf], np.nan).dropna(subset=[x_column, "Degradation"])
+
+        X = selected_battery_df[x_column].values.reshape(-1, 1)
+        y = selected_battery_df["Degradation"].values.reshape(-1, 1)
+
+        # Only proceed if there is sufficient data to fit the model
+        if len(X) > 1 and len(y) > 1:
+            # Fit a Linear Regression model
+            lin_reg = LinearRegression()
+            lin_reg.fit(X, y)
+
+            # Predict when degradation will reach -30%
+            soh_70_degradation = -30
+            predicted_x_value = (soh_70_degradation - lin_reg.intercept_) / lin_reg.coef_
+
+            years_text = None
+            kilometers_text = None
+
+            if x_axis_data == 'Age':
+                predicted_years = predicted_x_value / 12  # Convert months to years
+                if 7 <= predicted_years[0][0] <= 20:
+                    years_text = f"{predicted_years[0][0]:.0f} years"
+                else:
+                    years_text = "unknown"
+            elif x_axis_data == 'Odometer':
+                predicted_kilometers = predicted_x_value
+                if 300000 <= predicted_kilometers[0][0] <= 1500000:
+                    rounded_kilometers = round(predicted_kilometers[0][0] / 100000) * 100000
+                    kilometers_text = f"{rounded_kilometers:.0f} kilometers"
+                else:
+                    kilometers_text = "unknown"
+            elif x_axis_data == 'Cycles':
+                predicted_cycles = predicted_x_value
+                if 300000 <= predicted_cycles[0][0] <= 1500000:
+                    rounded_kilometers = round(predicted_cycles[0][0] / 100000) * 100000
+                    kilometers_text = f"{rounded_kilometers:.0f} kilometers"
+                else:
+                    kilometers_text = "unknown"
+
+            # Calculate projection for years if x_axis_data is not 'Age'
+            if x_axis_data != 'Age' and 'Age' in selected_battery_df.columns:
+                X_age = selected_battery_df['Age'].values.reshape(-1, 1)
+                lin_reg.fit(X_age, y)
+                predicted_age_value = (soh_70_degradation - lin_reg.intercept_) / lin_reg.coef_
+                predicted_years_value = predicted_age_value / 12  # Convert months to years
+                if 7 <= predicted_years_value[0][0] <= 20:
+                    years_text = f"{predicted_years_value[0][0]:.0f} years"
+                else:
+                    years_text = "unknown"
+
+            # Calculate projection for kilometers regardless of x_axis_data
+            if 'Odometer' in selected_battery_df.columns:
+                X_odo = selected_battery_df['Odometer'].values.reshape(-1, 1)
+                lin_reg.fit(X_odo, y)
+                predicted_odo_value = (soh_70_degradation - lin_reg.intercept_) / lin_reg.coef_
+                if 300000 <= predicted_odo_value[0][0] <= 1500000:
+                    rounded_kilometers = round(predicted_odo_value[0][0] / 100000) * 100000
+                    kilometers_text = f"{rounded_kilometers:.0f} kilometers"
+                else:
+                    kilometers_text = "unknown"
+
+            # Prepare the display text
+            display_text = f"<span style='color:orange; font-weight:bold;'>{battery_type}</span> is expected to reach <span style='color:orange; font-weight:bold;'>70% SOH</span> after "
+            if years_text != "unknown" and kilometers_text != "unknown":
+                display_text += f"<span style='color:orange; font-weight:bold;'>{years_text}</span> or <span style='color:orange; font-weight:bold;'>{kilometers_text}</span>."
+            elif years_text != "unknown":
+                display_text += f"<span style='color:orange; font-weight:bold;'>{years_text}</span>."
+            elif kilometers_text != "unknown":
+                display_text += f"<span style='color:orange; font-weight:bold;'>{kilometers_text}</span>."
+
+            result_texts.append(display_text)
+        else:
+            # Display a message if there is insufficient data
+            result_texts.append(
+                f"There is insufficient data to project the 70% SOH for the <span style='color:orange; font-weight:bold;'>{battery_type}</span>."
+            )
+
+    # Display the results below the scatterplot with reduced spacing
+    st.markdown(
+        """
+        <div style="text-align:center; font-size:16px; padding:10px; margin-top:20px;">
+            With these filter settings, the:
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    for text in result_texts:
+        st.markdown(
+            f"""
+            <div style="text-align:center; font-size:16px; padding:5px; margin-top:5px;">
+                {text}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+####################################################################################################################
+
+# Determine the denominator column based on the X-axis selection
+if x_axis_data == 'Age':
+    denominator_column = 'Age'
+    x_label = 'Month'
+    divisor = 1  # No additional scaling
+elif x_axis_data == 'Odometer':
+    denominator_column = 'Odometer'
+    x_label = '1000km]'
+    divisor = 1000  # Scale Odometer to 1,000 km
+else:  # 'Cycles'
+    denominator_column = 'Cycles'
+    x_label = 'Cycle'
+    divisor = 1  # No additional scaling
+
+# Convert Degradation and the selected denominator column to numeric, coerce errors to NaN and drop rows with NaN values
+st.session_state.filtered_df['Degradation'] = pd.to_numeric(st.session_state.filtered_df['Degradation'], errors='coerce')
+st.session_state.filtered_df[denominator_column] = pd.to_numeric(st.session_state.filtered_df[denominator_column], errors='coerce')
+st.session_state.filtered_df = st.session_state.filtered_df.dropna(subset=['Degradation', denominator_column])
+
+# Ensure the 'Cycles' column is numeric
+st.session_state.filtered_df[x_column] = pd.to_numeric(st.session_state.filtered_df[x_column], errors='coerce')
+
+# Filter out non-positive values from the x_column and rows with NaNs in x_column or y_column
+filtered_df = st.session_state.filtered_df[(st.session_state.filtered_df[x_column] > 0) & st.session_state.filtered_df[x_column].notna() & st.session_state.filtered_df[y_column].notna()]
+
+# Sort the filtered_df by the x_column
+filtered_df = filtered_df.sort_values(by=x_column)
+
+# Calculate degradation per selected X-axis value
+st.session_state.filtered_df['DegradationPerX'] = st.session_state.filtered_df['Degradation'] / (st.session_state.filtered_df[denominator_column] / divisor)
+
+# Filter out rows where DegradationPerX is NaN, 0, or infinite
+st.session_state.filtered_df = st.session_state.filtered_df.replace([np.inf, -np.inf], np.nan).dropna(subset=['DegradationPerX'])
+st.session_state.filtered_df = st.session_state.filtered_df[st.session_state.filtered_df['DegradationPerX'] != 0]
+
+# Group by the appropriate column and calculate mean and count
+if len(battery) == 1:
+    selected_battery = battery[0]
+    version_avg_degradation = st.session_state.filtered_df[st.session_state.filtered_df['Battery'] == selected_battery].groupby('Version')['DegradationPerX'].agg(['mean', 'count']).reset_index()
+    version_avg_degradation['custom_text'] = version_avg_degradation.apply(lambda row: f"n={row['count']}", axis=1)
+    version_avg_degradation['degradation_text'] = version_avg_degradation.apply(lambda row: f"{row['mean']:.2f}%", axis=1)
+    version_avg_degradation = version_avg_degradation.sort_values(by='mean', ascending=True)
+    bar_fig = px.bar(
+        version_avg_degradation, x='mean', y='Version', orientation='h',
+        labels={'mean': f'Average Degradation / {x_label}', 'Version': ''},
+        color_discrete_sequence=color_sequence,
+        text='custom_text'  # Add custom text to bars
+    )
+else:
+    avg_degradation_per_x = st.session_state.filtered_df.groupby('Battery')['DegradationPerX'].agg(['mean', 'count']).reset_index()
+    avg_degradation_per_x['custom_text'] = avg_degradation_per_x.apply(lambda row: f"n={row['count']}", axis=1)
+    avg_degradation_per_x['degradation_text'] = avg_degradation_per_x.apply(lambda row: f"{row['mean']:.2f}%", axis=1)
+    avg_degradation_per_x = avg_degradation_per_x.sort_values(by='mean', ascending=True)
+    bar_fig = px.bar(
+        avg_degradation_per_x, x='mean', y='Battery', orientation='h',
+        labels={'mean': f'Average Degradation / {x_label}', 'Battery': ''},
+        color_discrete_sequence=color_sequence,
+        text='custom_text'  # Add custom text to bars
+    )
+
+# Invert the x-axis
+bar_fig.update_xaxes(autorange='reversed')
+
+# Position the text inside the bar for counts and outside for average degradation
+bar_fig.update_traces(
+    textposition='inside',
+    insidetextanchor='start',
+    hovertemplate='<b>%{y}</b><br>Degradation: %{x:.2f}%<br>Count: %{text}<extra></extra>',
+)
+
+# Add custom annotations for the average degradation outside the bars
+for i, row in version_avg_degradation.iterrows() if len(battery) == 1 else avg_degradation_per_x.iterrows():
+    bar_fig.add_annotation(
+        x=row['mean'],
+        y=row['Version'] if len(battery) == 1 else row['Battery'],
+        text=row['degradation_text'],
+        showarrow=False,
+        xshift=20
+    )
+
+# Remove the y-axis title
+bar_fig.update_layout(yaxis_title=None)
+
+# Add watermark to the bar chart
+bar_fig.add_annotation(
+    text="@eivissacopter",
+    font=dict(size=20, color="lightgrey"),
+    align="center",
+    xref="paper",
+    yref="paper",
+    x=0.5,
+    y=0.5,
+    opacity=0.05,
+    showarrow=False
+)
+
+# Remove the legend title
+bar_fig.update_layout(showlegend=False)
+
+# Plot the bar chart
+st.plotly_chart(bar_fig, use_container_width=True)
+
+########################
 
 # Function to fetch additional battery data from the "Backend" worksheet
 @st.cache_data(ttl=300)
