@@ -37,12 +37,19 @@ def add_trend_lines(fig, batteries, filtered_df, x_column, y_column, trend_line_
         X = battery_df[x_column].values.reshape(-1, 1)
         y = battery_df[y_column].values.reshape(-1, 1)
         
+        # Skip if insufficient data for regression
+        if len(battery_df) < 2:
+            continue
+        
         if trend_line_type == 'Linear Regression':
             lin_reg = LinearRegression()
             lin_reg.fit(X, y)
             x_range = np.linspace(filtered_df[x_column].min(), filtered_df[x_column].max(), 100).reshape(-1, 1)
             y_pred = lin_reg.predict(x_range)
         elif trend_line_type == 'Logarithmic Regression':
+            # Skip if data contains zero or negative values (log domain error)
+            if np.any(X <= 0):
+                continue
             X_log = np.log(X)
             log_reg = LinearRegression()
             log_reg.fit(X_log, y)
