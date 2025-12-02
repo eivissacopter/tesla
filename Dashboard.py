@@ -1,13 +1,15 @@
 import streamlit as st
 import plotly.express as px
 import pandas as pd
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
 import numpy as np
 from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import PolynomialFeatures
 import plotly.graph_objects as go
 import plotly.io as pio
+
+# Import from local modules
+import styles
+import utils
+import plots
 
 # Set page config as the first Streamlit command
 st.set_page_config(page_title="Tesla Battery Analysis", page_icon=":battery:", layout="wide")
@@ -27,222 +29,23 @@ color_sequence = [
     "#d5dae5",
 ]
 
-# Function to fetch data from Google Sheets
-@st.cache_data(ttl=300)  # Cache data for 300 seconds
-def fetch_data(username_filter=None):
-    # Google Sheets API setup
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    
-    # Fetching credentials from Streamlit secrets
-    creds_dict = {
-        "type": st.secrets["gcp_service_account"]["type"],
-        "project_id": st.secrets["gcp_service_account"]["project_id"],
-        "private_key_id": st.secrets["gcp_service_account"]["private_key_id"],
-        "private_key": st.secrets["gcp_service_account"]["private_key"].replace("\\n", "\n"),
-        "client_email": st.secrets["gcp_service_account"]["client_email"],
-        "client_id": st.secrets["gcp_service_account"]["client_id"],
-        "auth_uri": st.secrets["gcp_service_account"]["auth_uri"],
-        "token_uri": st.secrets["gcp_service_account"]["token_uri"],
-        "auth_provider_x509_cert_url": st.secrets["gcp_service_account"]["auth_provider_x509_cert_url"],
-        "client_x509_cert_url": st.secrets["gcp_service_account"]["client_x509_cert_url"]
-    }
-
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-    client = gspread.authorize(creds)
-
-    # Define the URL of the Google Sheets
-    url = st.secrets["connections"]["gsheets"]["spreadsheet"]
-    spreadsheet = client.open_by_url(url)
-    sheet = spreadsheet.worksheet("Database")  # Open the 'Database' worksheet
-
-    # Fetch all values from the sheet
-    data = sheet.get_all_values()
-    header = data[0]
-
-    # Check if 'Username' is in the header
-    if 'Username' not in header:
-        st.error("The 'Username' column is missing from the Google Sheets data.")
-        return pd.DataFrame(), None  # Return an empty DataFrame to avoid further errors
-
-    # Columns to exclude
-    exclude_columns = ['B', 'G', 'H', 'I', 'J', 'O', 'P', 'W', 'X', 'Y']
-
-    # Include all columns except the excluded ones
-    filtered_header = [col for col in header if col and not col.startswith('_') and col not in exclude_columns]
-
-    # Get indices of the filtered columns
-    keep_indices = [header.index(col) for col in filtered_header if col in header]
-
-    # Filter the data based on the kept indices
-    filtered_data = [[row[i] for i in keep_indices] for row in data]
-
-    # Fix duplicate headers
-    unique_header = []
-    duplicate_counts = {}
-    for col in filtered_header:
-        col = col.strip()  # Trim whitespace
-        if col not in unique_header:
-            unique_header.append(col)
-            duplicate_counts[col] = 1
-        else:
-            # Add a suffix to make the header unique
-            duplicate_counts[col] += 1
-            new_col = f"{col}_{duplicate_counts[col]}"
-            unique_header.append(new_col)
-
-    # Convert data to DataFrame
-    df = pd.DataFrame(filtered_data[1:], columns=unique_header)
-
-    # Identify the 'Battery Pack' column
-    battery_pack_cols = [col for col in df.columns if col.startswith('Battery Pack')]
-    if battery_pack_cols:
-        battery_pack_col = battery_pack_cols[0]  # Use the first match
-    else:
-        battery_pack_col = None  # Handle missing column
-
-    # Handle 'Age' column conversion
-    df['Age'] = df['Age'].str.replace(" Months", "").str.replace(",", ".").replace('', np.nan).astype(float)
-
-    # Clean up the 'Odometer' column to ensure it is numeric
-    df['Odometer'] = df['Odometer'].str.replace(',', '').str.extract('(\d+)').astype(float)
-    
-    # Replace all commas with dots in all columns except 'Battery Pack'
-    columns_to_replace = df.select_dtypes(include='object').columns.tolist()
-    if battery_pack_col and battery_pack_col in columns_to_replace:
-        columns_to_replace.remove(battery_pack_col)
-    df[columns_to_replace] = df[columns_to_replace].apply(lambda x: x.str.replace(',', '.'))
-
-    # Add negative sign to specific columns if they exist
-    columns_to_negate = ['Degradation']
-    for col in columns_to_negate:
-        if col in df.columns:
-            df[col] = '-' + df[col]
-
-    # Replace '0,0%' in 'Degradation' with NaN
-    df['Degradation'] = df['Degradation'].replace('-0.0%', float('NaN'))
-
-    # Clean 'Rated Range' and 'Capacity Net Now' columns
-    df['Rated Range'] = df['Rated Range'].str.replace(' km', '')
-    df['Rated Range'] = pd.to_numeric(df['Rated Range'], errors='coerce')
-
-    df['Capacity Net Now'] = df['Capacity Net Now'].str.replace(' kWh', '').str.replace(',', '.')
-    df['Capacity Net Now'] = pd.to_numeric(df['Capacity Net Now'], errors='coerce')
-
-    # Convert Degradation to numeric
-    df['Degradation'] = pd.to_numeric(df['Degradation'].str.replace('%', ''), errors='coerce')
-
-    # Clean 'Daily SOC Limit' and 'DC Ratio' columns
-    df['Daily SOC Limit'] = df['Daily SOC Limit'].str.replace('%', '').replace('', np.nan).astype(float)
-    df['DC Ratio'] = df['DC Ratio'].str.replace('%', '').replace('', np.nan).astype(float)
-
-    if username_filter:
-        df = df[df["Username"].str.contains(username_filter, case=False, na=False)]
-
-    return df, battery_pack_col  # Return the DataFrame and the 'Battery Pack' column name
-
 # Add the main header picture with emojis
-st.markdown(
-    """
-    <style>
-        .header {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            padding: 0rem 0;
-            margin-bottom: 0rem; /* Adjust the margin bottom to reduce space */
-        }
-        .header img {
-            width: 100%;
-            height: auto;
-        }
-        .header h1 {
-            margin: 0;
-            padding-top: 1rem;
-            text-align: center;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 32px;
-        }
-        .header h1 span {
-            margin: 0 10px;
-        }
-    </style>
-    <div class="header">
-        <img src="https://uploads.tff-forum.de/original/4X/5/2/3/52397973df71db6122c1eda4c5c558d2ca70686c.jpeg" alt="Tesla Battery Analysis">
-        <h1><span>🔋</span> Tesla Battery Analysis <span>🔋</span></h1>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+st.markdown(styles.HEADER_HTML, unsafe_allow_html=True)
 
 # Add Google Forms logo with text and correctly placed animated arrows with increased spacing
-st.markdown(
-    """
-    <style>
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.05); opacity: 0.9; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        .google-form-logo {
-            display: block;
-            margin: 0rem auto; /* Centers the logo horizontally below the header */
-            width: 300px;  /* Adjust the width of the logo as necessary */
-            height: auto;
-            animation: pulse 2s infinite ease-in-out;
-        }
-        .arrow-text {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 24px;
-            font-weight: bold;
-            margin-top: 20px;
-        }
-        .arrow {
-            animation: blinker 3s linear infinite;
-            font-size: 24px;
-            margin: 0 20px; /* Increased spacing from text */
-        }
-        @keyframes blinker {
-            50% {
-                opacity: 0;
-            }
-        }
-    </style>
-    <div class="arrow-text">
-        <span>Add your data here</span>
-        <span class="arrow">🡢</span>
-        <a href="https://forms.gle/WtFayqANSr9kwKv39" target="_blank">
-            <img src="https://i.ibb.co/YZvSDRm/google-forms-400x182-removebg-preview.png" class="google-form-logo" alt="Google Forms Survey">
-        </a>
-        <span class="arrow">🡠</span>
-        <span>Add your data here</span>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+st.markdown(styles.FORM_HTML, unsafe_allow_html=True)
 
 # Add search field for username below the "Add your data here" section
 username = st.text_input("Search by Username:", key="username")
 
 # Fetch the data
-df, battery_pack_col = fetch_data(username_filter=username)
+df, battery_pack_col = utils.fetch_data(username_filter=username)
 
 # Get the latest row from the filtered DataFrame
 latest_row = df.iloc[-3:][::-1]
 
 # Display the latest entries at the top
-st.markdown(
-    """
-    <div>
-        Latest Entries
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+st.markdown(styles.LATEST_ENTRIES_HTML, unsafe_allow_html=True)
 
 st.write(latest_row)
 
@@ -390,58 +193,9 @@ if refresh:
 st.sidebar.write(f"Filtered Data Rows: {st.session_state.filtered_df.shape[0]}")
 
 # Animated Banner with logo and link
-st.sidebar.markdown(
-    """
-    <style>
-        .sidebar-content {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0rem;
-        }
-        .sidebar-content img {
-            height: auto;
-        }
-        .sidebar-content .akku-wiki {
-            width: 90px;  /* Set specific width for Akku Wiki logo */
-        }
-        .sidebar-content .buy-me-coffee {
-            width: 240px;  /* Set specific width for Buy Me a Coffee logo */
-        }
-        .sidebar-content .follow-on-x {
-            width: 110px;  /* Set specific width for Follow on X logo */
-        }
-        .sidebar-content .text {
-            text-align: center;
-            font-size: 12px;  /* Default font size for text */
-        }
-        .sidebar-content a {
-            color: white;
-            text-decoration: none;
-            font-weight: bold;
-        }
-    </style>
-    <div class="sidebar-content">
-        <a href="https://www.tesla.com/de_de/referral/julien95870" target="_blank">
-            <div>
-                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Tesla_T_symbol.svg/482px-Tesla_T_symbol.svg.png" class="akku-wiki" alt="Akku Wiki">
-                <div class="text">Referral</div>
-            </div>
-        </a>
-        <a href="https://buymeacoffee.com/eivissa" target="_blank">
-            <img src="https://media.giphy.com/media/o7RZbs4KAA6tvM4H6j/giphy.gif" class="buy-me-coffee" alt="Buy Me a Coffee">
-        </a>
-        <a href="https://x.com/eivissacopter" target="_blank">
-            <img src="https://i.ibb.co/xLhFQNn/c23e7825a07e5e998bd361f9c991e12c-400x400-removebg-preview.png" class="follow-on-x" alt="Follow on X">
-        </a>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+st.sidebar.markdown(styles.SIDEBAR_HTML, unsafe_allow_html=True)
 
 ####################################################################################################################
-
-from sklearn.linear_model import LinearRegression
 
 # Ensure the 'Cycles' column is numeric
 st.session_state.filtered_df[x_column] = pd.to_numeric(st.session_state.filtered_df[x_column], errors='coerce')
@@ -473,67 +227,10 @@ if len(battery) == 1 and filter_option != "Off":
     elif filter_option == "AC/DC Ratio":
         color_column = "DC Ratio"
 
-# Add trend line if selected
-def add_trend_lines(fig, batteries, filtered_df, x_column, y_column, trend_line_type):
-    for battery_type in batteries:
-        battery_df = filtered_df[filtered_df['Battery'] == battery_type]
-        X = battery_df[x_column].values.reshape(-1, 1)
-        y = battery_df[y_column].values.reshape(-1, 1)
-        
-        if trend_line_type == 'Linear Regression':
-            lin_reg = LinearRegression()
-            lin_reg.fit(X, y)
-            x_range = np.linspace(filtered_df[x_column].min(), filtered_df[x_column].max(), 100).reshape(-1, 1)
-            y_pred = lin_reg.predict(x_range)
-        elif trend_line_type == 'Logarithmic Regression':
-            X_log = np.log(X)
-            log_reg = LinearRegression()
-            log_reg.fit(X_log, y)
-            x_range = np.linspace(filtered_df[x_column].min(), filtered_df[x_column].max(), 100)
-            y_pred = log_reg.predict(np.log(x_range).reshape(-1, 1))
-        elif trend_line_type == 'Polynomial Regression (3rd Degree)':
-            poly = PolynomialFeatures(degree=3)
-            X_poly = poly.fit_transform(X)
-            poly_reg = LinearRegression()
-            poly_reg.fit(X_poly, y)
-            x_range = np.linspace(filtered_df[x_column].min(), filtered_df[x_column].max(), 100).reshape(-1, 1)
-            x_range_poly = poly.transform(x_range)
-            y_pred = poly_reg.predict(x_range_poly)
-        
-        # Extract the color of the battery type from the scatter plot
-        battery_color = next(
-            (trace.marker.color for trace in fig.data if trace.name == battery_type),
-            None
-        )
-        
-        # Add the trendline trace
-        trend_trace = go.Scatter(
-            x=x_range.flatten(), y=y_pred.flatten(), mode='lines', name=f"{battery_type} Trendline",
-            line=dict(color=battery_color)
-        )
-        fig.add_trace(trend_trace)
-    return fig
-
 ####################################################################################
 
-# Define the data points for the green line (converted from miles to kilometers)
-odometer_miles = np.array([0, 50000, 100000, 150000, 200000])
-battery_retention = np.array([0, -8, -12, -13.5, -15])  # Ensure the initial point starts at 100%
-odometer_km = odometer_miles * 1.60934  # Convert miles to kilometers
-
-# Create a smooth line for the green line using logarithmic fitting
-odometer_km_log = np.log(odometer_km[1:])  # Remove the zero value for log transformation
-battery_retention_log = battery_retention[1:]  # Corresponding y-values
-
-log_reg = LinearRegression()
-log_reg.fit(odometer_km_log.reshape(-1, 1), battery_retention_log)
-
-odometer_km_smooth = np.linspace(odometer_km[1:].min(), odometer_km.max(), 500)
-battery_retention_smooth = log_reg.predict(np.log(odometer_km_smooth).reshape(-1, 1))
-
-# Insert the initial point back into the smooth curve
-odometer_km_smooth = np.insert(odometer_km_smooth, 0, odometer_km[0])
-battery_retention_smooth = np.insert(battery_retention_smooth, 0, battery_retention[0])
+# Get retention curve data for the green line
+odometer_km_smooth, battery_retention_smooth = plots.get_retention_curve()
 
 ####################################################################################
 
@@ -573,7 +270,7 @@ for battery_type in batteries:
 
 # Add trend line if selected
 if add_trend_line:
-    fig = add_trend_lines(fig, batteries, filtered_df, x_column, y_column, trend_line_type)
+    fig = plots.add_trend_lines(fig, batteries, filtered_df, x_column, y_column, trend_line_type)
 
 # Add the green line to the scatter plot if Odometer is selected
 if x_axis_data == 'Odometer' and y_axis_data == 'Degradation':
@@ -612,8 +309,6 @@ fig.add_annotation(
 st.plotly_chart(fig, use_container_width=True)
 
 ####################################################################################################################
-
-from sklearn.linear_model import LinearRegression
 
 # Function to predict SOH 70% projection
 def predict_soh_70(X, y, soh_70_degradation=-30):
@@ -835,43 +530,7 @@ st.plotly_chart(bar_fig, use_container_width=True)
 
 ########################
 
-# Function to fetch additional battery data from the "Backend" worksheet
-@st.cache_data(ttl=300)
-def fetch_battery_info():
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds_dict = {
-        "type": st.secrets["gcp_service_account"]["type"],
-        "project_id": st.secrets["gcp_service_account"]["project_id"],
-        "private_key_id": st.secrets["gcp_service_account"]["private_key_id"],
-        "private_key": st.secrets["gcp_service_account"]["private_key"].replace("\\n", "\n"),
-        "client_email": st.secrets["gcp_service_account"]["client_email"],
-        "client_id": st.secrets["gcp_service_account"]["client_id"],
-        "auth_uri": st.secrets["gcp_service_account"]["auth_uri"],
-        "token_uri": st.secrets["gcp_service_account"]["token_uri"],
-        "auth_provider_x509_cert_url": st.secrets["gcp_service_account"]["auth_provider_x509_cert_url"],
-        "client_x509_cert_url": st.secrets["gcp_service_account"]["client_x509_cert_url"]
-    }
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-    client = gspread.authorize(creds)
-    url = st.secrets["connections"]["gsheets"]["spreadsheet"]
-    spreadsheet = client.open_by_url(url)
-    sheet = spreadsheet.worksheet("Backend")
-    data = sheet.get("O1:W22")
-    header = data[0]
-    battery_info = pd.DataFrame(data[1:], columns=header)
-    battery_info.drop(battery_info.columns[[6, 7]], axis=1, inplace=True)
-    battery_info = battery_info.applymap(lambda x: x.replace(',', '.') if isinstance(x, str) else x)
-    cols = list(battery_info.columns)
-    if "Capacity (new)" in cols and "Nominal Capacity" in cols:
-        cols.insert(cols.index("Capacity (new)") + 1, cols.pop(cols.index("Nominal Capacity")))
-    battery_info = battery_info[cols]
-    battery_info["Capacity (new)"] = battery_info["Capacity (new)"] + " kWh"
-    battery_info["Nominal Capacity"] = battery_info["Nominal Capacity"] + " Ah"
-    if len(battery_info.columns) > 6:
-        battery_info.iloc[:, 6] = battery_info.iloc[:, 6] + " km"
-    return battery_info
-
-battery_info = fetch_battery_info()
+battery_info = utils.fetch_battery_info()
 
 # Filter the battery info data based on the selected batteries
 if not battery:
