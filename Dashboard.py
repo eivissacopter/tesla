@@ -310,8 +310,6 @@ st.plotly_chart(fig, use_container_width=True)
 
 ####################################################################################################################
 
-from sklearn.linear_model import LinearRegression
-
 # Function to predict SOH 70% projection
 def predict_soh_70(X, y, soh_70_degradation=-30):
     if len(X) > 1 and len(y) > 1:
