@@ -203,7 +203,9 @@ def fetch_battery_info():
     battery_info.drop(battery_info.columns[[6, 7]], axis=1, inplace=True)
     
     # Use map() instead of applymap() for Pandas 2.1.0+ compatibility
-    battery_info = battery_info.map(lambda x: x.replace(',', '.') if isinstance(x, str) else x)
+    # Apply only to string columns for efficiency
+    string_cols = battery_info.select_dtypes(include='object')
+    battery_info[string_cols.columns] = string_cols.map(lambda x: x.replace(',', '.') if isinstance(x, str) else x)
     
     cols = list(battery_info.columns)
     if "Capacity (new)" in cols and "Nominal Capacity" in cols:
