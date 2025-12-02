@@ -27,18 +27,13 @@ def clean_numeric_col(series, remove_unit=None):
     return pd.to_numeric(result, errors='coerce')
 
 
-@st.cache_data(ttl=3600)  # Cache data for 3600 seconds
-def fetch_data(username_filter=None):
+def _get_gspread_client():
     """
-    Fetch data from Google Sheets and perform cleaning operations.
-    
-    Args:
-        username_filter: optional username to filter results
+    Create and return an authorized gspread client.
     
     Returns:
-        tuple: (DataFrame, battery_pack_col_name)
+        Authorized gspread client
     """
-    # Google Sheets API setup
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     
     # Fetching credentials from Streamlit secrets
@@ -56,7 +51,21 @@ def fetch_data(username_filter=None):
     }
 
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-    client = gspread.authorize(creds)
+    return gspread.authorize(creds)
+
+
+@st.cache_data(ttl=3600)  # Cache data for 3600 seconds
+def fetch_data(username_filter=None):
+    """
+    Fetch data from Google Sheets and perform cleaning operations.
+    
+    Args:
+        username_filter: optional username to filter results
+    
+    Returns:
+        tuple: (DataFrame, battery_pack_col_name)
+    """
+    client = _get_gspread_client()
 
     # Define the URL of the Google Sheets
     url = st.secrets["connections"]["gsheets"]["spreadsheet"]
@@ -154,21 +163,7 @@ def fetch_battery_info():
     Returns:
         DataFrame with battery pack information
     """
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds_dict = {
-        "type": st.secrets["gcp_service_account"]["type"],
-        "project_id": st.secrets["gcp_service_account"]["project_id"],
-        "private_key_id": st.secrets["gcp_service_account"]["private_key_id"],
-        "private_key": st.secrets["gcp_service_account"]["private_key"].replace("\\n", "\n"),
-        "client_email": st.secrets["gcp_service_account"]["client_email"],
-        "client_id": st.secrets["gcp_service_account"]["client_id"],
-        "auth_uri": st.secrets["gcp_service_account"]["auth_uri"],
-        "token_uri": st.secrets["gcp_service_account"]["token_uri"],
-        "auth_provider_x509_cert_url": st.secrets["gcp_service_account"]["auth_provider_x509_cert_url"],
-        "client_x509_cert_url": st.secrets["gcp_service_account"]["client_x509_cert_url"]
-    }
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-    client = gspread.authorize(creds)
+    client = _get_gspread_client()
     url = st.secrets["connections"]["gsheets"]["spreadsheet"]
     spreadsheet = client.open_by_url(url)
     sheet = spreadsheet.worksheet("Backend")

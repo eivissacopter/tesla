@@ -36,10 +36,16 @@ def add_trend_lines(fig, batteries, filtered_df, x_column, y_column, trend_line_
             x_range = np.linspace(filtered_df[x_column].min(), filtered_df[x_column].max(), 100).reshape(-1, 1)
             y_pred = lin_reg.predict(x_range)
         elif trend_line_type == 'Logarithmic Regression':
+            # Ensure X values are positive for logarithmic transformation
+            if np.any(X <= 0):
+                # Skip this battery if it has non-positive values
+                continue
             X_log = np.log(X)
             log_reg = LinearRegression()
             log_reg.fit(X_log, y)
-            x_range = np.linspace(filtered_df[x_column].min(), filtered_df[x_column].max(), 100)
+            # Ensure x_range values are positive for log transformation
+            x_min = max(filtered_df[x_column].min(), 1e-10)  # Avoid log(0)
+            x_range = np.linspace(x_min, filtered_df[x_column].max(), 100)
             y_pred = log_reg.predict(np.log(x_range).reshape(-1, 1))
         elif trend_line_type == 'Polynomial Regression (3rd Degree)':
             poly = PolynomialFeatures(degree=3)
@@ -78,13 +84,19 @@ def get_retention_curve():
     odometer_km = odometer_miles * 1.60934  # Convert miles to kilometers
     
     # Create a smooth line for the green line using logarithmic fitting
-    odometer_km_log = np.log(odometer_km[1:])  # Remove the zero value for log transformation
+    # Remove the zero value for log transformation and validate remaining values are positive
+    odometer_km_positive = odometer_km[1:]  # Skip zero value
     battery_retention_log = battery_retention[1:]  # Corresponding y-values
     
+    # Ensure all values are positive (should be true for our data, but validate anyway)
+    if np.any(odometer_km_positive <= 0):
+        raise ValueError("Odometer values must be positive for logarithmic fitting")
+    
+    odometer_km_log = np.log(odometer_km_positive)
     log_reg = LinearRegression()
     log_reg.fit(odometer_km_log.reshape(-1, 1), battery_retention_log)
     
-    odometer_km_smooth = np.linspace(odometer_km[1:].min(), odometer_km.max(), 500)
+    odometer_km_smooth = np.linspace(odometer_km_positive.min(), odometer_km.max(), 500)
     battery_retention_smooth = log_reg.predict(np.log(odometer_km_smooth).reshape(-1, 1))
     
     # Insert the initial point back into the smooth curve
