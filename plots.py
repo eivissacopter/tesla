@@ -1,0 +1,94 @@
+"""
+plots.py - Plotting utilities for the Tesla Battery Analysis Dashboard
+"""
+
+import numpy as np
+import plotly.graph_objects as go
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import PolynomialFeatures
+
+
+def add_trend_lines(fig, batteries, filtered_df, x_column, y_column, trend_line_type):
+    """
+    Add trend lines to the figure for each battery type.
+    
+    Args:
+        fig: Plotly figure object
+        batteries: List of battery types
+        filtered_df: Filtered DataFrame
+        x_column: X-axis column name
+        y_column: Y-axis column name
+        trend_line_type: Type of trend line ('Linear Regression', 'Logarithmic Regression', 
+                        'Polynomial Regression (3rd Degree)')
+    
+    Returns:
+        Updated Plotly figure object
+    """
+    for battery_type in batteries:
+        battery_df = filtered_df[filtered_df['Battery'] == battery_type]
+        X = battery_df[x_column].values.reshape(-1, 1)
+        y = battery_df[y_column].values.reshape(-1, 1)
+        
+        if trend_line_type == 'Linear Regression':
+            lin_reg = LinearRegression()
+            lin_reg.fit(X, y)
+            x_range = np.linspace(filtered_df[x_column].min(), filtered_df[x_column].max(), 100).reshape(-1, 1)
+            y_pred = lin_reg.predict(x_range)
+        elif trend_line_type == 'Logarithmic Regression':
+            X_log = np.log(X)
+            log_reg = LinearRegression()
+            log_reg.fit(X_log, y)
+            x_range = np.linspace(filtered_df[x_column].min(), filtered_df[x_column].max(), 100)
+            y_pred = log_reg.predict(np.log(x_range).reshape(-1, 1))
+        elif trend_line_type == 'Polynomial Regression (3rd Degree)':
+            poly = PolynomialFeatures(degree=3)
+            X_poly = poly.fit_transform(X)
+            poly_reg = LinearRegression()
+            poly_reg.fit(X_poly, y)
+            x_range = np.linspace(filtered_df[x_column].min(), filtered_df[x_column].max(), 100).reshape(-1, 1)
+            x_range_poly = poly.transform(x_range)
+            y_pred = poly_reg.predict(x_range_poly)
+        
+        # Extract the color of the battery type from the scatter plot
+        battery_color = next(
+            (trace.marker.color for trace in fig.data if trace.name == battery_type),
+            None
+        )
+        
+        # Add the trendline trace
+        trend_trace = go.Scatter(
+            x=x_range.flatten(), y=y_pred.flatten(), mode='lines', name=f"{battery_type} Trendline",
+            line=dict(color=battery_color)
+        )
+        fig.add_trace(trend_trace)
+    return fig
+
+
+def get_retention_curve_data():
+    """
+    Get the Tesla Battery Retention curve data (the "Green Line").
+    This curve represents Tesla's official battery retention estimates.
+    
+    Returns:
+        Tuple of (odometer_km_smooth, battery_retention_smooth) arrays
+    """
+    # Define the data points for the green line (converted from miles to kilometers)
+    odometer_miles = np.array([0, 50000, 100000, 150000, 200000])
+    battery_retention = np.array([0, -8, -12, -13.5, -15])  # Ensure the initial point starts at 100%
+    odometer_km = odometer_miles * 1.60934  # Convert miles to kilometers
+
+    # Create a smooth line for the green line using logarithmic fitting
+    odometer_km_log = np.log(odometer_km[1:])  # Remove the zero value for log transformation
+    battery_retention_log = battery_retention[1:]  # Corresponding y-values
+
+    log_reg = LinearRegression()
+    log_reg.fit(odometer_km_log.reshape(-1, 1), battery_retention_log)
+
+    odometer_km_smooth = np.linspace(odometer_km[1:].min(), odometer_km.max(), 500)
+    battery_retention_smooth = log_reg.predict(np.log(odometer_km_smooth).reshape(-1, 1))
+
+    # Insert the initial point back into the smooth curve
+    odometer_km_smooth = np.insert(odometer_km_smooth, 0, odometer_km[0])
+    battery_retention_smooth = np.insert(battery_retention_smooth, 0, battery_retention[0])
+    
+    return odometer_km_smooth, battery_retention_smooth
