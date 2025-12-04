@@ -221,9 +221,12 @@ class PlotBuilder:
             color_discrete_map=color_map
         )
         
-        # Make lines wider
+        # Make lines wider and prevent connecting gaps
         for trace in fig.data:
-            trace.update(line=dict(width=3))
+            trace.update(
+                line=dict(width=3),
+                connectgaps=False  # Don't connect lines across gaps
+            )
         
         # Configure layout
         fig.update_layout(
