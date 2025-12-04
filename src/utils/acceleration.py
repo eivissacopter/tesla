@@ -8,14 +8,16 @@ class AccelerationAnalyzer:
     """Analyzer for acceleration run data."""
     
     @staticmethod
-    def detect_acceleration_runs(df: pd.DataFrame, speed_threshold: float = 5.0) -> List[pd.DataFrame]:
-        """Detect individual acceleration runs in a dataset.
+    def detect_acceleration_runs(df: pd.DataFrame, speed_threshold: float = 10.0) -> List[pd.DataFrame]:
+        """Detect individual acceleration runs in a performance CSV.
         
-        Splits data into separate runs based on speed drops (indicating multiple runs).
+        Handles files with a single acceleration run that may have positioning
+        data before and after the actual run. Identifies the main acceleration
+        segment by finding the maximum speed achieved.
         
         Args:
             df: DataFrame with Speed column.
-            speed_threshold: Speed drop threshold to detect new run (kph).
+            speed_threshold: Minimum speed to consider active run (kph).
             
         Returns:
             List of DataFrames, one per acceleration run.
@@ -23,24 +25,35 @@ class AccelerationAnalyzer:
         if 'Speed' not in df.columns or df.empty:
             return []
         
-        runs = []
-        current_run_start = 0
+        # Find the maximum speed achieved
+        max_speed = df['Speed'].max()
+        max_speed_idx = df['Speed'].idxmax()
         
-        for i in range(1, len(df)):
-            # Detect significant speed drop (new run starting)
-            if df.iloc[i]['Speed'] < df.iloc[i-1]['Speed'] - speed_threshold:
-                # Save previous run if it has data
-                run_df = df.iloc[current_run_start:i].copy()
-                if len(run_df) > 5:  # Minimum 5 points for a valid run
-                    runs.append(run_df)
-                current_run_start = i
+        # Find where the run starts (first time speed crosses threshold before max)
+        before_max = df.loc[:max_speed_idx]
+        above_threshold_before = before_max['Speed'] >= speed_threshold
         
-        # Add final run
-        final_run = df.iloc[current_run_start:].copy()
-        if len(final_run) > 5:
-            runs.append(final_run)
+        if above_threshold_before.any():
+            start_idx = before_max[above_threshold_before].index[0]
+        else:
+            start_idx = df.index[0]
         
-        return runs
+        # Find where the run ends (last time speed is above threshold after max)
+        after_max = df.loc[max_speed_idx:]
+        above_threshold_after = after_max['Speed'] >= speed_threshold
+        
+        if above_threshold_after.any():
+            end_idx = after_max[above_threshold_after].index[-1]
+        else:
+            end_idx = max_speed_idx
+        
+        # Extract the main acceleration run
+        run_df = df.loc[start_idx:end_idx].copy()
+        
+        if len(run_df) > 5:  # Minimum 5 points for a valid run
+            return [run_df]
+        
+        return []
     
     @staticmethod
     def get_best_run(runs: List[pd.DataFrame], target_speed: float = 100.0) -> Optional[pd.DataFrame]:

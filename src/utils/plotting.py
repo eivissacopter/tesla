@@ -57,6 +57,11 @@ class PlotBuilder:
                 symbol_map={'circle': 'circle', 'star': 'star'}
             )
         
+        # Hide marker symbol legend items (circle/star) - symbols already shown in legend
+        for trace in fig.data:
+            if trace.name in ['circle', 'star']:
+                trace.showlegend = False
+        
         PlotBuilder._add_watermark(fig)
         PlotBuilder._configure_legend(fig)
         
