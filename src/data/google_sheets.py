@@ -109,7 +109,7 @@ class GoogleSheetsClient:
             battery_info.drop(battery_info.columns[[6, 7]], axis=1, inplace=True)
             
             # Replace commas with dots
-            battery_info = battery_info.applymap(
+            battery_info = battery_info.map(
                 lambda x: x.replace(',', '.') if isinstance(x, str) else x
             )
             

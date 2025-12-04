@@ -164,7 +164,7 @@ def main():
         fig = PlotBuilder.add_tesla_retention_line(fig, odometer_km, retention)
     
     # Display plot
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
     
     # SOH 70% projection
     if batteries:
@@ -278,7 +278,7 @@ def _render_degradation_bar_chart(batteries: list, x_axis_data: str):
             f'Average Degradation / {x_label}'
         )
     
-    st.plotly_chart(bar_fig, use_container_width=True)
+    st.plotly_chart(bar_fig, width="stretch")
 
 
 def _render_battery_info_table(sheets_client: GoogleSheetsClient, batteries: list):

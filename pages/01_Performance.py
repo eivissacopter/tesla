@@ -193,7 +193,7 @@ def main():
         lambda trace: trace.update(line_color=color_map.get(trace.name, trace.line.color))
     )
     
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
     
     # Sidebar footer
     UIComponents.render_sidebar_footer()
