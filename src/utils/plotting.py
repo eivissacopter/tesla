@@ -209,7 +209,7 @@ class PlotBuilder:
         """Create a line plot for performance data.
         
         Args:
-            plot_df: DataFrame with plot data.
+            plot_df: DataFrame with plot data (must include 'File' column).
             x_label: X-axis label.
             y_label: Y-axis label.
             color_map: Mapping of labels to colors.
@@ -217,21 +217,42 @@ class PlotBuilder:
         Returns:
             Plotly Figure object.
         """
-        fig = px.line(
-            plot_df,
-            x='X',
-            y='Y',
-            color='Label',
-            labels={'X': x_label, 'Y': y_label},
-            color_discrete_map=color_map
-        )
+        fig = go.Figure()
         
-        # Make lines wider and prevent connecting gaps
-        for trace in fig.data:
-            trace.update(
-                line=dict(width=3),
-                connectgaps=False  # Don't connect lines across gaps
-            )
+        # Group by Label and File to create separate traces
+        # This prevents lines from connecting between different files
+        for label in plot_df['Label'].unique():
+            label_df = plot_df[plot_df['Label'] == label]
+            
+            if 'File' in label_df.columns:
+                # Create a trace for each file within this label
+                for file_name in label_df['File'].unique():
+                    file_df = label_df[label_df['File'] == file_name].sort_values('X')
+                    
+                    # Only show legend for first trace of each label
+                    show_legend = (file_name == label_df['File'].iloc[0])
+                    
+                    fig.add_trace(go.Scatter(
+                        x=file_df['X'],
+                        y=file_df['Y'],
+                        mode='lines',
+                        name=label,
+                        line=dict(color=color_map.get(label), width=3),
+                        legendgroup=label,
+                        showlegend=show_legend,
+                        connectgaps=False
+                    ))
+            else:
+                # Fallback for data without File column
+                label_df = label_df.sort_values('X')
+                fig.add_trace(go.Scatter(
+                    x=label_df['X'],
+                    y=label_df['Y'],
+                    mode='lines',
+                    name=label,
+                    line=dict(color=color_map.get(label), width=3),
+                    connectgaps=False
+                ))
         
         # Configure layout
         fig.update_layout(

@@ -448,7 +448,8 @@ def generate_plot_data(
                             'X': df['Speed'].loc[combined_value.index],
                             'Y': combined_value,
                             'Label': f"{legend_label} - Combined Motor {'Power' if 'Power' in column else 'Torque'}",
-                            'Color': folder_colors[legend_label]
+                            'Color': folder_colors[legend_label],
+                            'File': info.name  # Add file identifier to prevent line connections
                         }))
                 else:
                     for sub_col in available_cols:
@@ -456,7 +457,8 @@ def generate_plot_data(
                             'X': df['Speed'],
                             'Y': df[sub_col],
                             'Label': f"{legend_label} - {sub_col}",
-                            'Color': folder_colors[legend_label]
+                            'Color': folder_colors[legend_label],
+                            'File': info.name  # Add file identifier
                         }))
             else:
                 if y_cols not in df.columns:
@@ -472,7 +474,8 @@ def generate_plot_data(
                         'X': df['Speed'].loc[y_data.index],
                         'Y': y_data,
                         'Label': f"{legend_label} - {column}",
-                        'Color': folder_colors[legend_label]
+                        'Color': folder_colors[legend_label],
+                        'File': info.name  # Add file identifier
                     }))
     
     if not plot_data:
@@ -595,7 +598,8 @@ def generate_acceleration_plot_data(
                             'X': best_run['Time'].loc[combined_value.index],
                             'Y': combined_value,
                             'Label': f"{legend_label} - Combined Motor {'Power' if 'Power' in column else 'Torque'}",
-                            'Color': folder_colors[legend_label]
+                            'Color': folder_colors[legend_label],
+                            'File': info.name  # Add file identifier
                         }))
                 else:
                     for sub_col in available_cols:
@@ -603,7 +607,8 @@ def generate_acceleration_plot_data(
                             'X': best_run['Time'],
                             'Y': best_run[sub_col],
                             'Label': f"{legend_label} - {sub_col}",
-                            'Color': folder_colors[legend_label]
+                            'Color': folder_colors[legend_label],
+                            'File': info.name  # Add file identifier
                         }))
             else:
                 if y_cols not in best_run.columns:
@@ -619,7 +624,8 @@ def generate_acceleration_plot_data(
                         'X': best_run['Time'].loc[y_data.index],
                         'Y': y_data,
                         'Label': f"{legend_label} - {column}",
-                        'Color': folder_colors[legend_label]
+                        'Color': folder_colors[legend_label],
+                        'File': info.name  # Add file identifier
                     }))
     
     if not plot_data:
