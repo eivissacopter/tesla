@@ -7,7 +7,7 @@ from typing import List, Dict, Tuple
 from src.config import Config
 from src.data import PerformanceDataClient
 from src.models import PerformanceFolder, PerformanceFileInfo
-from src.utils import PlotBuilder
+from src.utils import PlotBuilder, AccelerationAnalyzer
 from src.ui import UIComponents
 
 
@@ -162,13 +162,47 @@ def main():
         value=20
     )
     
-    # Generate plot
-    plot_df, color_map = generate_plot_data(
-        filtered_file_info,
-        selected_columns,
-        perf_client,
-        smoothing_value
+    # Acceleration analysis mode
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("### Acceleration Analysis")
+    acceleration_mode = st.sidebar.checkbox(
+        "Acceleration Run Mode",
+        value=False,
+        help="Analyze 0-100, 0-200 acceleration runs"
     )
+    
+    if acceleration_mode:
+        target_speed = st.sidebar.selectbox(
+            "Target Speed",
+            [60, 100, 160, 200],
+            index=1,
+            help="Speed target for acceleration analysis (kph)"
+        )
+        
+        show_metrics = st.sidebar.checkbox(
+            "Show Acceleration Metrics",
+            value=True,
+            help="Display 0-60, 0-100, quarter mile times"
+        )
+    
+    # Generate plot
+    if acceleration_mode:
+        plot_df, color_map, metrics = generate_acceleration_plot_data(
+            filtered_file_info,
+            selected_columns,
+            perf_client,
+            smoothing_value,
+            target_speed,
+            show_metrics
+        )
+    else:
+        plot_df, color_map = generate_plot_data(
+            filtered_file_info,
+            selected_columns,
+            perf_client,
+            smoothing_value
+        )
+        metrics = None
     
     if plot_df.empty:
         st.write("No data available to plot with the selected options.")
@@ -194,6 +228,31 @@ def main():
     )
     
     st.plotly_chart(fig, width="stretch")
+    
+    # Display acceleration metrics if in acceleration mode
+    if acceleration_mode and metrics:
+        st.markdown("### 📊 Acceleration Metrics")
+        for file_name, file_metrics in metrics.items():
+            with st.expander(f"📈 {file_name}"):
+                cols = st.columns(3)
+                
+                if '0-60_kph' in file_metrics:
+                    cols[0].metric("0-60 kph", f"{file_metrics['0-60_kph']:.2f}s")
+                if '0-100_kph' in file_metrics:
+                    cols[1].metric("0-100 kph", f"{file_metrics['0-100_kph']:.2f}s")
+                if '0-200_kph' in file_metrics:
+                    cols[2].metric("0-200 kph", f"{file_metrics['0-200_kph']:.2f}s")
+                
+                cols2 = st.columns(3)
+                if 'quarter_mile_time' in file_metrics:
+                    cols2[0].metric("Quarter Mile", f"{file_metrics['quarter_mile_time']:.2f}s")
+                if 'quarter_mile_speed' in file_metrics:
+                    cols2[1].metric("QM Speed", f"{file_metrics['quarter_mile_speed']:.1f} kph")
+                if 'max_speed' in file_metrics:
+                    cols2[2].metric("Max Speed", f"{file_metrics['max_speed']:.1f} kph")
+                
+                if 'avg_battery_power' in file_metrics:
+                    st.metric("Avg Battery Power", f"{file_metrics['avg_battery_power']:.1f} kW")
     
     # Sidebar footer
     UIComponents.render_sidebar_footer()
@@ -436,6 +495,153 @@ def generate_plot_data(
                 plot_df.loc[plot_df['Label'] == label, 'Y'] = smoothed_values
     
     return plot_df, color_map
+
+
+def generate_acceleration_plot_data(
+    file_info: List[PerformanceFileInfo],
+    selected_columns: List[str],
+    perf_client: PerformanceDataClient,
+    smoothing_value: int,
+    target_speed: int,
+    show_metrics: bool
+) -> Tuple[pd.DataFrame, Dict[str, str], Dict]:
+    """Generate plot data for acceleration runs.
+    
+    Args:
+        file_info: List of file information objects.
+        selected_columns: Selected columns to plot.
+        perf_client: Performance data client.
+        smoothing_value: Smoothing window size.
+        target_speed: Target speed for acceleration (kph).
+        show_metrics: Whether to calculate metrics.
+        
+    Returns:
+        Tuple of (plot_df, color_map, metrics_dict).
+    """
+    columns_map = {
+        "Max Discharge Power [kW]": "Max discharge power",
+        "Battery Power [kW]": "Battery power",
+        "Battery Current [A]": "Battery current",
+        "Battery Voltage [V]": "Battery voltage",
+        "Front/Rear Motor Power [kW]": ["F power", "R power"],
+        "Combined Motor Power [kW]": ["F power", "R power"],
+        "Front/Rear Motor Torque [Nm]": ["F torque", "R torque"],
+        "Combined Motor Torque [Nm]": ["F torque", "R torque"]
+    }
+    
+    folder_colors = {}
+    plot_data = []
+    metrics_dict = {}
+    
+    for i, info in enumerate(file_info):
+        legend_label = info.folder.get_legend_label()
+        
+        if legend_label not in folder_colors:
+            folder_colors[legend_label] = Config.PERFORMANCE_COLORS[
+                len(folder_colors) % len(Config.PERFORMANCE_COLORS)
+            ]
+        
+        df = perf_client.fetch_csv_data(info.path)
+        if df is None:
+            continue
+        
+        # Detect acceleration runs
+        runs = AccelerationAnalyzer.detect_acceleration_runs(df, speed_threshold=10.0)
+        
+        if not runs:
+            continue
+        
+        # Get best run to target speed
+        best_run = AccelerationAnalyzer.get_best_run(runs, target_speed=target_speed)
+        
+        if best_run is None or best_run.empty:
+            continue
+        
+        # Calculate metrics if requested
+        if show_metrics:
+            metrics_dict[info.name] = AccelerationAnalyzer.calculate_acceleration_metrics(best_run)
+        
+        # Filter to 0 to target speed range
+        best_run = AccelerationAnalyzer.filter_run_by_speed_range(best_run, 0, target_speed)
+        
+        if best_run.empty:
+            continue
+        
+        # Normalize time to start from 0
+        best_run = best_run.copy()
+        start_time = best_run['Time'].min()
+        best_run['Time'] = best_run['Time'] - start_time
+        
+        # Process selected columns
+        for column in selected_columns:
+            y_cols = columns_map.get(column)
+            if y_cols is None:
+                continue
+            
+            if isinstance(y_cols, list):
+                available_cols = [col for col in y_cols if col in best_run.columns]
+                
+                if not available_cols:
+                    continue
+                
+                if column in ["Combined Motor Power [kW]", "Combined Motor Torque [Nm]"]:
+                    combined_value = best_run[available_cols].sum(axis=1, skipna=True)
+                    
+                    if column == "Combined Motor Power [kW]":
+                        combined_value = combined_value[combined_value >= Config.COMBINED_MOTOR_POWER_THRESHOLD]
+                    
+                    if len(combined_value) > 0:
+                        plot_data.append(pd.DataFrame({
+                            'X': best_run['Time'].loc[combined_value.index],
+                            'Y': combined_value,
+                            'Label': f"{legend_label} - Combined Motor {'Power' if 'Power' in column else 'Torque'}",
+                            'Color': folder_colors[legend_label]
+                        }))
+                else:
+                    for sub_col in available_cols:
+                        plot_data.append(pd.DataFrame({
+                            'X': best_run['Time'],
+                            'Y': best_run[sub_col],
+                            'Label': f"{legend_label} - {sub_col}",
+                            'Color': folder_colors[legend_label]
+                        }))
+            else:
+                if y_cols not in best_run.columns:
+                    continue
+                
+                y_data = best_run[y_cols]
+                
+                if 'Battery power' in y_cols:
+                    y_data = y_data[y_data >= Config.BATTERY_POWER_THRESHOLD]
+                
+                if len(y_data) > 0:
+                    plot_data.append(pd.DataFrame({
+                        'X': best_run['Time'].loc[y_data.index],
+                        'Y': y_data,
+                        'Label': f"{legend_label} - {column}",
+                        'Color': folder_colors[legend_label]
+                    }))
+    
+    if not plot_data:
+        return pd.DataFrame(), {}, metrics_dict
+    
+    # Combine all plot data
+    plot_df = pd.concat(plot_data, ignore_index=True)
+    plot_df.dropna(subset=['X', 'Y'], inplace=True)
+    
+    # Create color map
+    unique_labels = plot_df['Label'].unique()
+    color_map = {label: folder_colors[label.split(" - ")[0]] for label in unique_labels}
+    
+    # Apply smoothing
+    if smoothing_value > 0:
+        for label in unique_labels:
+            y_values = plot_df.loc[plot_df['Label'] == label, 'Y'].values
+            if len(y_values) >= smoothing_value:
+                smoothed_values = uniform_filter1d(y_values, size=smoothing_value)
+                plot_df.loc[plot_df['Label'] == label, 'Y'] = smoothed_values
+    
+    return plot_df, color_map, metrics_dict
 
 
 if __name__ == "__main__":
