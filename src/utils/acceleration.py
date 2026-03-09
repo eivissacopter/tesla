@@ -1,204 +1,189 @@
 """Performance analysis utilities for acceleration runs."""
-from typing import List, Tuple, Optional
-import pandas as pd
+from typing import Dict, List, Optional
+
 import numpy as np
+import pandas as pd
 
 
 class AccelerationAnalyzer:
     """Analyzer for acceleration run data."""
-    
+
     @staticmethod
     def detect_acceleration_runs(df: pd.DataFrame, speed_threshold: float = 10.0) -> List[pd.DataFrame]:
-        """Detect individual acceleration runs in a performance CSV.
-        
-        Handles files with a single acceleration run that may have positioning
-        data before and after the actual run. Identifies the main acceleration
-        segment by finding the maximum speed achieved.
-        
-        Args:
-            df: DataFrame with Speed column.
-            speed_threshold: Minimum speed to consider active run (kph).
-            
-        Returns:
-            List of DataFrames, one per acceleration run.
-        """
-        if 'Speed' not in df.columns or df.empty:
+        """Detect one or more acceleration runs inside a telemetry file."""
+        prepared_df = AccelerationAnalyzer._prepare_run_dataframe(df)
+        if prepared_df.empty:
             return []
-        
-        # Find the maximum speed achieved
-        max_speed = df['Speed'].max()
-        max_speed_idx = df['Speed'].idxmax()
-        
-        # Find where the run starts (first time speed crosses threshold before max)
-        before_max = df.loc[:max_speed_idx]
-        above_threshold_before = before_max['Speed'] >= speed_threshold
-        
-        if above_threshold_before.any():
-            start_idx = before_max[above_threshold_before].index[0]
-        else:
-            start_idx = df.index[0]
-        
-        # Find where the run ends (last time speed is above threshold after max)
-        after_max = df.loc[max_speed_idx:]
-        above_threshold_after = after_max['Speed'] >= speed_threshold
-        
-        if above_threshold_after.any():
-            end_idx = after_max[above_threshold_after].index[-1]
-        else:
-            end_idx = max_speed_idx
-        
-        # Extract the main acceleration run
-        run_df = df.loc[start_idx:end_idx].copy()
-        
-        if len(run_df) > 5:  # Minimum 5 points for a valid run
-            return [run_df]
-        
-        return []
-    
+
+        active = prepared_df['Speed'] >= speed_threshold
+        if not active.any():
+            return []
+
+        active_values = active.to_numpy()
+        start_positions = np.flatnonzero(active_values & ~np.roll(active_values, 1))
+        end_positions = np.flatnonzero(active_values & ~np.roll(active_values, -1))
+        if active_values[0]:
+            start_positions[0] = 0
+        if active_values[-1]:
+            end_positions[-1] = len(active_values) - 1
+
+        runs: List[pd.DataFrame] = []
+        for start_position, end_position in zip(start_positions, end_positions):
+            extended_start = AccelerationAnalyzer._extend_start(prepared_df, start_position)
+            extended_end = AccelerationAnalyzer._extend_end(prepared_df, end_position, speed_threshold)
+            run_df = prepared_df.iloc[extended_start:extended_end + 1].copy()
+
+            if len(run_df) < 6:
+                continue
+            if run_df['Speed'].max() < speed_threshold + 20:
+                continue
+
+            runs.append(run_df.reset_index(drop=True))
+
+        return runs
+
     @staticmethod
     def get_best_run(runs: List[pd.DataFrame], target_speed: float = 100.0) -> Optional[pd.DataFrame]:
-        """Get the best (fastest) acceleration run to a target speed.
-        
-        Args:
-            runs: List of acceleration run DataFrames.
-            target_speed: Target speed in kph.
-            
-        Returns:
-            DataFrame of the best run, or None if no valid runs.
-        """
-        if not runs:
-            return None
-        
+        """Get the fastest run to a target speed using interpolated crossing times."""
         best_run = None
         best_time = float('inf')
-        
+
         for run in runs:
-            # Check if run reaches target speed
-            max_speed = run['Speed'].max()
-            if max_speed >= target_speed:
-                # Find time to reach target speed
-                target_rows = run[run['Speed'] >= target_speed]
-                if not target_rows.empty:
-                    time_to_target = target_rows.iloc[0]['Time'] - run.iloc[0]['Time']
-                    if time_to_target < best_time:
-                        best_time = time_to_target
-                        best_run = run
-        
+            time_to_target = AccelerationAnalyzer._time_at_speed(run, target_speed)
+            if time_to_target is None:
+                continue
+            if time_to_target < best_time:
+                best_time = time_to_target
+                best_run = run
+
         return best_run
-    
+
     @staticmethod
-    def calculate_acceleration_metrics(df: pd.DataFrame) -> dict:
-        """Calculate key acceleration metrics from a run.
-        
-        Args:
-            df: DataFrame with Time and Speed columns.
-            
-        Returns:
-            Dictionary with acceleration metrics.
-        """
-        if df.empty or 'Time' not in df.columns or 'Speed' not in df.columns:
+    def calculate_acceleration_metrics(df: pd.DataFrame) -> Dict[str, float]:
+        """Calculate key acceleration metrics from a run."""
+        prepared_df = AccelerationAnalyzer._prepare_run_dataframe(df)
+        if prepared_df.empty:
             return {}
-        
-        metrics = {}
-        start_time = df.iloc[0]['Time']
-        
-        # 0-60 kph
-        speed_60 = df[df['Speed'] >= 60]
-        if not speed_60.empty:
-            metrics['0-60_kph'] = speed_60.iloc[0]['Time'] - start_time
-        
-        # 0-100 kph
-        speed_100 = df[df['Speed'] >= 100]
-        if not speed_100.empty:
-            metrics['0-100_kph'] = speed_100.iloc[0]['Time'] - start_time
-        
-        # 0-200 kph
-        speed_200 = df[df['Speed'] >= 200]
-        if not speed_200.empty:
-            metrics['0-200_kph'] = speed_200.iloc[0]['Time'] - start_time
-        
-        # Quarter mile (402.336 meters)
-        # Approximate distance from speed data (integrate speed over time)
-        if len(df) > 1:
-            df_sorted = df.sort_values('Time').copy()
-            # Convert kph to m/s and calculate distance
-            df_sorted['Speed_ms'] = df_sorted['Speed'] / 3.6
-            df_sorted['Time_diff'] = df_sorted['Time'].diff()
-            df_sorted['Distance'] = df_sorted['Speed_ms'] * df_sorted['Time_diff']
-            df_sorted['Cumulative_Distance'] = df_sorted['Distance'].cumsum()
-            
-            quarter_mile = df_sorted[df_sorted['Cumulative_Distance'] >= 402.336]
-            if not quarter_mile.empty:
-                metrics['quarter_mile_time'] = quarter_mile.iloc[0]['Time'] - start_time
-                metrics['quarter_mile_speed'] = quarter_mile.iloc[0]['Speed']
-        
-        # Max speed achieved
-        metrics['max_speed'] = df['Speed'].max()
-        
-        # Average power during run
-        if 'Battery power' in df.columns:
-            metrics['avg_battery_power'] = df['Battery power'].mean()
-        
+
+        metrics: Dict[str, float] = {}
+        for speed, key in [(60, '0-60_kph'), (100, '0-100_kph'), (160, '0-160_kph'), (200, '0-200_kph')]:
+            crossing_time = AccelerationAnalyzer._time_at_speed(prepared_df, speed)
+            if crossing_time is not None:
+                metrics[key] = crossing_time
+
+        distance_df = prepared_df.copy()
+        distance_df['Speed_ms'] = distance_df['Speed'] / 3.6
+        distance_df['Delta_t'] = distance_df['Time'].diff().fillna(0)
+        distance_df['SegmentDistance'] = (
+            (distance_df['Speed_ms'] + distance_df['Speed_ms'].shift(1).fillna(distance_df['Speed_ms']))
+            / 2
+        ) * distance_df['Delta_t']
+        distance_df['CumulativeDistance'] = distance_df['SegmentDistance'].cumsum()
+
+        quarter_mile = distance_df[distance_df['CumulativeDistance'] >= 402.336]
+        if not quarter_mile.empty:
+            first_row = quarter_mile.iloc[0]
+            metrics['quarter_mile_time'] = float(first_row['Time']) - float(distance_df.iloc[0]['Time'])
+            metrics['quarter_mile_speed'] = float(first_row['Speed'])
+
+        metrics['max_speed'] = float(prepared_df['Speed'].max())
+
+        if 'Battery power' in prepared_df.columns:
+            battery_power = pd.to_numeric(prepared_df['Battery power'], errors='coerce').dropna()
+            if not battery_power.empty:
+                metrics['avg_battery_power'] = float(battery_power.mean())
+                metrics['peak_battery_power'] = float(battery_power.max())
+
         return metrics
-    
+
     @staticmethod
     def filter_run_by_speed_range(df: pd.DataFrame, start_speed: float = 0, end_speed: float = 200) -> pd.DataFrame:
-        """Filter a run to only show data within a speed range.
-        
-        Args:
-            df: DataFrame with Speed column.
-            start_speed: Minimum speed to include (kph).
-            end_speed: Maximum speed to include (kph).
-            
-        Returns:
-            Filtered DataFrame.
-        """
-        if df.empty or 'Speed' not in df.columns:
-            return df
-        
-        # Find first point at or above start speed
-        start_idx = df[df['Speed'] >= start_speed].index
-        if start_idx.empty:
+        """Filter a run to the region between start and end speed crossings."""
+        prepared_df = AccelerationAnalyzer._prepare_run_dataframe(df)
+        if prepared_df.empty:
+            return prepared_df
+
+        start_candidates = prepared_df.index[prepared_df['Speed'] >= start_speed]
+        if len(start_candidates) == 0:
             return pd.DataFrame()
-        
-        # Find last point at or below end speed
-        end_idx = df[df['Speed'] <= end_speed].index
-        if end_idx.empty:
-            return df.loc[start_idx[0]:]
-        
-        # Return data from start to end
-        return df.loc[start_idx[0]:end_idx[-1]]
-    
+        start_idx = int(start_candidates[0])
+
+        end_candidates = prepared_df.index[prepared_df['Speed'] >= end_speed]
+        end_idx = int(end_candidates[0]) if len(end_candidates) else int(prepared_df.index[-1])
+        return prepared_df.loc[start_idx:end_idx].reset_index(drop=True)
+
     @staticmethod
     def interpolate_acceleration_data(df: pd.DataFrame, interval: float = 0.1) -> pd.DataFrame:
-        """Interpolate acceleration data to regular time intervals.
-        
-        Useful for smoothing sparse data and creating consistent plots.
-        
-        Args:
-            df: DataFrame with Time and Speed columns.
-            interval: Time interval for interpolation (seconds).
-            
-        Returns:
-            Interpolated DataFrame.
-        """
-        if df.empty or 'Time' not in df.columns:
-            return df
-        
-        # Create regular time series
-        time_min = df['Time'].min()
-        time_max = df['Time'].max()
-        new_times = np.arange(time_min, time_max, interval)
-        
-        # Interpolate all numeric columns
+        """Interpolate acceleration data to regular time intervals."""
+        prepared_df = AccelerationAnalyzer._prepare_run_dataframe(df)
+        if prepared_df.empty:
+            return prepared_df
+
+        time_min = prepared_df['Time'].min()
+        time_max = prepared_df['Time'].max()
+        new_times = np.arange(time_min, time_max + interval, interval)
+
         interpolated_data = {'Time': new_times}
-        
-        for col in df.select_dtypes(include=[np.number]).columns:
-            if col != 'Time':
-                interpolated_data[col] = np.interp(
-                    new_times,
-                    df['Time'].values,
-                    df[col].values
-                )
-        
+        for column in prepared_df.select_dtypes(include=[np.number]).columns:
+            if column == 'Time':
+                continue
+            interpolated_data[column] = np.interp(new_times, prepared_df['Time'].values, prepared_df[column].values)
+
         return pd.DataFrame(interpolated_data)
+
+    @staticmethod
+    def _prepare_run_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+        """Normalize and sort telemetry data for run analytics."""
+        required_columns = {'Time', 'Speed'}
+        if df.empty or not required_columns.issubset(df.columns):
+            return pd.DataFrame()
+
+        prepared_df = df.copy()
+        prepared_df['Time'] = pd.to_numeric(prepared_df['Time'], errors='coerce')
+        prepared_df['Speed'] = pd.to_numeric(prepared_df['Speed'], errors='coerce')
+        prepared_df = prepared_df.dropna(subset=['Time', 'Speed']).sort_values('Time').reset_index(drop=True)
+        prepared_df = prepared_df[prepared_df['Time'].diff().fillna(0).ge(0)]
+        return prepared_df
+
+    @staticmethod
+    def _extend_start(df: pd.DataFrame, start_position: int, launch_speed: float = 3.0, window: int = 25) -> int:
+        """Extend a run backwards to include the launch roll-in."""
+        lower_bound = max(0, start_position - window)
+        for position in range(start_position, lower_bound - 1, -1):
+            if df.iloc[position]['Speed'] <= launch_speed:
+                return position
+        return lower_bound
+
+    @staticmethod
+    def _extend_end(df: pd.DataFrame, end_position: int, speed_threshold: float, window: int = 25) -> int:
+        """Extend a run forward until the car is clearly out of the pull."""
+        upper_bound = min(len(df) - 1, end_position + window)
+        for position in range(end_position, upper_bound + 1):
+            if df.iloc[position]['Speed'] < speed_threshold:
+                return position
+        return upper_bound
+
+    @staticmethod
+    def _time_at_speed(df: pd.DataFrame, target_speed: float) -> Optional[float]:
+        """Estimate crossing time for a target speed using linear interpolation."""
+        prepared_df = AccelerationAnalyzer._prepare_run_dataframe(df)
+        if prepared_df.empty or prepared_df['Speed'].max() < target_speed:
+            return None
+
+        speeds = prepared_df['Speed'].to_numpy()
+        times = prepared_df['Time'].to_numpy()
+        base_time = float(times[0])
+
+        for index in range(1, len(prepared_df)):
+            previous_speed = speeds[index - 1]
+            current_speed = speeds[index]
+            if previous_speed <= target_speed <= current_speed:
+                previous_time = times[index - 1]
+                current_time = times[index]
+                if current_speed == previous_speed:
+                    return float(current_time - base_time)
+                ratio = (target_speed - previous_speed) / (current_speed - previous_speed)
+                interpolated_time = previous_time + ratio * (current_time - previous_time)
+                return float(interpolated_time - base_time)
+
+        return None
