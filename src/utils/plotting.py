@@ -28,7 +28,11 @@ class PlotBuilder:
         plot_df = df.copy()
         hover_data = {
             column: True
-            for column in ['Tesla', 'Version', 'Battery', 'Username', 'Age', 'Odometer', 'SOH', 'Daily SOC Limit', 'DC Ratio']
+            for column in [
+                'Tesla', 'Version', 'Battery', 'Username', 'Age', 'Odometer', 'SOH',
+                'Daily SOC Limit', 'DC Ratio', 'Chronology Pack', 'Chronology Chemistry',
+                'Chronology Plant', 'Chronology Code', 'Chronology Match'
+            ]
             if column in plot_df.columns and column not in {x_column, y_column, color_column}
         }
 

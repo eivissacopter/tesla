@@ -38,6 +38,15 @@ class BatteryDataProcessor:
         if criteria.batteries and 'Battery' in df.columns:
             mask &= df['Battery'].isin(criteria.batteries)
 
+        if criteria.chronology_chemistries and 'Chronology Chemistry' in df.columns:
+            mask &= df['Chronology Chemistry'].isin(criteria.chronology_chemistries)
+
+        if criteria.chronology_plants and 'Chronology Plant' in df.columns:
+            mask &= df['Chronology Plant'].isin(criteria.chronology_plants)
+
+        if criteria.chronology_codes and 'Chronology Code' in df.columns:
+            mask &= df['Chronology Code'].isin(criteria.chronology_codes)
+
         if 'Age' in df.columns:
             age = pd.to_numeric(df['Age'], errors='coerce')
             mask &= age.between(criteria.min_age, criteria.max_age, inclusive='both')
@@ -163,14 +172,26 @@ class BatteryDataProcessor:
         if 'Version' in df.columns:
             group_columns.append('Version')
 
-        summary = df.groupby(group_columns, dropna=False).agg(
-            Samples=('Battery', 'size'),
-            Users=('Username', pd.Series.nunique) if 'Username' in df.columns else ('Battery', 'size'),
-            MedianSOH=('SOH', 'median') if 'SOH' in df.columns else ('Degradation', 'median'),
-            MedianDegradation=('Degradation', 'median') if 'Degradation' in df.columns else ('Battery', 'size'),
-            MedianAge=('Age', 'median') if 'Age' in df.columns else ('Battery', 'size'),
-            MedianOdometer=('Odometer', 'median') if 'Odometer' in df.columns else ('Battery', 'size'),
-        ).reset_index()
+        aggregation = {
+            'Samples': ('Battery', 'size'),
+            'Users': ('Username', pd.Series.nunique) if 'Username' in df.columns else ('Battery', 'size'),
+            'MedianSOH': ('SOH', 'median') if 'SOH' in df.columns else ('Degradation', 'median'),
+            'MedianDegradation': ('Degradation', 'median') if 'Degradation' in df.columns else ('Battery', 'size'),
+            'MedianAge': ('Age', 'median') if 'Age' in df.columns else ('Battery', 'size'),
+            'MedianOdometer': ('Odometer', 'median') if 'Odometer' in df.columns else ('Battery', 'size'),
+        }
+
+        for source_column, target_column in [
+            ('Chronology Pack', 'Chronology Pack'),
+            ('Chronology Chemistry', 'Chemistry'),
+            ('Chronology Plant', 'Plant'),
+            ('Chronology Code', 'Code'),
+            ('Chronology Confidence', 'Chronology Confidence'),
+        ]:
+            if source_column in df.columns:
+                aggregation[target_column] = (source_column, BatteryDataProcessor._mode_or_first)
+
+        summary = df.groupby(group_columns, dropna=False).agg(**aggregation).reset_index()
 
         rename_map = {
             'MedianSOH': 'Median SOH [%]',
@@ -188,6 +209,15 @@ class BatteryDataProcessor:
             summary = summary.drop(columns=['Users'])
 
         return summary.sort_values(by='Samples', ascending=False)
+
+    @staticmethod
+    def _mode_or_first(series: pd.Series):
+        """Return the most common non-empty value in a series."""
+        cleaned = series.dropna().astype(str).str.strip()
+        cleaned = cleaned[cleaned.ne('') & cleaned.ne('nan') & cleaned.ne('None')]
+        if cleaned.empty:
+            return None
+        return cleaned.mode().iloc[0]
 
     @staticmethod
     def predict_soh_70(batteries: List[str], df: pd.DataFrame, x_axis_data: str) -> List[SOHProjection]:

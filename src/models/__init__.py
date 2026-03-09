@@ -52,6 +52,9 @@ class FilterCriteria:
     max_age: int
     min_odo: int
     max_odo: int
+    chronology_chemistries: List[str]
+    chronology_plants: List[str]
+    chronology_codes: List[str]
     hide_replaced_packs: bool = True
     daily_soc_min: Optional[float] = None
     daily_soc_max: Optional[float] = None

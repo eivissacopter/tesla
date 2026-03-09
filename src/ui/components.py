@@ -204,7 +204,8 @@ class UIComponents:
         st.subheader("Latest Entries")
         preferred_columns = [
             column for column in [
-                'Username', 'Tesla', 'Version', 'Battery', 'SOH', 'Degradation', 'Age', 'Odometer'
+                'Username', 'Tesla', 'Version', 'Battery', 'Chronology Pack', 'Chronology Chemistry',
+                'SOH', 'Degradation', 'Age', 'Odometer'
             ] if column in df.columns
         ]
         display_df = df[preferred_columns] if preferred_columns else df
@@ -238,6 +239,30 @@ class UIComponents:
         battery = st.sidebar.multiselect(':battery: Battery', battery_options, key='battery')
 
         return tesla, version, battery
+
+    @staticmethod
+    def create_chronology_filters(df: pd.DataFrame) -> Tuple[List[str], List[str], List[str]]:
+        """Create Akkuchronik-derived filters."""
+        if df.empty:
+            return [], [], []
+
+        st.sidebar.markdown('#### Akkuchronik')
+        filtered_df = df.copy()
+
+        chemistry_options = sorted(filtered_df['Chronology Chemistry'].dropna().unique().tolist()) if 'Chronology Chemistry' in filtered_df.columns else []
+        chemistries = st.sidebar.multiselect(':test_tube: Chemistry', chemistry_options, key='chronology_chemistry')
+        if chemistries and 'Chronology Chemistry' in filtered_df.columns:
+            filtered_df = filtered_df[filtered_df['Chronology Chemistry'].isin(chemistries)]
+
+        plant_options = sorted(filtered_df['Chronology Plant'].dropna().unique().tolist()) if 'Chronology Plant' in filtered_df.columns else []
+        plants = st.sidebar.multiselect(':factory: Plant', plant_options, key='chronology_plant')
+        if plants and 'Chronology Plant' in filtered_df.columns:
+            filtered_df = filtered_df[filtered_df['Chronology Plant'].isin(plants)]
+
+        code_options = sorted(filtered_df['Chronology Code'].dropna().unique().tolist()) if 'Chronology Code' in filtered_df.columns else []
+        codes = st.sidebar.multiselect(':hash: Akku-Code', code_options, key='chronology_code')
+
+        return chemistries, plants, codes
 
     @staticmethod
     def create_age_odo_filters(df: pd.DataFrame) -> Tuple[int, int, int, int]:
@@ -416,4 +441,3 @@ class UIComponents:
                 """,
                 unsafe_allow_html=True
             )
-
