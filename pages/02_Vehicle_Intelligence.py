@@ -1,8 +1,9 @@
-"""Tesla Vehicle Intelligence reference and resolver page."""
+﻿"""Tesla Vehicle Intelligence reference and resolver page."""
 import pandas as pd
 import streamlit as st
 
-from src.data import BatteryChronologyClient, VehicleIntelligenceClient
+from src.data.battery_chronology import BatteryChronologyClient
+from src.data.vehicle_intelligence import VehicleIntelligenceClient
 
 
 st.set_page_config(
@@ -15,10 +16,8 @@ st.set_page_config(
 def main():
     """Main page entry point."""
     st.title('Tesla Vehicle Intelligence')
-    st.caption(
-        'Curated from the TFF motor / drive-unit wiki, HSN/TSN wiki, technical-changes wiki, and the Akkuchronik battery mapping. '
-        'Use VC/VS codes from the COC or TSN keys from the registration papers for the highest confidence.'
-    )
+    st.caption('Decode Tesla battery, motors, release family, and registration clues in one place.')
+
 
     resolver_tab, releases_tab, hsn_tab, motors_tab, unicorns_tab = st.tabs([
         'Resolver', 'VC/VS Timeline', 'HSN/TSN', 'Motors', 'Unicorns'
@@ -260,3 +259,5 @@ def _metric_value(value) -> str:
 
 if __name__ == '__main__':
     main()
+
+

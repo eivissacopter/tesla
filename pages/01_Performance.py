@@ -1,4 +1,4 @@
-"""Tesla Performance Analysis - Refactored Page."""
+﻿"""Tesla Performance Analysis - Refactored Page."""
 from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
@@ -6,7 +6,7 @@ from scipy.ndimage import uniform_filter1d
 import streamlit as st
 
 from src.config import Config
-from src.data import PerformanceDataClient
+from src.data.performance_data import PerformanceDataClient
 from src.models import PerformanceFileInfo, PerformanceFolder
 from src.utils import AccelerationAnalyzer, PlotBuilder
 from src.ui import UIComponents
@@ -529,3 +529,4 @@ def _render_acceleration_metrics(metrics: Dict[str, Dict]) -> None:
 
 if __name__ == '__main__':
     main()
+

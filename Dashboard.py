@@ -1,10 +1,11 @@
-"""Tesla Battery Analysis - Refactored Dashboard."""
+﻿"""Tesla Battery Analysis - Refactored Dashboard."""
 import pandas as pd
 import plotly.io as pio
 import streamlit as st
 
 from src.config import Config
-from src.data import BatteryChronologyClient, GoogleSheetsClient
+from src.data.battery_chronology import BatteryChronologyClient
+from src.data.google_sheets import GoogleSheetsClient
 from src.models import FilterCriteria
 from src.utils import BatteryDataProcessor, PlotBuilder
 from src.ui import UIComponents
@@ -177,7 +178,7 @@ def _render_overview_metrics(filtered_df: pd.DataFrame) -> None:
 def _render_chronology_resolver(tesla_models: list, versions: list, filtered_df: pd.DataFrame) -> None:
     """Render a chronology-based battery resolver using the provided Akkuchronik snapshot."""
     st.markdown('### Akkuchronik Resolver')
-    st.caption('Based on the provided Akkuchronik PDF. This is a curated snapshot with confidence hints and can be refined further over time.')
+    st.caption('Resolve likely battery, chemistry, and plant from model, trim, and delivery period.')
 
     market_options = ['Europe']
     default_model = _guess_model_default(tesla_models)
@@ -390,3 +391,4 @@ def _render_battery_info_table(sheets_client: GoogleSheetsClient, batteries: lis
 
 if __name__ == '__main__':
     main()
+
