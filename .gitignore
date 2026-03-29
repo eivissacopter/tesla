@@ -76,6 +76,7 @@ streamlit-storage
 
 # Data Files
 **/uber-raw-data-sep14.csv
+/data/
 
 lib/Pipfile.lock
 
