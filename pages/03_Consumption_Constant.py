@@ -42,6 +42,27 @@ def _safe_capacity(rated_range: Optional[float], constant: float) -> Optional[fl
     return round(rated_range * constant / 1000, 2)
 
 
+def _format_logged_vehicle(row: pd.Series) -> str:
+    """Build a stable vehicle label for saved readings."""
+    parts = []
+    car_name = str(row.get("car_name", "") or "").strip()
+    if car_name:
+        parts.append(car_name)
+
+    config_parts = [
+        str(row.get("model", "") or "").strip(),
+        str(row.get("variant", "") or "").strip(),
+        str(row.get("pack_code", "") or "").strip(),
+        str(row.get("drivetrain", "") or "").strip(),
+        str(row.get("wheels", "") or "").strip(),
+    ]
+    config_label = " ".join(part for part in config_parts if part)
+    if config_label:
+        parts.append(config_label)
+
+    return " | ".join(parts) if parts else "Unknown vehicle"
+
+
 def _render_header() -> None:
     """Render the page header."""
     st.markdown(
@@ -154,26 +175,41 @@ Source: [TFF Akkuwiki]({AKKUWIKI_URL})
             """
         )
 
-    return model, variant, battery, matches
+    selected_vehicle = matches[0] if matches else None
+    return selected_vehicle, battery, matches
 
 
 def _render_data_entry(
-    model: str,
-    variant: str,
     battery: str,
+    selected_vehicle,
     default_constant: Optional[float],
 ) -> None:
     """Render the logging form."""
     st.markdown("### Log New Reading")
+    if selected_vehicle is None:
+        st.info("Pick a verified vehicle configuration above before logging a reading.")
+        return
+
+    st.caption(
+        "Saving for: "
+        f"{selected_vehicle.model} {selected_vehicle.variant} | {selected_vehicle.pack_code} | "
+        f"{selected_vehicle.drivetrain}"
+        + (f" | {selected_vehicle.wheels}" if selected_vehicle.wheels else "")
+    )
 
     with st.form("cc_entry_form", clear_on_submit=True):
-        fc1, fc2 = st.columns(2)
+        fc1, fc2, fc3 = st.columns(3)
         username = fc1.text_input(
             "Username *",
             value=st.session_state.get("cc_username", ""),
             help="Your TFF Forum or TeslaTech username.",
         )
-        entry_date = fc2.date_input(
+        car_name = fc2.text_input(
+            "Car / Alias *",
+            value=st.session_state.get("cc_car_name", ""),
+            help="A unique label like 'Blue Highland LR' or the last VIN digits.",
+        )
+        entry_date = fc3.date_input(
             "Date *",
             value=date.today(),
             max_value=date.today(),
@@ -217,13 +253,22 @@ def _render_data_entry(
     if not username.strip():
         st.error("Username is required.")
         return
+    if not car_name.strip():
+        st.error("Car / Alias is required so readings stay tied to the exact vehicle.")
+        return
 
     st.session_state["cc_username"] = username.strip()
+    st.session_state["cc_car_name"] = car_name.strip()
     add_entry(
         username=username.strip(),
-        model=model,
-        variant=variant,
+        car_name=car_name.strip(),
+        model=selected_vehicle.model,
+        variant=selected_vehicle.variant,
         battery=battery,
+        pack_code=selected_vehicle.pack_code,
+        drivetrain=selected_vehicle.drivetrain,
+        wheels=selected_vehicle.wheels,
+        release=selected_vehicle.release,
         entry_date=entry_date,
         constant=constant,
         rated_range=rated_range if rated_range > 0 else None,
@@ -335,6 +380,17 @@ def _render_data_viewer() -> None:
         st.info("No entries for this user yet.")
         return
 
+    df["Vehicle"] = df.apply(_format_logged_vehicle, axis=1)
+    vehicle_options = ["All Cars"] + sorted(df["Vehicle"].dropna().unique().tolist())
+    selected_vehicle = col2.selectbox(
+        "Select Car",
+        vehicle_options,
+        index=0,
+        key="cc_viewer_vehicle",
+    )
+    if selected_vehicle != "All Cars":
+        df = df[df["Vehicle"] == selected_vehicle].copy()
+
     df["Capacity (kWh)"] = df.apply(
         lambda row: _safe_capacity(row["rated_range"], row["constant"]),
         axis=1,
@@ -342,34 +398,39 @@ def _render_data_viewer() -> None:
 
     latest = df.iloc[-1]
     earliest = df.iloc[0]
-    mc1, mc2, mc3, mc4, mc5 = st.columns(5)
+    mc1, mc2, mc3, mc4, mc5, mc6 = st.columns(6)
     mc1.metric("Entries", len(df))
-    mc2.metric("Latest Constant", f"{latest['constant']:.1f} Wh/km")
+    mc2.metric("Cars", df["Vehicle"].nunique())
+    mc3.metric("Latest Constant", f"{latest['constant']:.1f} Wh/km")
 
     if len(df) > 1:
         delta = latest["constant"] - earliest["constant"]
-        mc3.metric(
+        mc4.metric(
             "Change",
             f"{latest['constant']:.1f}",
             delta=f"{delta:+.1f} Wh/km",
             delta_color="inverse",
         )
     else:
-        mc3.metric("Change", "n/a")
+        mc4.metric("Change", "n/a")
 
     if pd.notna(latest["Capacity (kWh)"]):
-        mc4.metric("Latest Capacity", f"{latest['Capacity (kWh)']:.1f} kWh")
+        mc5.metric("Latest Capacity", f"{latest['Capacity (kWh)']:.1f} kWh")
     else:
-        mc4.metric("Latest Capacity", "n/a")
+        mc5.metric("Latest Capacity", "n/a")
 
     if pd.notna(latest["odometer"]):
-        mc5.metric("Latest Odometer", f"{latest['odometer']:,.0f} km")
+        mc6.metric("Latest Odometer", f"{latest['odometer']:,.0f} km")
     else:
-        mc5.metric("Latest Odometer", "n/a")
+        mc6.metric("Latest Odometer", "n/a")
 
     _render_chart(df)
 
     display_cols = [
+        "car_name",
+        "pack_code",
+        "drivetrain",
+        "wheels",
         "entry_date",
         "constant",
         "rated_range",
@@ -388,6 +449,10 @@ def _render_data_viewer() -> None:
             "constant": "Constant (Wh/km)",
             "rated_range": "Rated Range (km)",
             "odometer": "Odometer (km)",
+            "car_name": "Car / Alias",
+            "pack_code": "Pack Code",
+            "drivetrain": "Drive",
+            "wheels": "Wheels",
             "software": "Software",
             "model": "Model",
             "variant": "Variant",
@@ -416,6 +481,7 @@ def _render_data_viewer() -> None:
         delete_row = df[df["id"] == delete_id].iloc[0]
         st.write(
             f"**{delete_row['entry_date'].strftime('%Y-%m-%d')}** | "
+            f"{_format_logged_vehicle(delete_row)} | "
             f"{delete_row['constant']:.1f} Wh/km"
             + (
                 f" | Range {delete_row['rated_range']:.0f} km"
@@ -459,11 +525,11 @@ def main() -> None:
     tracker_tab, reference_tab = st.tabs(["Tracker", "Reference Constants"])
 
     with tracker_tab:
-        model, variant, battery, matches = _render_vehicle_selector()
+        selected_vehicle, battery, matches = _render_vehicle_selector()
         default_constant = matches[0].constant_wh_km if matches else None
 
         st.markdown("---")
-        _render_data_entry(model, variant, battery, default_constant)
+        _render_data_entry(battery, selected_vehicle, default_constant)
 
         st.markdown("---")
         _render_data_viewer()

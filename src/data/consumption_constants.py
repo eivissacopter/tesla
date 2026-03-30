@@ -554,9 +554,14 @@ _CREATE_TABLE_SQL = """
 CREATE TABLE IF NOT EXISTS consumption_entries (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     username    TEXT    NOT NULL,
+    car_name    TEXT    NOT NULL DEFAULT '',
     model       TEXT    NOT NULL,
     variant     TEXT    NOT NULL,
     battery     TEXT    NOT NULL DEFAULT '',
+    pack_code   TEXT    NOT NULL DEFAULT '',
+    drivetrain  TEXT    NOT NULL DEFAULT '',
+    wheels      TEXT    NOT NULL DEFAULT '',
+    release     TEXT    NOT NULL DEFAULT '',
     entry_date  TEXT    NOT NULL,
     constant    REAL    NOT NULL,
     rated_range REAL,
@@ -567,21 +572,47 @@ CREATE TABLE IF NOT EXISTS consumption_entries (
 );
 """
 
+_REQUIRED_ENTRY_COLUMNS = {
+    "car_name": "TEXT NOT NULL DEFAULT ''",
+    "pack_code": "TEXT NOT NULL DEFAULT ''",
+    "drivetrain": "TEXT NOT NULL DEFAULT ''",
+    "wheels": "TEXT NOT NULL DEFAULT ''",
+    "release": "TEXT NOT NULL DEFAULT ''",
+}
+
 
 def _get_connection() -> sqlite3.Connection:
     """Return a SQLite connection, creating the DB and table if needed."""
     _DB_DIR.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(_DB_PATH))
     conn.execute(_CREATE_TABLE_SQL)
+    _ensure_entry_schema(conn)
     conn.commit()
     return conn
 
 
+def _ensure_entry_schema(conn: sqlite3.Connection) -> None:
+    """Migrate the local SQLite table with any newly required columns."""
+    existing_columns = {
+        row[1] for row in conn.execute("PRAGMA table_info(consumption_entries)").fetchall()
+    }
+    for column_name, column_definition in _REQUIRED_ENTRY_COLUMNS.items():
+        if column_name not in existing_columns:
+            conn.execute(
+                f"ALTER TABLE consumption_entries ADD COLUMN {column_name} {column_definition}"
+            )
+
+
 def add_entry(
     username: str,
+    car_name: str,
     model: str,
     variant: str,
     battery: str,
+    pack_code: str,
+    drivetrain: str,
+    wheels: str,
+    release: str,
     entry_date: date,
     constant: float,
     rated_range: Optional[float] = None,
@@ -595,15 +626,21 @@ def add_entry(
         cursor = conn.execute(
             """
             INSERT INTO consumption_entries
-                (username, model, variant, battery, entry_date, constant,
+                (username, car_name, model, variant, battery, pack_code,
+                 drivetrain, wheels, release, entry_date, constant,
                  rated_range, odometer, software, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 username,
+                car_name,
                 model,
                 variant,
                 battery,
+                pack_code,
+                drivetrain,
+                wheels,
+                release,
                 entry_date.isoformat(),
                 constant,
                 rated_range,
@@ -635,6 +672,9 @@ def get_entries(username: Optional[str] = None) -> pd.DataFrame:
             )
         if not df.empty and "entry_date" in df.columns:
             df["entry_date"] = pd.to_datetime(df["entry_date"])
+        for column_name in _REQUIRED_ENTRY_COLUMNS:
+            if column_name not in df.columns:
+                df[column_name] = ""
         return df
     finally:
         conn.close()
