@@ -2,27 +2,26 @@
 
 The consumption constant (Verbrauchskonstante, Wh/km) is the value Tesla's
 BMS uses to convert usable battery energy into the Rated Range displayed in
-the car.  Tracking it over time lets owners isolate real degradation from
+the car. Tracking it over time lets owners isolate real degradation from
 software-induced range changes.
 
-Reference data sourced from TFF Forum Akkuwiki:
-https://tff-forum.de/t/wiki-akkuwiki-model-3-y-s-x-ct/107641
+The factory reference data below is verified against explicit
+``Konstante: ... Wh/km`` entries in the TFF Akkuwiki. Variants where the wiki
+still shows ``???`` are intentionally omitted until there is a confirmed value.
 """
 from __future__ import annotations
 
-import os
 import sqlite3
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional
 
 import pandas as pd
 
 
-# ---------------------------------------------------------------------------
-# Factory reference constants
-# ---------------------------------------------------------------------------
+AKKUWIKI_URL = "https://tff-forum.de/t/wiki-akkuwiki-model-3-model-y-cybertruck/107641"
+
 
 @dataclass(frozen=True)
 class FactoryConstant:
@@ -35,40 +34,419 @@ class FactoryConstant:
     years: str
     constant_wh_km: float
     nominal_capacity_kwh: float
+    pack_code: str = ""
+    chemistry: str = ""
+    supplier: str = ""
+    wheels: str = ""
+    release: str = ""
     notes: str = ""
+    source_url: str = AKKUWIKI_URL
+
+    def battery_label(self) -> str:
+        """Return a selector-friendly battery label."""
+        if self.pack_code:
+            return f"{self.pack_code} | {self.battery}"
+        return self.battery
+
+    def preset_label(self) -> str:
+        """Return a compact label for the sidebar energy monitor."""
+        label = f"{self.model} {self.variant} {self.drivetrain} {self.years}"
+        if self.pack_code:
+            label += f" ({self.pack_code})"
+        if self.wheels:
+            label += f" {self.wheels}"
+        return label
 
 
-# Curated from the TFF Akkuwiki / Akkuchronik threads.
+# Verified against explicit "Konstante" entries in the Akkuwiki.
 FACTORY_CONSTANTS: List[FactoryConstant] = [
-    # ── Model 3 ──────────────────────────────────────────────────────────
-    FactoryConstant("Model 3", "Standard Range Plus", "NCA 50 kWh (2170)", "RWD", "2019–2020", 136.0, 50.0, "Panasonic 2170"),
-    FactoryConstant("Model 3", "Standard Range Plus", "LFP 60 kWh", "RWD", "2021–2023", 128.0, 60.0, "CATL LFP, early batches"),
-    FactoryConstant("Model 3", "Standard Range Plus", "LFP 60 kWh", "RWD", "2021–2023", 131.0, 60.0, "CATL LFP, later firmware"),
-    FactoryConstant("Model 3", "Standard Range Plus", "LFP 60 kWh", "RWD", "2021–2023", 139.0, 60.0, "CATL LFP, post 2022.36+"),
-    FactoryConstant("Model 3", "Long Range", "NCA 75 kWh (2170)", "AWD", "2019–2020", 152.5, 75.0, "Panasonic 2170"),
-    FactoryConstant("Model 3", "Long Range", "NCA 79 kWh (2170)", "AWD", "2021–2023", 142.0, 79.0, "Panasonic 2170"),
-    FactoryConstant("Model 3", "Performance", "NCA 79 kWh (2170)", "AWD", "2021–2022", 159.0, 79.0, "Panasonic 2170"),
-    FactoryConstant("Model 3", "Performance", "NCA 75 kWh (2170)", "AWD", "2019–2020", 159.0, 75.0, "Panasonic 2170"),
-    FactoryConstant("Model 3", "Highland SR", "LFP 60 kWh", "RWD", "2024+", 139.0, 60.0, "BYD Blade LFP"),
-    FactoryConstant("Model 3", "Highland LR", "NMC 75 kWh", "AWD", "2024+", 143.5, 75.0, "Samsung SDI NMC"),
-    FactoryConstant("Model 3", "Highland LR", "NMC 75 kWh", "RWD", "2024+", 133.0, 75.0, "Samsung SDI NMC, RWD"),
-
-    # ── Model Y ──────────────────────────────────────────────────────────
-    FactoryConstant("Model Y", "Long Range", "NCA 75 kWh (2170)", "AWD", "2021–2023", 148.5, 75.0, "Panasonic 2170"),
-    FactoryConstant("Model Y", "Performance", "NCA 75 kWh (2170)", "AWD", "2021–2023", 148.5, 75.0, "Same pack as LR"),
-    FactoryConstant("Model Y", "Standard Range", "LFP 60 kWh", "RWD", "2022–2023", 139.0, 60.0, "CATL LFP"),
-    FactoryConstant("Model Y", "LR RWD (Juniper)", "NMC", "RWD", "2024+", 158.7, 75.0, "Juniper refresh"),
-    FactoryConstant("Model Y", "LR AWD (Juniper)", "NMC", "AWD", "2024+", 148.0, 75.0, "Juniper refresh"),
-
-    # ── Model S ──────────────────────────────────────────────────────────
-    FactoryConstant("Model S", "Long Range", "NCA 100 kWh (18650)", "AWD", "2019–2020", 163.0, 100.0, "Panasonic 18650"),
-    FactoryConstant("Model S", "Long Range", "NCA 100 kWh (2170)", "AWD", "2021+", 166.0, 100.0, "Panasonic 2170"),
-    FactoryConstant("Model S", "Plaid", "NCA 100 kWh (2170)", "AWD", "2021+", 170.0, 100.0, "Tri-motor Plaid"),
-
-    # ── Model X ──────────────────────────────────────────────────────────
-    FactoryConstant("Model X", "Long Range", "NCA 100 kWh (18650)", "AWD", "2019–2020", 190.0, 100.0, "Panasonic 18650"),
-    FactoryConstant("Model X", "Long Range", "NCA 100 kWh (2170)", "AWD", "2021+", 186.0, 100.0, "Panasonic 2170"),
-    FactoryConstant("Model X", "Plaid", "NCA 100 kWh (2170)", "AWD", "2021+", 192.0, 100.0, "Tri-motor Plaid"),
+    FactoryConstant(
+        "Model 3",
+        "Standard Range",
+        "CATL 6C LFP | 54.4 kWh",
+        "RWD",
+        "2020",
+        133.0,
+        54.4,
+        pack_code="E6R",
+        chemistry="LFP",
+        supplier="CATL",
+        release="Legacy",
+        notes="Locked CATL 6C pack.",
+    ),
+    FactoryConstant(
+        "Model 3",
+        "Standard Range",
+        "CATL 6C LFP | 54.4 kWh",
+        "RWD",
+        "2021",
+        128.0,
+        54.4,
+        pack_code="E6CR",
+        chemistry="LFP",
+        supplier="CATL",
+        release="Refresh",
+        notes="Locked CATL 6C pack with the lower 2021 constant.",
+    ),
+    FactoryConstant(
+        "Model 3",
+        "Standard Range",
+        "CATL 6L LFP | 62.0 kWh",
+        "RWD",
+        "2021-2023",
+        139.0,
+        62.0,
+        pack_code="E6LR",
+        chemistry="LFP",
+        supplier="CATL",
+        release="Refresh",
+        notes="Main refreshed Model 3 RWD pack.",
+    ),
+    FactoryConstant(
+        "Model 3",
+        "Standard Range",
+        "CATL 6L LFP | 62.0 kWh",
+        "RWD",
+        "2024",
+        139.0,
+        62.0,
+        pack_code="H6LR",
+        chemistry="LFP",
+        supplier="CATL",
+        release="Highland",
+        notes="Highland RWD with the same verified constant as E6LR.",
+    ),
+    FactoryConstant(
+        "Model 3",
+        "Long Range",
+        "Panasonic 3 NCA | 79.8 kWh",
+        "RWD",
+        "2019",
+        145.5,
+        79.8,
+        pack_code="E3R",
+        chemistry="NCA",
+        supplier="Panasonic",
+        release="Legacy",
+        notes="Original Long Range RWD pack.",
+    ),
+    FactoryConstant(
+        "Model 3",
+        "Long Range",
+        "Panasonic 3 NCA | 79.8 kWh",
+        "AWD",
+        "2019-2020",
+        152.5,
+        79.8,
+        pack_code="E3D",
+        chemistry="NCA",
+        supplier="Panasonic",
+        release="Legacy",
+        notes="Original Long Range AWD pack.",
+    ),
+    FactoryConstant(
+        "Model 3",
+        "Long Range",
+        "Panasonic 3C NCA | 75.4 kWh",
+        "AWD",
+        "2021",
+        136.7,
+        75.4,
+        pack_code="E3CD",
+        chemistry="NCA",
+        supplier="Panasonic",
+        release="Refresh",
+        notes="Software-limited Panasonic 3C pack.",
+    ),
+    FactoryConstant(
+        "Model 3",
+        "Long Range",
+        "LG 5C NMC | 77.0 kWh",
+        "AWD",
+        "2021",
+        136.7,
+        77.0,
+        pack_code="E5CD",
+        chemistry="NMC",
+        supplier="LG",
+        release="Refresh",
+        notes="Early LG long-range pack.",
+    ),
+    FactoryConstant(
+        "Model 3",
+        "Long Range",
+        "Panasonic 3L NCA | 82.1 kWh",
+        "AWD",
+        "2021-2022",
+        136.7,
+        82.1,
+        pack_code="E3LD",
+        chemistry="NCA",
+        supplier="Panasonic",
+        release="Refresh",
+        notes="82.1 kWh Panasonic 3L long-range pack.",
+    ),
+    FactoryConstant(
+        "Model 3",
+        "Long Range",
+        "LG 5L NMC | 79.0 kWh",
+        "AWD",
+        "2021-2023",
+        136.7,
+        79.0,
+        pack_code="E5LD",
+        chemistry="NMC",
+        supplier="LG",
+        release="Refresh",
+        notes="Main LG 5L long-range AWD pack.",
+    ),
+    FactoryConstant(
+        "Model 3",
+        "Long Range",
+        "LG 5L NMC | 79.0 kWh",
+        "RWD",
+        "2023",
+        143.0,
+        79.0,
+        pack_code="E5LR",
+        chemistry="NMC",
+        supplier="LG",
+        release="Refresh",
+        notes="Short-lived Long Range RWD variant.",
+    ),
+    FactoryConstant(
+        "Model 3",
+        "Long Range",
+        "LG 5L NMC | 79.0 kWh",
+        "AWD",
+        "2024-2025",
+        143.5,
+        79.0,
+        pack_code="H5LD",
+        chemistry="NMC",
+        supplier="LG",
+        release="Highland",
+        notes="Verified Highland Long Range AWD constant.",
+    ),
+    FactoryConstant(
+        "Model 3",
+        "Performance",
+        "Panasonic 3 NCA | 79.8 kWh",
+        "AWD",
+        "2019-2020",
+        152.5,
+        79.8,
+        pack_code="E3D",
+        chemistry="NCA",
+        supplier="Panasonic",
+        release="Legacy",
+        notes="Original Performance pack.",
+    ),
+    FactoryConstant(
+        "Model 3",
+        "Performance",
+        "Panasonic 3L NCA | 82.1 kWh",
+        "AWD",
+        "2021-2022",
+        159.0,
+        82.1,
+        pack_code="E3LD",
+        chemistry="NCA",
+        supplier="Panasonic",
+        release="Refresh",
+        notes="Performance pack with the larger Panasonic 3L.",
+    ),
+    FactoryConstant(
+        "Model 3",
+        "Performance",
+        "LG 5L NMC | 79.0 kWh",
+        "AWD",
+        "2022-2023",
+        159.0,
+        79.0,
+        pack_code="E5LD",
+        chemistry="NMC",
+        supplier="LG",
+        release="Refresh",
+        notes="Later pre-Highland Performance constant.",
+    ),
+    FactoryConstant(
+        "Model Y",
+        "Standard Range",
+        "CATL 6L LFP lock | 59.7 kWh",
+        "RWD",
+        "2022-2024",
+        142.5,
+        59.7,
+        pack_code="Y6LR",
+        chemistry="LFP",
+        supplier="CATL",
+        wheels='19"',
+        release="Legacy",
+        notes="Locked Y6LR pack on 19-inch wheels.",
+    ),
+    FactoryConstant(
+        "Model Y",
+        "Standard Range",
+        "CATL 6L LFP lock | 59.7 kWh",
+        "RWD",
+        "2022-2024",
+        153.0,
+        59.7,
+        pack_code="Y6LR",
+        chemistry="LFP",
+        supplier="CATL",
+        wheels='20"',
+        release="Legacy",
+        notes="Locked Y6LR pack on 20-inch wheels.",
+    ),
+    FactoryConstant(
+        "Model Y",
+        "Standard Range",
+        "BYD 7C Blade LFP | 60.0 kWh",
+        "RWD",
+        "2023-2024",
+        142.5,
+        60.0,
+        pack_code="Y7CR",
+        chemistry="LFP",
+        supplier="BYD",
+        wheels='19"',
+        release="Structural",
+        notes="BYD blade pack on 19-inch wheels.",
+    ),
+    FactoryConstant(
+        "Model Y",
+        "Standard Range",
+        "BYD 7C Blade LFP | 60.0 kWh",
+        "RWD",
+        "2023-2024",
+        153.0,
+        60.0,
+        pack_code="Y7CR",
+        chemistry="LFP",
+        supplier="BYD",
+        wheels='20"',
+        release="Structural",
+        notes="BYD blade pack on 20-inch wheels.",
+    ),
+    FactoryConstant(
+        "Model Y",
+        "Standard Range",
+        "CATL 6M LFP | 64.5 kWh",
+        "RWD",
+        "2025",
+        147.6,
+        64.5,
+        pack_code="YS6MR",
+        chemistry="LFP",
+        supplier="CATL",
+        wheels='19"',
+        release="Opal",
+        notes="Updated CATL 6M pack on 19-inch wheels.",
+    ),
+    FactoryConstant(
+        "Model Y",
+        "Standard Range",
+        "CATL 6M LFP | 64.5 kWh",
+        "RWD",
+        "2025",
+        152.6,
+        64.5,
+        pack_code="YS6MR",
+        chemistry="LFP",
+        supplier="CATL",
+        wheels='20"',
+        release="Opal",
+        notes="Updated CATL 6M pack on 20-inch wheels.",
+    ),
+    FactoryConstant(
+        "Model Y",
+        "Long Range",
+        "LG 5C NMC | 77.0 kWh",
+        "AWD",
+        "2021",
+        148.5,
+        77.0,
+        pack_code="Y5CD",
+        chemistry="NMC",
+        supplier="LG",
+        release="Legacy",
+        notes="Early Model Y Long Range pack.",
+    ),
+    FactoryConstant(
+        "Model Y",
+        "Long Range",
+        "LG 5L NMC | 79.0 kWh",
+        "AWD",
+        "2022-2025",
+        148.5,
+        79.0,
+        pack_code="Y5LD",
+        chemistry="NMC",
+        supplier="LG",
+        release="Legacy/Refresh",
+        notes="Main Model Y Long Range AWD pack.",
+    ),
+    FactoryConstant(
+        "Model Y",
+        "Long Range",
+        "LG 5L NMC | 79.0 kWh",
+        "AWD",
+        "2025",
+        147.1,
+        79.0,
+        pack_code="YS5LD",
+        chemistry="NMC",
+        supplier="LG",
+        wheels='19"',
+        release="Opal",
+        notes="Opal Long Range AWD on 19-inch wheels.",
+    ),
+    FactoryConstant(
+        "Model Y",
+        "Long Range",
+        "LG 5L NMC | 79.0 kWh",
+        "AWD",
+        "2025",
+        158.7,
+        79.0,
+        pack_code="YS5LD",
+        chemistry="NMC",
+        supplier="LG",
+        wheels='20"',
+        release="Opal",
+        notes="Opal Long Range AWD on 20-inch wheels.",
+    ),
+    FactoryConstant(
+        "Model Y",
+        "Performance",
+        "LG 5L NMC | 79.0 kWh",
+        "AWD",
+        "2022-2025",
+        165.0,
+        79.0,
+        pack_code="Y5LD",
+        chemistry="NMC",
+        supplier="LG",
+        release="Legacy/Refresh",
+        notes="Verified Model Y Performance constant.",
+    ),
+    FactoryConstant(
+        "Model Y",
+        "Performance",
+        "LG 5M NMC | 84.7 kWh",
+        "AWD",
+        "2025+",
+        169.2,
+        84.7,
+        pack_code="YS5MD",
+        chemistry="NMC",
+        supplier="LG",
+        wheels='21"',
+        release="Opal",
+        notes="Opal Performance with the larger 5M pack.",
+    ),
 ]
 
 
@@ -85,17 +463,37 @@ def list_variants(model: str) -> List[str]:
 def list_batteries(model: str, variant: str) -> List[str]:
     """Return sorted battery labels for a model + variant."""
     return sorted({
-        fc.battery for fc in FACTORY_CONSTANTS
+        fc.battery_label() for fc in FACTORY_CONSTANTS
         if fc.model == model and fc.variant == variant
     })
 
 
-def list_drivetrains(model: str, variant: str) -> List[str]:
+def list_drivetrains(model: str, variant: str, battery: Optional[str] = None) -> List[str]:
     """Return sorted drivetrains for a model + variant."""
     return sorted({
         fc.drivetrain for fc in FACTORY_CONSTANTS
-        if fc.model == model and fc.variant == variant
+        if fc.model == model
+        and fc.variant == variant
+        and (not battery or fc.battery_label() == battery)
     })
+
+
+def list_wheels(
+    model: str,
+    variant: str,
+    battery: Optional[str] = None,
+    drivetrain: Optional[str] = None,
+) -> List[str]:
+    """Return wheel-size selectors for the current slice."""
+    wheels = sorted({
+        fc.wheels or "All"
+        for fc in FACTORY_CONSTANTS
+        if fc.model == model
+        and fc.variant == variant
+        and (not battery or fc.battery_label() == battery)
+        and (not drivetrain or fc.drivetrain == drivetrain)
+    })
+    return wheels if wheels else ["All"]
 
 
 def lookup_constants(
@@ -103,6 +501,7 @@ def lookup_constants(
     variant: str,
     battery: Optional[str] = None,
     drivetrain: Optional[str] = None,
+    wheels: Optional[str] = None,
 ) -> List[FactoryConstant]:
     """Look up matching factory constants for a vehicle configuration."""
     matches = [
@@ -110,11 +509,15 @@ def lookup_constants(
         if fc.model == model and fc.variant == variant
     ]
     if battery:
-        narrowed = [fc for fc in matches if fc.battery == battery]
+        narrowed = [fc for fc in matches if fc.battery_label() == battery]
         if narrowed:
             matches = narrowed
     if drivetrain:
         narrowed = [fc for fc in matches if fc.drivetrain == drivetrain]
+        if narrowed:
+            matches = narrowed
+    if wheels and wheels != "All":
+        narrowed = [fc for fc in matches if fc.wheels == wheels]
         if narrowed:
             matches = narrowed
     return matches
@@ -128,20 +531,21 @@ def constants_to_dataframe(constants: List[FactoryConstant]) -> pd.DataFrame:
         {
             "Model": fc.model,
             "Variant": fc.variant,
+            "Pack Code": fc.pack_code,
             "Battery": fc.battery,
+            "Chemistry": fc.chemistry,
+            "Supplier": fc.supplier,
             "Drive": fc.drivetrain,
+            "Wheels": fc.wheels or "All",
             "Years": fc.years,
             "Constant (Wh/km)": fc.constant_wh_km,
-            "Nominal Capacity (kWh)": fc.nominal_capacity_kwh,
+            "Pack Net (kWh)": fc.nominal_capacity_kwh,
+            "Release": fc.release,
             "Notes": fc.notes,
         }
         for fc in constants
     ])
 
-
-# ---------------------------------------------------------------------------
-# SQLite persistence for user-submitted entries
-# ---------------------------------------------------------------------------
 
 _DB_DIR = Path(__file__).resolve().parent.parent.parent / "data"
 _DB_PATH = _DB_DIR / "consumption_data.db"
@@ -185,7 +589,7 @@ def add_entry(
     software: str = "",
     notes: str = "",
 ) -> int:
-    """Insert a new consumption constant entry. Returns the new row ID."""
+    """Insert a new consumption constant entry and return the new row ID."""
     conn = _get_connection()
     try:
         cursor = conn.execute(
@@ -196,9 +600,16 @@ def add_entry(
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
-                username, model, variant, battery,
-                entry_date.isoformat(), constant,
-                rated_range, odometer, software, notes,
+                username,
+                model,
+                variant,
+                battery,
+                entry_date.isoformat(),
+                constant,
+                rated_range,
+                odometer,
+                software,
+                notes,
             ),
         )
         conn.commit()
@@ -230,11 +641,12 @@ def get_entries(username: Optional[str] = None) -> pd.DataFrame:
 
 
 def delete_entry(entry_id: int) -> bool:
-    """Delete an entry by ID. Returns True if a row was removed."""
+    """Delete an entry by ID. Return True if a row was removed."""
     conn = _get_connection()
     try:
         cursor = conn.execute(
-            "DELETE FROM consumption_entries WHERE id = ?", (entry_id,)
+            "DELETE FROM consumption_entries WHERE id = ?",
+            (entry_id,),
         )
         conn.commit()
         return cursor.rowcount > 0
@@ -249,6 +661,6 @@ def get_usernames() -> List[str]:
         rows = conn.execute(
             "SELECT DISTINCT username FROM consumption_entries ORDER BY username"
         ).fetchall()
-        return [r[0] for r in rows]
+        return [row[0] for row in rows]
     finally:
         conn.close()
