@@ -37,9 +37,15 @@ def main():
     df = BatteryChronologyClient.annotate_dataframe(df)
     UIComponents.render_latest_entries(df.iloc[-3:][::-1])
 
-    tesla_models, versions, batteries = UIComponents.create_model_filters(df)
+    with st.sidebar:
+        filters_tab, energy_tab = st.tabs(['Filters', 'Energy Monitor'])
+
+    tesla_models, versions, batteries = UIComponents.create_model_filters(df, container=filters_tab)
     filter_seed_df = _apply_basic_filters(df, tesla_models, versions, batteries)
-    chronology_chemistries, chronology_plants, chronology_codes = UIComponents.create_chronology_filters(filter_seed_df)
+    chronology_chemistries, chronology_plants, chronology_codes = UIComponents.create_chronology_filters(
+        filter_seed_df,
+        container=filters_tab,
+    )
     filter_seed_df = _apply_basic_filters(
         df,
         tesla_models,
@@ -50,11 +56,15 @@ def main():
         chronology_codes,
     )
 
-    min_age, max_age, min_odo, max_odo = UIComponents.create_age_odo_filters(filter_seed_df)
-    y_axis_data, x_axis_data = UIComponents.create_axis_selectors()
-    add_trend_line, trend_line_type = UIComponents.create_trend_line_selector()
-    hide_replaced_packs = UIComponents.create_hide_replaced_packs_filter()
-    daily_soc_min, daily_soc_max, dc_ratio_min, dc_ratio_max = UIComponents.create_nerdy_options(filter_seed_df)
+    min_age, max_age, min_odo, max_odo = UIComponents.create_age_odo_filters(filter_seed_df, container=filters_tab)
+    y_axis_data, x_axis_data = UIComponents.create_axis_selectors(container=filters_tab)
+    add_trend_line, trend_line_type = UIComponents.create_trend_line_selector(container=filters_tab)
+    hide_replaced_packs = UIComponents.create_hide_replaced_packs_filter(container=filters_tab)
+    daily_soc_min, daily_soc_max, dc_ratio_min, dc_ratio_max = UIComponents.create_nerdy_options(
+        filter_seed_df,
+        container=filters_tab,
+    )
+    UIComponents.render_energy_monitor_calculator(container=energy_tab)
 
     criteria = FilterCriteria(
         tesla_models=tesla_models,
@@ -75,8 +85,8 @@ def main():
     )
 
     filtered_df = BatteryDataProcessor.apply_filters(df, criteria, battery_pack_col)
-    UIComponents.render_cache_refresh_button()
-    st.sidebar.write(f'Filtered Data Rows: {filtered_df.shape[0]}')
+    UIComponents.render_cache_refresh_button(container=filters_tab)
+    filters_tab.write(f'Filtered Data Rows: {filtered_df.shape[0]}')
 
     if filtered_df.empty:
         st.warning('No data available for the selected criteria.')

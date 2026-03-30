@@ -163,6 +163,46 @@ class BatteryDataProcessor:
         }
 
     @staticmethod
+    def analyze_energy_monitor_snapshot(
+        average_consumption_wh_km: float,
+        projected_range_km: float,
+        soc_percent: float,
+        rated_constant_wh_km: Optional[float] = None,
+        current_rated_range_km: Optional[float] = None,
+    ) -> Dict[str, Optional[float]]:
+        """Estimate usable battery and rated-range behavior from an Energy app snapshot."""
+        soc_fraction = float(soc_percent) / 100.0
+        if soc_fraction <= 0:
+            raise ValueError('SOC must be greater than 0%.')
+
+        usable_battery_kwh = (
+            float(average_consumption_wh_km) * float(projected_range_km) / soc_fraction / 1000.0
+        )
+
+        estimated_rated_range_100_km = None
+        if rated_constant_wh_km is not None and rated_constant_wh_km > 0:
+            estimated_rated_range_100_km = usable_battery_kwh * 1000.0 / float(rated_constant_wh_km)
+
+        implied_rated_range_100_km = None
+        inferred_constant_wh_km = None
+        constant_delta_wh_km = None
+        if current_rated_range_km is not None and current_rated_range_km > 0:
+            implied_rated_range_100_km = float(current_rated_range_km) / soc_fraction
+            if implied_rated_range_100_km > 0:
+                inferred_constant_wh_km = usable_battery_kwh * 1000.0 / implied_rated_range_100_km
+
+        if rated_constant_wh_km is not None and inferred_constant_wh_km is not None:
+            constant_delta_wh_km = inferred_constant_wh_km - float(rated_constant_wh_km)
+
+        return {
+            'usable_battery_kwh': usable_battery_kwh,
+            'estimated_rated_range_100_km': estimated_rated_range_100_km,
+            'implied_rated_range_100_km': implied_rated_range_100_km,
+            'inferred_constant_wh_km': inferred_constant_wh_km,
+            'constant_delta_wh_km': constant_delta_wh_km,
+        }
+
+    @staticmethod
     def build_battery_summary(df: pd.DataFrame) -> pd.DataFrame:
         """Build a compact battery summary table for the filtered dataset."""
         if df.empty or 'Battery' not in df.columns:
