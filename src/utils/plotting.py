@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from scipy import stats
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
 
@@ -75,6 +76,7 @@ class PlotBuilder:
         fig.update_layout(hovermode='closest', margin=dict(l=20, r=20, t=40, b=20))
         PlotBuilder._add_watermark(fig)
         PlotBuilder._configure_legend(fig)
+        PlotBuilder._apply_theme(fig)
         return fig
 
     @staticmethod
@@ -104,9 +106,40 @@ class PlotBuilder:
             x_min = float(battery_df[x_column].min())
             x_max = float(battery_df[x_column].max())
 
+            battery_color = PlotBuilder._get_trace_color(fig, battery_type, battery_index)
+
             if trend_type == 'Linear Regression':
-                x_range, y_pred = PlotBuilder._linear_regression(X, y, x_min, x_max)
-            elif trend_type == 'Logarithmic Regression':
+                fit = PlotBuilder._linear_fit_with_ci(X, y, x_min, x_max)
+                if fit is None:
+                    continue
+                group = f'{battery_type} trend'
+                fig.add_trace(go.Scatter(
+                    x=np.concatenate([fit['x'], fit['x'][::-1]]),
+                    y=np.concatenate([fit['upper'], fit['lower'][::-1]]),
+                    mode='lines',
+                    line=dict(width=0),
+                    fill='toself',
+                    fillcolor=PlotBuilder._to_rgba(battery_color, 0.15),
+                    name=f'{battery_type} 95% CI',
+                    legendgroup=group,
+                    showlegend=False,
+                    hoverinfo='skip',
+                ))
+                fig.add_trace(go.Scatter(
+                    x=fit['x'],
+                    y=fit['y'],
+                    mode='lines',
+                    name=f"{battery_type} trend (R²={fit['r2']:.2f}, n={fit['n']})",
+                    legendgroup=group,
+                    line=dict(color=battery_color, width=3),
+                    hovertemplate=(
+                        f'{battery_type} trend<br>X: %{{x:.2f}}<br>Y: %{{y:.2f}}'
+                        f'<br>R²={fit["r2"]:.3f} | n={fit["n"]}<extra></extra>'
+                    ),
+                ))
+                continue
+
+            if trend_type == 'Logarithmic Regression':
                 positive_df = battery_df[battery_df[x_column] > 0]
                 if len(positive_df) < 3:
                     continue
@@ -123,7 +156,6 @@ class PlotBuilder:
             else:
                 continue
 
-            battery_color = PlotBuilder._get_trace_color(fig, battery_type, battery_index)
             fig.add_trace(go.Scatter(
                 x=np.asarray(x_range).flatten(),
                 y=np.asarray(y_pred).flatten(),
@@ -186,6 +218,7 @@ class PlotBuilder:
 
         fig.update_layout(yaxis_title=None, showlegend=False, margin=dict(l=20, r=20, t=40, b=20))
         PlotBuilder._add_watermark(fig)
+        PlotBuilder._apply_theme(fig)
         return fig
 
     @staticmethod
@@ -245,6 +278,7 @@ class PlotBuilder:
         )
 
         PlotBuilder._add_watermark(fig, opacity=0.15)
+        PlotBuilder._apply_theme(fig)
         return fig
 
     @staticmethod
@@ -276,6 +310,85 @@ class PlotBuilder:
         x_range = np.linspace(x_min, x_max, 120).reshape(-1, 1)
         y_pred = poly_reg.predict(poly.transform(x_range))
         return x_range, y_pred
+
+    @staticmethod
+    def _linear_fit_with_ci(X: np.ndarray, y: np.ndarray, x_min: float, x_max: float, confidence: float = 0.95):
+        """Ordinary least-squares fit with a confidence band for the mean response.
+
+        Returns the fitted line, the lower/upper confidence bounds, the
+        coefficient of determination (R²) and the sample size — the statistical
+        context needed to judge how trustworthy a degradation trend is.
+        """
+        x = np.asarray(X, dtype=float).flatten()
+        y = np.asarray(y, dtype=float).flatten()
+        n = x.size
+        if n < 3:
+            return None
+
+        x_mean = x.mean()
+        sxx = float(np.sum((x - x_mean) ** 2))
+        if sxx == 0:
+            return None
+
+        slope = float(np.sum((x - x_mean) * (y - y.mean())) / sxx)
+        intercept = float(y.mean() - slope * x_mean)
+        fitted = intercept + slope * x
+        sse = float(np.sum((y - fitted) ** 2))
+        sst = float(np.sum((y - y.mean()) ** 2))
+        r2 = 1.0 - sse / sst if sst > 0 else 0.0
+
+        dof = n - 2
+        residual_std = np.sqrt(sse / dof) if dof > 0 else 0.0
+        t_value = float(stats.t.ppf(0.5 + confidence / 2.0, dof)) if dof > 0 else 0.0
+
+        x_range = np.linspace(x_min, x_max, 120)
+        y_range = intercept + slope * x_range
+        mean_se = residual_std * np.sqrt(1.0 / n + (x_range - x_mean) ** 2 / sxx)
+        margin = t_value * mean_se
+        return {
+            'x': x_range,
+            'y': y_range,
+            'lower': y_range - margin,
+            'upper': y_range + margin,
+            'r2': r2,
+            'n': n,
+            'slope': slope,
+        }
+
+    @staticmethod
+    def _to_rgba(color: Optional[str], alpha: float) -> str:
+        """Convert a hex / rgb() / rgba() color to an rgba() string with `alpha`."""
+        fallback = f'rgba(130,130,130,{alpha})'
+        if not color:
+            return fallback
+        text = color.strip()
+        if text.startswith('#'):
+            hex_value = text[1:]
+            if len(hex_value) == 3:
+                hex_value = ''.join(channel * 2 for channel in hex_value)
+            try:
+                red, green, blue = (int(hex_value[i:i + 2], 16) for i in (0, 2, 4))
+                return f'rgba({red},{green},{blue},{alpha})'
+            except (ValueError, IndexError):
+                return fallback
+        if text.startswith('rgb'):
+            inner = text[text.find('(') + 1:text.find(')')].split(',')
+            if len(inner) >= 3:
+                red, green, blue = (channel.strip() for channel in inner[:3])
+                return f'rgba({red},{green},{blue},{alpha})'
+        return fallback
+
+    @staticmethod
+    def _apply_theme(fig: go.Figure) -> None:
+        """Apply consistent dark, transparent styling so charts blend with the app."""
+        fig.update_layout(
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            font=dict(color='#E6E9EF'),
+            colorway=Config.COLOR_SEQUENCE,
+        )
+        fig.update_xaxes(gridcolor='rgba(255,255,255,0.06)', zerolinecolor='rgba(255,255,255,0.12)')
+        fig.update_yaxes(gridcolor='rgba(255,255,255,0.06)', zerolinecolor='rgba(255,255,255,0.12)')
 
     @staticmethod
     def _get_trace_color(fig: go.Figure, label: str, fallback_index: int) -> str:

@@ -335,9 +335,18 @@ class UIComponents:
         odo_values = pd.to_numeric(df.get('Odometer'), errors='coerce').dropna() if 'Odometer' in df.columns else pd.Series(dtype=float)
 
         age_min = max(Config.MIN_AGE_MONTHS, int(age_values.min())) if not age_values.empty else Config.MIN_AGE_MONTHS
-        age_max = max(age_min, int(np.ceil(age_values.max()))) if not age_values.empty else age_min
-        odo_min = max(Config.MIN_ODOMETER_KM, int(odo_values.min())) if not odo_values.empty else Config.MIN_ODOMETER_KM
-        odo_max = max(odo_min, int(odo_values.max())) if not odo_values.empty else odo_min
+        age_max = max(age_min + 1, int(np.ceil(age_values.max()))) if not age_values.empty else age_min + 1
+
+        step = Config.ODOMETER_STEP
+        if not odo_values.empty:
+            odo_min = max(Config.MIN_ODOMETER_KM, int(odo_values.min()))
+            odo_max = int(odo_values.max())
+        else:
+            odo_min, odo_max = Config.MIN_ODOMETER_KM, Config.MIN_ODOMETER_KM + step
+        # Snap bounds to the slider step so the range is a whole number of steps
+        # (otherwise Streamlit warns that value/min/max conflict with step).
+        odo_min = (odo_min // step) * step
+        odo_max = max(odo_min + step, int(np.ceil(odo_max / step)) * step)
 
         age_range = target.slider(
             'Age [months]',
@@ -350,7 +359,7 @@ class UIComponents:
             min_value=odo_min,
             max_value=odo_max,
             value=(odo_min, odo_max),
-            step=Config.ODOMETER_STEP
+            step=step
         )
 
         return age_range[0], age_range[1], odo_range[0], odo_range[1]

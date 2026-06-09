@@ -911,7 +911,7 @@ class BatteryChronologyClient:
         if value is None:
             return None, None
 
-        parsed = pd.to_datetime(value, errors='coerce', dayfirst=True)
+        parsed = pd.to_datetime(value, errors='coerce', dayfirst=True, format='mixed')
         if pd.isna(parsed):
             return None, None
         return int(parsed.year), int(((parsed.month - 1) // 3) + 1)

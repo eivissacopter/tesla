@@ -12,7 +12,7 @@ class Config:
     REQUEST_TIMEOUT = 20  # seconds
 
     # Plotly settings
-    PLOTLY_TEMPLATE = "plotly"
+    PLOTLY_TEMPLATE = "plotly_dark"
     COLOR_SEQUENCE = [
         "#0068c9", "#83c9ff", "#ff2b2b", "#ffabab", "#29b09d",
         "#7defa1", "#ff8700", "#ffd16a", "#6d3fc0", "#d5dae5",
