@@ -205,8 +205,13 @@ class PerformanceDataClient:
         return prepared_df
 
     @staticmethod
+    @st.cache_data(ttl=Config.PERFORMANCE_CACHE_TTL, show_spinner=False)
     def fetch_csv_data(url: str) -> Optional[pd.DataFrame]:
         """Fetch and process CSV data from URL.
+
+        Cached on the URL: the raw download is already cached, but the cleaning
+        (_prepare_dataframe copy + ffill/bfill) and filtering re-ran for every
+        file on each rerun (e.g. color-picker and smoothing changes).
 
         Args:
             url: URL of the CSV file.

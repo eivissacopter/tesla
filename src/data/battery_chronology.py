@@ -544,6 +544,7 @@ class BatteryChronologyClient:
         return pd.DataFrame(BATTERY_CODE_REFERENCE)
 
     @staticmethod
+    @st.cache_data(show_spinner=False)
     def resolve_candidates(
         market: str,
         model: str,
@@ -552,7 +553,12 @@ class BatteryChronologyClient:
         year: Optional[int] = None,
         quarter: Optional[int] = None,
     ) -> pd.DataFrame:
-        """Resolve likely battery candidates for a model + quarter selection."""
+        """Resolve likely battery candidates for a model + quarter selection.
+
+        Memoized on its scalar inputs: many fleet rows share the same
+        model/trim/drivetrain/quarter, and the resolver tab re-queries the same
+        combinations on each interaction.
+        """
         chronology_df = BatteryChronologyClient.get_chronology_df()
         if chronology_df.empty:
             return chronology_df
@@ -625,8 +631,14 @@ class BatteryChronologyClient:
         return sorted(years)
 
     @staticmethod
+    @st.cache_data(show_spinner=False)
     def annotate_dataframe(df: pd.DataFrame, market: str = 'Europe') -> pd.DataFrame:
-        """Annotate a battery dataset with chronology-derived fields."""
+        """Annotate a battery dataset with chronology-derived fields.
+
+        Cached on the dataframe contents: this runs on the full dataset on every
+        Streamlit rerun (filters, sliders, axis changes), so without caching the
+        per-row chronology resolution dominates interaction latency.
+        """
         if df.empty:
             return df.copy()
 
