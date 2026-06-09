@@ -4,6 +4,7 @@ import streamlit as st
 
 from src.data.battery_chronology import BatteryChronologyClient
 from src.data.vehicle_intelligence import VehicleIntelligenceClient
+from src.ui import UIComponents
 
 
 st.set_page_config(
@@ -15,6 +16,7 @@ st.set_page_config(
 
 def main():
     """Main page entry point."""
+    UIComponents.inject_global_styles()
     st.title('Tesla Vehicle Intelligence')
     st.caption('Decode Tesla battery, motors, release family, and registration clues in one place.')
 

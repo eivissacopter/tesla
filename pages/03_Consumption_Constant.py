@@ -520,6 +520,7 @@ def _render_reference_table() -> None:
 
 def main() -> None:
     """Page entry point."""
+    UIComponents.inject_global_styles()
     _render_header()
 
     tracker_tab, reference_tab = st.tabs(["Tracker", "Reference Constants"])

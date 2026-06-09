@@ -33,6 +33,7 @@ ACCELERATION_MODE_ORDER = ['Chill', 'Standard', 'Sport']
 
 def main():
     """Main application entry point."""
+    UIComponents.inject_global_styles()
     UIComponents.render_performance_header()
     perf_client = PerformanceDataClient()
 
