@@ -70,7 +70,8 @@ coverage/
 ########################################################################
 # Streamlit
 ########################################################################
-.streamlit/
+# Keep .streamlit/config.toml (theme) tracked so it deploys; only secrets stay local.
+.streamlit/secrets.toml
 lib/streamlit/static
 streamlit-storage
 

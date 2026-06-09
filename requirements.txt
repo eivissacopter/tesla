@@ -7,6 +7,7 @@ kaleido
 oauth2client
 statsmodels
 scikit-learn
+scipy
 matplotlib
 requests
 beautifulsoup4
