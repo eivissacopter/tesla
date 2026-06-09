@@ -142,6 +142,26 @@ class BatteryDataProcessor:
         return result_df[result_df['DegradationPerX'].ne(0)]
 
     @staticmethod
+    def normalize_chemistry(value) -> Optional[str]:
+        """Canonicalize a reported chemistry to NCA / NMC / LFP.
+
+        The sheet mixes spellings and plant suffixes (e.g. 'NCM', 'NCA MIC'),
+        so collapse them to a single label per chemistry family.
+        """
+        if value is None:
+            return None
+        text = str(value).strip().upper()
+        if not text or text == 'NAN':
+            return None
+        if 'LFP' in text or 'LIFEPO' in text:
+            return 'LFP'
+        if 'NCA' in text:
+            return 'NCA'
+        if 'NMC' in text or 'NCM' in text:
+            return 'NMC'
+        return None
+
+    @staticmethod
     def degradation_rate_by_group(
         df: pd.DataFrame,
         group_column: str,

@@ -94,7 +94,6 @@ def main():
         return
 
     _render_overview_metrics(filtered_df)
-    _render_chronology_resolver(tesla_models, versions, filtered_df)
 
     y_column, y_label = _get_y_axis_config(y_axis_data)
     x_column, x_label = _get_x_axis_config(x_axis_data)
@@ -147,6 +146,7 @@ def main():
     _render_fleet_summary(filtered_df)
     _render_filtered_dataset(filtered_df)
     _render_battery_info_table(sheets_client, batteries)
+    _render_chronology_resolver(tesla_models, versions, filtered_df)
     UIComponents.render_sidebar_footer()
 
 
@@ -383,14 +383,23 @@ def _render_chemistry_comparison(filtered_df: pd.DataFrame, x_axis_data: str) ->
     else:
         denominator_column, divisor, unit = 'Age', 1, '%/month'
 
-    group_column = 'Chronology Chemistry' if 'Chronology Chemistry' in filtered_df.columns else 'Battery'
+    # Group by the reported chemistry (ground truth, includes NCA), normalized;
+    # fall back to the resolver's guess or the battery label if it is absent.
+    work_df = filtered_df
+    if 'Chemistry' in filtered_df.columns:
+        work_df = filtered_df.copy()
+        work_df['Chemistry (normalized)'] = work_df['Chemistry'].map(BatteryDataProcessor.normalize_chemistry)
+        group_column, title = 'Chemistry (normalized)', 'Chemistry'
+    elif 'Chronology Chemistry' in filtered_df.columns:
+        group_column, title = 'Chronology Chemistry', 'Chemistry'
+    else:
+        group_column, title = 'Battery', 'Battery'
+
     comparison = BatteryDataProcessor.degradation_rate_by_group(
-        filtered_df, group_column, denominator_column, divisor,
+        work_df, group_column, denominator_column, divisor,
     )
     if comparison.empty:
         return
-
-    title = group_column.replace('Chronology ', '')
     st.markdown(f'### {title} Degradation Comparison')
     st.caption(
         f'Mean degradation rate ({unit}) by {title.lower()}, with 95% confidence '
