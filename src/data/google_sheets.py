@@ -1,9 +1,13 @@
 """Google Sheets data access layer."""
-from typing import Optional, Tuple, List
+import io
+import re
+from typing import Any, Optional, Tuple, List
 
 import gspread
 import numpy as np
+import openpyxl
 import pandas as pd
+import requests
 from oauth2client.service_account import ServiceAccountCredentials
 import streamlit as st
 
@@ -37,9 +41,86 @@ class GoogleSheetsClient:
         return self._client
 
     @staticmethod
+    @st.cache_data(ttl=Config.CACHE_TTL, show_spinner=False)
+    def _download_public_xlsx(url: str) -> bytes:
+        """Download a link-viewable spreadsheet as an .xlsx workbook (read-only).
+
+        Used only when no service account is configured (local/dev); production
+        uses the authenticated client. Never writes to the sheet.
+        """
+        match = re.search(r"/d/([A-Za-z0-9_-]+)", url)
+        if not match:
+            raise ValueError(f"Could not extract spreadsheet id from URL: {url}")
+        xlsx_url = f"https://docs.google.com/spreadsheets/d/{match.group(1)}/export?format=xlsx"
+        response = requests.get(xlsx_url, timeout=Config.REQUEST_TIMEOUT)
+        response.raise_for_status()
+        return response.content
+
+    @staticmethod
+    def _cell_to_display(value: Any, number_format: Optional[str]) -> str:
+        """Render a cell the way gspread's get_all_values() would (displayed text).
+
+        Critically, percent-formatted cells are stored as fractions in the xlsx
+        (0.121) but display as '12.1%'. Scaling them back keeps the existing
+        parsers seeing the same magnitude they get from gspread in production.
+        """
+        if value is None:
+            return ""
+        if isinstance(value, bool):
+            return str(value)
+        if isinstance(value, (int, float)) and number_format and number_format.rstrip().endswith("%"):
+            return f"{value * 100:g}%"
+        return str(value)
+
+    @staticmethod
+    def _slice_a1_range(grid: List[List[str]], cell_range: str) -> List[List[str]]:
+        """Slice an A1-notation block (e.g. 'O1:W22') out of a full grid."""
+        match = re.match(r"^([A-Z]+)(\d+):([A-Z]+)(\d+)$", cell_range)
+        if not match:
+            return grid
+
+        def column_index(letters: str) -> int:
+            index = 0
+            for char in letters:
+                index = index * 26 + (ord(char) - ord("A") + 1)
+            return index - 1
+
+        col_start, col_end = column_index(match.group(1)), column_index(match.group(3))
+        row_start, row_end = int(match.group(2)) - 1, int(match.group(4)) - 1
+        return [row[col_start:col_end + 1] for row in grid[row_start:row_end + 1]]
+
+    @staticmethod
+    def _read_public_grid(url: str, worksheet_name: str, cell_range: Optional[str] = None) -> List[List[str]]:
+        """Mirror gspread reads (get_all_values / get(range)) from a public sheet."""
+        workbook = openpyxl.load_workbook(
+            io.BytesIO(GoogleSheetsClient._download_public_xlsx(url)),
+            read_only=True,
+            data_only=True,
+        )
+        try:
+            if worksheet_name not in workbook.sheetnames:
+                raise ValueError(
+                    f"Worksheet {worksheet_name!r} not found. Available: {workbook.sheetnames}"
+                )
+            worksheet = workbook[worksheet_name]
+            grid = [
+                [GoogleSheetsClient._cell_to_display(cell.value, cell.number_format) for cell in row]
+                for row in worksheet.iter_rows()
+            ]
+        finally:
+            workbook.close()
+        # gspread's get_all_values() stops at the last non-empty row; openpyxl
+        # can include trailing blank rows from the sheet's used range.
+        while grid and not any(cell.strip() for cell in grid[-1]):
+            grid.pop()
+        return GoogleSheetsClient._slice_a1_range(grid, cell_range) if cell_range else grid
+
+    @staticmethod
     @st.cache_data(ttl=Config.CACHE_TTL)
     def _fetch_sheet_values(url: str, worksheet_name: str) -> List[List[str]]:
         """Fetch all values from a worksheet."""
+        if not Config.has_service_account():
+            return GoogleSheetsClient._read_public_grid(url, worksheet_name)
         client = GoogleSheetsClient._get_cached_client()
         return client.open_by_url(url).worksheet(worksheet_name).get_all_values()
 
@@ -47,6 +128,8 @@ class GoogleSheetsClient:
     @st.cache_data(ttl=Config.CACHE_TTL)
     def _fetch_sheet_range(url: str, worksheet_name: str, cell_range: str) -> List[List[str]]:
         """Fetch a specific range from a worksheet."""
+        if not Config.has_service_account():
+            return GoogleSheetsClient._read_public_grid(url, worksheet_name, cell_range)
         client = GoogleSheetsClient._get_cached_client()
         return client.open_by_url(url).worksheet(worksheet_name).get(cell_range)
 

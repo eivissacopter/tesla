@@ -75,6 +75,18 @@ class Config:
     X_LINK = "https://x.com/eivissacopter"
 
     @staticmethod
+    def has_service_account() -> bool:
+        """Return True if Google service-account credentials are configured.
+
+        When absent (e.g. local/dev runs without secrets), the data layer reads
+        the link-viewable spreadsheet directly instead of authenticating.
+        """
+        try:
+            return "gcp_service_account" in st.secrets
+        except Exception:
+            return False
+
+    @staticmethod
     def get_gcp_credentials() -> Dict[str, Any]:
         """Get Google Cloud Platform credentials from Streamlit secrets.
 

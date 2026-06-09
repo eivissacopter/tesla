@@ -3,6 +3,7 @@ pandas
 numpy
 plotly
 gspread
+openpyxl
 kaleido
 oauth2client
 statsmodels
