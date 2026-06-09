@@ -53,6 +53,19 @@ class Config:
     # Columns to exclude from Google Sheets
     EXCLUDE_COLUMNS = ['B', 'G', 'H', 'I', 'J', 'O', 'P', 'W', 'X', 'Y']
 
+    # Physically plausible ranges. Values outside become NaN so a single bad
+    # submission (e.g. a 9.9-billion-km odometer) can't break sliders or skew stats.
+    SANITY_BOUNDS = {
+        'Age': (0, 220),               # months (~18 years)
+        'Odometer': (0, 1_500_000),    # km
+        'Rated Range': (0, 800),       # km
+        'Capacity Net Now': (0, 130),  # kWh
+        'Cycles': (0, 6000),
+        'Daily SOC Limit': (0, 100),   # %
+        'DC Ratio': (0, 100),          # %
+        'Degradation': (-60, 0.0001),  # %, already non-positive
+    }
+
     # Tesla battery retention data (for reference line)
     TESLA_RETENTION_MILES = [0, 50000, 100000, 150000, 200000]
     TESLA_RETENTION_PERCENT = [0, -8, -12, -13.5, -15]

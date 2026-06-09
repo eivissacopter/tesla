@@ -642,12 +642,47 @@ class BatteryChronologyClient:
         if df.empty:
             return df.copy()
 
-        annotations = df.apply(
-            lambda row: BatteryChronologyClient.resolve_row(row, market=market),
-            axis=1,
-            result_type='expand',
-        )
+        # Memoize per unique combination of the columns that actually drive
+        # resolution. Thousands of rows collapse to a few hundred distinct
+        # model/version/battery/timeline keys, so the expensive per-row date
+        # parsing and candidate ranking run once each instead of 4000+ times.
+        resolution_columns = BatteryChronologyClient._resolution_columns(df)
+        memo: dict = {}
+
+        def _resolve(row: pd.Series) -> dict:
+            key = tuple(row.get(column) for column in resolution_columns)
+            if key in memo:
+                return memo[key]
+            result = BatteryChronologyClient.resolve_row(row, market=market)
+            memo[key] = result
+            return result
+
+        annotations = df.apply(_resolve, axis=1, result_type='expand')
         return pd.concat([df.copy(), annotations], axis=1)
+
+    @staticmethod
+    def _resolution_columns(df: pd.DataFrame) -> list[str]:
+        """Columns whose values determine a row's chronology resolution.
+
+        Mirrors what resolve_row / infer_year_quarter read, so a memo keyed on
+        these columns is exact (two rows with the same values must resolve the
+        same way).
+        """
+        explicit = {
+            'Tesla', 'Version', 'Battery',
+            'Year', 'Model Year', 'Build Year', 'Production Year', 'Registration Year', 'Delivery Year',
+            'Quarter', 'Build Quarter', 'Production Quarter', 'Registration Quarter', 'Delivery Quarter',
+            'Date', 'Build Date', 'Production Date', 'Registration Date', 'First Registration', 'Delivery Date',
+        }
+        tokens = ['quarter', 'year', 'date', 'delivery', 'registration', 'build', 'production']
+        columns = [
+            column for column in df.columns
+            if column in explicit or any(token in str(column).lower() for token in tokens)
+        ]
+        for required in ('Tesla', 'Version', 'Battery'):
+            if required in df.columns and required not in columns:
+                columns.append(required)
+        return columns
 
     @staticmethod
     def resolve_row(row: pd.Series, market: str = 'Europe') -> dict[str, Any]:

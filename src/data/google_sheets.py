@@ -337,6 +337,14 @@ class GoogleSheetsClient:
             degradation = GoogleSheetsClient._parse_decimal_series(processed_df['Degradation'], ['%'])
             processed_df['Degradation'] = -degradation.abs()
             processed_df.loc[processed_df['Degradation'] == 0, 'Degradation'] = np.nan
+
+        # Drop physically impossible values so one bad submission can't break the UI.
+        for column, (low, high) in Config.SANITY_BOUNDS.items():
+            if column in processed_df.columns:
+                numeric = pd.to_numeric(processed_df[column], errors='coerce')
+                processed_df[column] = numeric.where(numeric.between(low, high))
+
+        if 'Degradation' in processed_df.columns:
             processed_df['SOH'] = 100 + processed_df['Degradation']
 
         return processed_df
