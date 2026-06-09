@@ -222,6 +222,45 @@ class PlotBuilder:
         return fig
 
     @staticmethod
+    def create_comparison_chart(comparison_df: pd.DataFrame, unit_label: str) -> go.Figure:
+        """Horizontal bar chart of degradation rate by group with 95% CI error bars."""
+        fig = go.Figure()
+        fig.add_trace(go.Bar(
+            x=comparison_df['Rate'],
+            y=comparison_df['Group'],
+            orientation='h',
+            error_x=dict(
+                type='data',
+                array=comparison_df['CI'],
+                visible=True,
+                color='rgba(230,233,239,0.55)',
+                thickness=1.4,
+            ),
+            marker=dict(
+                color=comparison_df['Rate'],
+                colorscale='RdYlGn',
+                line=dict(width=0.5, color='rgba(255,255,255,0.25)'),
+            ),
+            text=[f'n={count}' for count in comparison_df['Samples']],
+            textposition='outside',
+            hovertemplate=(
+                '<b>%{y}</b><br>Rate: %{x:.3f} ' + unit_label +
+                '<br>95% CI: ±%{customdata:.3f}<br>%{text}<extra></extra>'
+            ),
+            customdata=comparison_df['CI'],
+        ))
+        fig.update_layout(
+            xaxis_title=f'Degradation rate [{unit_label}]',
+            yaxis_title=None,
+            margin=dict(l=20, r=40, t=40, b=20),
+            showlegend=False,
+            height=max(260, 46 * len(comparison_df)),
+        )
+        PlotBuilder._add_watermark(fig)
+        PlotBuilder._apply_theme(fig)
+        return fig
+
+    @staticmethod
     def create_performance_line_plot(
         plot_df: pd.DataFrame,
         x_label: str,

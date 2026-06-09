@@ -40,7 +40,7 @@ class UIComponents:
                   border-radius: 0.6rem;
                   padding: 0.85rem 1rem;
               }
-              [data-testid="stMetricValue"] { font-weight: 700; font-size: 1.7rem; }
+              [data-testid="stMetricValue"] { font-weight: 700; font-size: 1.4rem; }
               [data-testid="stMetricLabel"] {
                   opacity: 0.65; text-transform: uppercase;
                   letter-spacing: 0.05em; font-size: 0.72rem;

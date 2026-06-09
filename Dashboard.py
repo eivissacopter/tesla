@@ -142,6 +142,8 @@ def main():
         UIComponents.render_soh_projections(projections, batteries)
 
     _render_degradation_bar_chart(filtered_df, batteries, x_axis_data)
+    _render_chemistry_comparison(filtered_df, x_axis_data)
+    _render_aging_decomposition(filtered_df)
     _render_fleet_summary(filtered_df)
     _render_filtered_dataset(filtered_df)
     _render_battery_info_table(sheets_client, batteries)
@@ -370,6 +372,55 @@ def _render_fleet_summary(filtered_df: pd.DataFrame) -> None:
 
     st.markdown('### Fleet Summary')
     st.dataframe(summary_df, use_container_width=True, hide_index=True)
+
+
+def _render_chemistry_comparison(filtered_df: pd.DataFrame, x_axis_data: str) -> None:
+    """Compare degradation rate across chemistries (or packs) with 95% CIs."""
+    if x_axis_data == 'Odometer':
+        denominator_column, divisor, unit = 'Odometer', 1000, '%/1000 km'
+    elif x_axis_data == 'Cycles':
+        denominator_column, divisor, unit = 'Cycles', 1, '%/cycle'
+    else:
+        denominator_column, divisor, unit = 'Age', 1, '%/month'
+
+    group_column = 'Chronology Chemistry' if 'Chronology Chemistry' in filtered_df.columns else 'Battery'
+    comparison = BatteryDataProcessor.degradation_rate_by_group(
+        filtered_df, group_column, denominator_column, divisor,
+    )
+    if comparison.empty:
+        return
+
+    title = group_column.replace('Chronology ', '')
+    st.markdown(f'### {title} Degradation Comparison')
+    st.caption(
+        f'Mean degradation rate ({unit}) by {title.lower()}, with 95% confidence '
+        'intervals and sample sizes. Groups need at least 5 readings.'
+    )
+    fig = PlotBuilder.create_comparison_chart(comparison, unit)
+    st.plotly_chart(fig, width='stretch')
+
+
+def _render_aging_decomposition(filtered_df: pd.DataFrame) -> None:
+    """Separate calendar (time) from cycle (usage) aging via multiple regression."""
+    result = BatteryDataProcessor.calendar_vs_cycle_aging(filtered_df)
+    if not result:
+        return
+
+    st.markdown('### Calendar vs. Cycle Aging')
+    st.caption(
+        'Multiple regression of degradation on age and cycles, separating '
+        'time-based wear from usage-based wear for the current selection.'
+    )
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric('Calendar aging', f"{result['calendar_per_month']:.3f} %/mo")
+    col2.metric('Cycle aging', f"{result['cycle_per_1000']:.2f} %/1k cyc")
+    if result['calendar_share'] is not None:
+        col3.metric(
+            'Calendar share',
+            f"{result['calendar_share'] * 100:.0f}%",
+            help='Standardized share of degradation explained by time vs. usage.',
+        )
+    col4.metric('Model fit', f"R²={result['r2']:.2f}", help=f"n={result['n']}")
 
 
 def _render_filtered_dataset(filtered_df: pd.DataFrame) -> None:

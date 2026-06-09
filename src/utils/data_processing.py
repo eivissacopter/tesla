@@ -3,6 +3,7 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
+from scipy import stats
 from sklearn.linear_model import LinearRegression
 
 from ..config import Config
@@ -139,6 +140,91 @@ class BatteryDataProcessor:
         result_df['DegradationPerX'] = result_df['Degradation'] / (result_df[x_column] / divisor)
         result_df = result_df.replace([np.inf, -np.inf], np.nan).dropna(subset=['DegradationPerX'])
         return result_df[result_df['DegradationPerX'].ne(0)]
+
+    @staticmethod
+    def degradation_rate_by_group(
+        df: pd.DataFrame,
+        group_column: str,
+        denominator_column: str,
+        divisor: float = 1.0,
+        min_samples: int = 5,
+        confidence: float = 0.95,
+    ) -> pd.DataFrame:
+        """Mean degradation rate per group with a 95% confidence interval.
+
+        Groups (e.g. chemistries or packs) are only reported when they clear
+        `min_samples`, so the comparison reflects statistically meaningful
+        cohorts rather than one-off submissions.
+        """
+        rates = BatteryDataProcessor.calculate_degradation_per_x(df, denominator_column, divisor)
+        if rates.empty or group_column not in rates.columns:
+            return pd.DataFrame()
+
+        labels = rates[group_column].astype(str).str.strip()
+        rates = rates[labels.ne('') & labels.ne('nan') & labels.ne('None')]
+        if rates.empty:
+            return pd.DataFrame()
+
+        rows = []
+        for group_value, chunk in rates.groupby(group_column):
+            values = chunk['DegradationPerX'].dropna()
+            n = int(values.size)
+            if n < min_samples:
+                continue
+            mean = float(values.mean())
+            std = float(values.std(ddof=1)) if n > 1 else 0.0
+            standard_error = std / np.sqrt(n) if n > 0 else 0.0
+            t_value = float(stats.t.ppf(0.5 + confidence / 2.0, n - 1)) if n > 1 else 0.0
+            margin = t_value * standard_error
+            rows.append({
+                'Group': str(group_value),
+                'Rate': mean,
+                'CI': margin,
+                'Lower': mean - margin,
+                'Upper': mean + margin,
+                'Samples': n,
+            })
+
+        result = pd.DataFrame(rows)
+        return result.sort_values('Rate') if not result.empty else result
+
+    @staticmethod
+    def calendar_vs_cycle_aging(df: pd.DataFrame, min_samples: int = 20) -> Optional[Dict[str, float]]:
+        """Decompose degradation into calendar (per month) and cycle components.
+
+        Fits Degradation ~ Age + Cycles and reports each coefficient plus the
+        standardized share of variation each driver explains, so users can see
+        whether a pack ages mostly from time or from use.
+        """
+        required = {'Degradation', 'Age', 'Cycles'}
+        if not required.issubset(df.columns):
+            return None
+
+        frame = df[['Degradation', 'Age', 'Cycles']].apply(pd.to_numeric, errors='coerce')
+        frame = frame.replace([np.inf, -np.inf], np.nan).dropna()
+        frame = frame[(frame['Age'] > 0) & (frame['Cycles'] > 0)]
+        n = int(len(frame))
+        if n < min_samples:
+            return None
+
+        features = frame[['Age', 'Cycles']].to_numpy()
+        target = frame['Degradation'].to_numpy()
+        model = LinearRegression().fit(features, target)
+
+        age_std = float(frame['Age'].std(ddof=1))
+        cycle_std = float(frame['Cycles'].std(ddof=1))
+        age_weight = abs(float(model.coef_[0]) * age_std)
+        cycle_weight = abs(float(model.coef_[1]) * cycle_std)
+        total_weight = age_weight + cycle_weight
+        calendar_share = (age_weight / total_weight) if total_weight > 0 else None
+
+        return {
+            'n': n,
+            'r2': float(model.score(features, target)),
+            'calendar_per_month': float(model.coef_[0]),
+            'cycle_per_1000': float(model.coef_[1]) * 1000.0,
+            'calendar_share': calendar_share,
+        }
 
     @staticmethod
     def calculate_overview_metrics(df: pd.DataFrame) -> Dict[str, Optional[float]]:
