@@ -59,124 +59,117 @@ class UIComponents:
     @staticmethod
     def render_header() -> None:
         """Render the application header with logo and title."""
-        st.markdown(
-            f"""
-            <style>
-                .header {{
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    flex-direction: column;
-                    padding: 0rem 0;
-                    margin-bottom: 0rem;
-                }}
-                .header img {{
-                    width: 100%;
-                    height: auto;
-                }}
-                .header h1 {{
-                    margin: 0;
-                    padding-top: 1rem;
-                    text-align: center;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 32px;
-                }}
-                .header h1 span {{
-                    margin: 0 10px;
-                }}
-            </style>
-            <div class="header">
-                <img src="{Config.HEADER_IMAGE_URL}" alt="Tesla Battery Analysis">
-                <h1><span>&#128267;</span> Tesla Battery Analysis <span>&#128267;</span></h1>
-            </div>
-            """,
-            unsafe_allow_html=True
+        UIComponents._render_hero(
+            'Tesla <span class="tt-accent">Battery</span> Analysis',
+            'Community-sourced battery health &amp; degradation intelligence',
+            Config.HEADER_IMAGE_URL,
         )
 
     @staticmethod
     def render_performance_header() -> None:
         """Render the performance analysis header."""
+        UIComponents._render_hero(
+            'Tesla <span class="tt-accent">Performance</span> Analysis',
+            'Drive-unit power, torque, and acceleration telemetry',
+            Config.HEADER_IMAGE_URL,
+        )
+
+    @staticmethod
+    def _render_hero(title_html: str, subtitle: str, image_url: str) -> None:
+        """Render a bold hero banner with the title overlaid on a darkened image."""
         st.markdown(
             f"""
             <style>
-                .header {{
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    flex-direction: column;
-                    padding: 0rem 0;
-                    margin-bottom: 0rem;
+                .tt-hero {{
+                    position: relative;
+                    border-radius: 1rem;
+                    overflow: hidden;
+                    margin: 0.2rem 0 1.3rem;
+                    box-shadow: 0 10px 34px rgba(0, 0, 0, 0.45);
                 }}
-                .header img {{
+                .tt-hero img {{
                     width: 100%;
-                    height: auto;
+                    height: 230px;
+                    object-fit: cover;
+                    display: block;
+                    filter: brightness(0.5) saturate(1.05);
                 }}
-                .header h1 {{
-                    margin: 0;
-                    padding-top: 1rem;
-                    text-align: center;
+                .tt-hero-overlay {{
+                    position: absolute;
+                    inset: 0;
                     display: flex;
+                    flex-direction: column;
                     align-items: center;
                     justify-content: center;
-                    font-size: 32px;
+                    text-align: center;
+                    background: linear-gradient(180deg, rgba(11, 14, 20, 0.10) 0%, rgba(11, 14, 20, 0.80) 100%);
                 }}
-                .header h1 span {{
-                    margin: 0 10px;
+                .tt-hero-overlay h1 {{
+                    margin: 0;
+                    font-size: 2.7rem;
+                    font-weight: 800;
+                    letter-spacing: -0.02em;
+                    color: #FFFFFF;
+                    text-shadow: 0 2px 18px rgba(0, 0, 0, 0.6);
+                }}
+                .tt-hero-overlay .tt-accent {{ color: #E82127; }}
+                .tt-hero-overlay p {{
+                    margin: 0.45rem 0 0;
+                    font-size: 1.05rem;
+                    opacity: 0.88;
+                    color: #E6E9EF;
+                }}
+                @media (max-width: 640px) {{
+                    .tt-hero img {{ height: 150px; }}
+                    .tt-hero-overlay h1 {{ font-size: 1.7rem; }}
+                    .tt-hero-overlay p {{ font-size: 0.85rem; }}
                 }}
             </style>
-            <div class="header">
-                <img src="{Config.HEADER_IMAGE_URL}" alt="Tesla Performance Analysis">
-                <h1><span>&#128640;</span> Tesla Performance Analysis <span>&#128640;</span></h1>
+            <div class="tt-hero">
+                <img src="{image_url}" alt="Tesla Battery Analysis">
+                <div class="tt-hero-overlay">
+                    <h1>{title_html}</h1>
+                    <p>{subtitle}</p>
+                </div>
             </div>
             """,
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
 
     @staticmethod
     def render_google_forms_banner() -> None:
-        """Render the Google Forms banner with animated arrows."""
+        """Render a compact call-to-action to contribute data."""
         st.markdown(
             f"""
             <style>
-                @keyframes pulse {{
-                    0% {{ transform: scale(1); opacity: 1; }}
-                    50% {{ transform: scale(1.05); opacity: 0.9; }}
-                    100% {{ transform: scale(1); opacity: 1; }}
-                }}
-                .google-form-logo {{
-                    display: block;
-                    margin: 0rem auto;
-                    width: 300px;
-                    height: auto;
-                    animation: pulse 2s infinite ease-in-out;
-                }}
-                .arrow-text {{
+                .tt-cta {{
                     display: flex;
-                    justify-content: center;
                     align-items: center;
-                    font-size: 24px;
-                    font-weight: bold;
-                    margin-top: 20px;
+                    justify-content: center;
+                    gap: 0.7rem;
+                    flex-wrap: wrap;
+                    margin: 0 0 1.1rem;
+                    font-size: 0.98rem;
                 }}
-                .arrow {{
-                    animation: blinker 3s linear infinite;
-                    font-size: 24px;
-                    margin: 0 20px;
+                .tt-cta .tt-cta-text {{ opacity: 0.8; }}
+                .tt-cta a {{
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.45rem;
+                    text-decoration: none;
+                    background: rgba(232, 33, 39, 0.12);
+                    border: 1px solid rgba(232, 33, 39, 0.55);
+                    color: #FFFFFF;
+                    padding: 0.5rem 1.05rem;
+                    border-radius: 0.6rem;
+                    font-weight: 600;
+                    transition: background 0.15s ease, transform 0.15s ease;
                 }}
-                @keyframes blinker {{
-                    50% {{ opacity: 0; }}
-                }}
+                .tt-cta a:hover {{ background: rgba(232, 33, 39, 0.26); transform: translateY(-1px); }}
             </style>
-            <div class="arrow-text">
-                <span>Add your data here</span>
-                <span class="arrow">&rarr;</span>
-                <a href="{Config.GOOGLE_FORMS_URL}" target="_blank">
-                    <img src="{Config.GOOGLE_FORMS_IMAGE_URL}" class="google-form-logo" alt="Google Forms Survey">
-                </a>
-                <span class="arrow">&larr;</span>
-                <span>Add your data here</span>
+            <div class="tt-cta">
+                <span class="tt-cta-text">📋 Help grow the dataset —</span>
+                <a href="{Config.GOOGLE_FORMS_URL}" target="_blank">Submit your battery data&nbsp;→</a>
             </div>
             """,
             unsafe_allow_html=True
