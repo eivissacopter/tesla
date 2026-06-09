@@ -41,8 +41,6 @@ class PlotBuilder:
             data_frame=plot_df,
             x=x_column,
             y=y_column,
-            symbol='Marker Symbol',
-            symbol_map={'circle': 'circle', 'star': 'star'},
             hover_data=hover_data,
             opacity=0.82,
         )
@@ -68,10 +66,20 @@ class PlotBuilder:
                 **common_kwargs,
             )
 
+        # Apply marker symbols per point (star = replaced pack) without making
+        # the symbol a legend dimension, so the legend stays one entry per battery.
+        per_battery = 'Battery' in plot_df.columns and not (color_column and color_column in plot_df.columns)
+        marker_symbols = plot_df['Marker Symbol'] if 'Marker Symbol' in plot_df.columns else None
         for trace in fig.data:
-            if trace.name in ['circle', 'star']:
-                trace.showlegend = False
             trace.marker.update(size=9, line=dict(width=0.5, color='rgba(255,255,255,0.45)'))
+            if marker_symbols is not None:
+                if per_battery:
+                    mask = plot_df['Battery'].astype(str) == str(trace.name)
+                    symbols = plot_df.loc[mask, 'Marker Symbol'].tolist()
+                    if symbols:
+                        trace.marker.symbol = symbols
+                else:
+                    trace.marker.symbol = marker_symbols.tolist()
 
         fig.update_layout(hovermode='closest', margin=dict(l=20, r=20, t=40, b=20))
         PlotBuilder._add_watermark(fig)

@@ -292,18 +292,18 @@ class UIComponents:
             return [], [], []
 
         target = UIComponents._get_container(container)
-        target.markdown('#### Akkuchronik')
+        target.markdown('#### Cell & Factory')
         filtered_df = df.copy()
 
-        chemistry_options = sorted(filtered_df['Chronology Chemistry'].dropna().unique().tolist()) if 'Chronology Chemistry' in filtered_df.columns else []
+        chemistry_options = sorted(filtered_df['Chemistry'].dropna().unique().tolist()) if 'Chemistry' in filtered_df.columns else []
         chemistries = target.multiselect(':test_tube: Chemistry', chemistry_options, key='chronology_chemistry')
-        if chemistries and 'Chronology Chemistry' in filtered_df.columns:
-            filtered_df = filtered_df[filtered_df['Chronology Chemistry'].isin(chemistries)]
+        if chemistries and 'Chemistry' in filtered_df.columns:
+            filtered_df = filtered_df[filtered_df['Chemistry'].isin(chemistries)]
 
-        plant_options = sorted(filtered_df['Chronology Plant'].dropna().unique().tolist()) if 'Chronology Plant' in filtered_df.columns else []
-        plants = target.multiselect(':factory: Plant', plant_options, key='chronology_plant')
-        if plants and 'Chronology Plant' in filtered_df.columns:
-            filtered_df = filtered_df[filtered_df['Chronology Plant'].isin(plants)]
+        plant_options = sorted(filtered_df['Factory'].dropna().unique().tolist()) if 'Factory' in filtered_df.columns else []
+        plants = target.multiselect(':factory: Factory', plant_options, key='chronology_plant')
+        if plants and 'Factory' in filtered_df.columns:
+            filtered_df = filtered_df[filtered_df['Factory'].isin(plants)]
 
         code_options = sorted(filtered_df['Chronology Code'].dropna().unique().tolist()) if 'Chronology Code' in filtered_df.columns else []
         codes = target.multiselect(':hash: Akku-Code', code_options, key='chronology_code')

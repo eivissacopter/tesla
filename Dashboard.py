@@ -167,10 +167,10 @@ def _apply_basic_filters(
         filtered_df = filtered_df[filtered_df['Version'].isin(versions)]
     if batteries and 'Battery' in filtered_df.columns:
         filtered_df = filtered_df[filtered_df['Battery'].isin(batteries)]
-    if chronology_chemistries and 'Chronology Chemistry' in filtered_df.columns:
-        filtered_df = filtered_df[filtered_df['Chronology Chemistry'].isin(chronology_chemistries)]
-    if chronology_plants and 'Chronology Plant' in filtered_df.columns:
-        filtered_df = filtered_df[filtered_df['Chronology Plant'].isin(chronology_plants)]
+    if chronology_chemistries and 'Chemistry' in filtered_df.columns:
+        filtered_df = filtered_df[filtered_df['Chemistry'].isin(chronology_chemistries)]
+    if chronology_plants and 'Factory' in filtered_df.columns:
+        filtered_df = filtered_df[filtered_df['Factory'].isin(chronology_plants)]
     if chronology_codes and 'Chronology Code' in filtered_df.columns:
         filtered_df = filtered_df[filtered_df['Chronology Code'].isin(chronology_codes)]
     return filtered_df if not filtered_df.empty else df

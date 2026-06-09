@@ -39,11 +39,11 @@ class BatteryDataProcessor:
         if criteria.batteries and 'Battery' in df.columns:
             mask &= df['Battery'].isin(criteria.batteries)
 
-        if criteria.chronology_chemistries and 'Chronology Chemistry' in df.columns:
-            mask &= df['Chronology Chemistry'].isin(criteria.chronology_chemistries)
+        if criteria.chronology_chemistries and 'Chemistry' in df.columns:
+            mask &= df['Chemistry'].isin(criteria.chronology_chemistries)
 
-        if criteria.chronology_plants and 'Chronology Plant' in df.columns:
-            mask &= df['Chronology Plant'].isin(criteria.chronology_plants)
+        if criteria.chronology_plants and 'Factory' in df.columns:
+            mask &= df['Factory'].isin(criteria.chronology_plants)
 
         if criteria.chronology_codes and 'Chronology Code' in df.columns:
             mask &= df['Chronology Code'].isin(criteria.chronology_codes)
@@ -143,23 +143,8 @@ class BatteryDataProcessor:
 
     @staticmethod
     def normalize_chemistry(value) -> Optional[str]:
-        """Canonicalize a reported chemistry to NCA / NMC / LFP.
-
-        The sheet mixes spellings and plant suffixes (e.g. 'NCM', 'NCA MIC'),
-        so collapse them to a single label per chemistry family.
-        """
-        if value is None:
-            return None
-        text = str(value).strip().upper()
-        if not text or text == 'NAN':
-            return None
-        if 'LFP' in text or 'LIFEPO' in text:
-            return 'LFP'
-        if 'NCA' in text:
-            return 'NCA'
-        if 'NMC' in text or 'NCM' in text:
-            return 'NMC'
-        return None
+        """Canonicalize a reported chemistry to NCA / NMC / LFP (see Config)."""
+        return Config.normalize_chemistry(value)
 
     @staticmethod
     def degradation_rate_by_group(

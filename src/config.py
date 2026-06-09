@@ -66,6 +66,13 @@ class Config:
         'Degradation': (-60, 0.0001),  # %, already non-positive
     }
 
+    # Manufacturing origin (reported in the sheet) -> Tesla factory code
+    ORIGIN_TO_FACTORY = {
+        'China': 'MIC',     # Shanghai
+        'Germany': 'MIG',   # Berlin-Brandenburg (Grünheide)
+        'USA': 'MIA',       # Fremont / Austin
+    }
+
     # Tesla battery retention data (for reference line)
     TESLA_RETENTION_MILES = [0, 50000, 100000, 150000, 200000]
     TESLA_RETENTION_PERCENT = [0, -8, -12, -13.5, -15]
@@ -127,6 +134,25 @@ class Config:
             URL of the Google Sheets spreadsheet.
         """
         return st.secrets["connections"]["gsheets"]["spreadsheet"]
+
+    @staticmethod
+    def normalize_chemistry(value: Any) -> Any:
+        """Canonicalize a reported chemistry to NCA / NMC / LFP (or None).
+
+        The sheet mixes spellings and plant suffixes (e.g. 'NCM', 'NCA MIC').
+        """
+        if value is None:
+            return None
+        text = str(value).strip().upper()
+        if not text or text == 'NAN':
+            return None
+        if 'LFP' in text or 'LIFEPO' in text:
+            return 'LFP'
+        if 'NCA' in text:
+            return 'NCA'
+        if 'NMC' in text or 'NCM' in text:
+            return 'NMC'
+        return None
 
     @staticmethod
     def get_google_api_scope() -> List[str]:

@@ -338,6 +338,16 @@ class GoogleSheetsClient:
             processed_df['Degradation'] = -degradation.abs()
             processed_df.loc[processed_df['Degradation'] == 0, 'Degradation'] = np.nan
 
+        # Canonicalize chemistry (NCM->NMC, 'NCA MIC'->NCA) so NCA isn't lost.
+        if 'Chemistry' in processed_df.columns:
+            processed_df['Chemistry'] = processed_df['Chemistry'].map(Config.normalize_chemistry)
+
+        # Derive the factory from reported manufacturing origin (USA -> MIA, etc.).
+        if 'Origin' in processed_df.columns:
+            processed_df['Factory'] = processed_df['Origin'].map(
+                lambda value: Config.ORIGIN_TO_FACTORY.get(str(value).strip()) if value is not None else None
+            )
+
         # Drop physically impossible values so one bad submission can't break the UI.
         for column, (low, high) in Config.SANITY_BOUNDS.items():
             if column in processed_df.columns:
