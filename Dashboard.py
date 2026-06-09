@@ -24,6 +24,7 @@ def main():
     """Main application entry point."""
     sheets_client = GoogleSheetsClient()
 
+    UIComponents.inject_global_styles()
     UIComponents.render_header()
     UIComponents.render_google_forms_banner()
 

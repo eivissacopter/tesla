@@ -1,0 +1,15 @@
+# Tesla Battery Analysis — app theme. Committed (only secrets.toml is gitignored).
+[server]
+runOnSave = true
+
+[theme]
+base = "dark"
+primaryColor = "#E82127"              # Tesla red — primary accent
+backgroundColor = "#0B0E14"           # near-black page background
+secondaryBackgroundColor = "#151A23"  # cards, sidebar, tables
+textColor = "#E6E9EF"
+linkColor = "#5BA8FF"
+font = "sans-serif"
+baseRadius = "0.6rem"
+borderColor = "#262D3A"
+showSidebarBorder = true

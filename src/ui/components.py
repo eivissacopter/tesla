@@ -19,6 +19,44 @@ class UIComponents:
         return container if container is not None else st.sidebar
 
     @staticmethod
+    def inject_global_styles() -> None:
+        """Inject global CSS for a cohesive, card-based visual identity.
+
+        Called once at the top of each page. Targets stable Streamlit testids
+        so metric tiles, tables, and spacing read as a polished dashboard
+        rather than default stacked widgets.
+        """
+        st.markdown(
+            """
+            <style>
+              :root { --tt-accent: #E82127; --tt-border: #262D3A; --tt-panel: #151A23; }
+              .block-container { padding-top: 2.2rem; max-width: 1420px; }
+              h1, h2, h3 { letter-spacing: -0.01em; font-weight: 700; }
+              /* Metric tiles -> accent cards */
+              [data-testid="stMetric"] {
+                  background: var(--tt-panel);
+                  border: 1px solid var(--tt-border);
+                  border-left: 3px solid var(--tt-accent);
+                  border-radius: 0.6rem;
+                  padding: 0.85rem 1rem;
+              }
+              [data-testid="stMetricValue"] { font-weight: 700; font-size: 1.7rem; }
+              [data-testid="stMetricLabel"] {
+                  opacity: 0.65; text-transform: uppercase;
+                  letter-spacing: 0.05em; font-size: 0.72rem;
+              }
+              /* Tables / dataframes */
+              [data-testid="stDataFrame"], [data-testid="stTable"] {
+                  border: 1px solid var(--tt-border); border-radius: 0.6rem;
+              }
+              /* Section dividers feel lighter */
+              hr { border-color: var(--tt-border); }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    @staticmethod
     def render_header() -> None:
         """Render the application header with logo and title."""
         st.markdown(
