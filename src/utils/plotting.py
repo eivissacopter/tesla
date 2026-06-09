@@ -43,6 +43,11 @@ class PlotBuilder:
             y=y_column,
             hover_data=hover_data,
             opacity=0.82,
+            # Force SVG rendering. Plotly Express otherwise auto-switches to
+            # WebGL (scattergl) above ~1000 points, which fails on laptops whose
+            # browser/GPU can't provide a WebGL context. SVG is smooth at this
+            # point count and works on every device.
+            render_mode='svg',
         )
 
         if color_column and color_column in plot_df.columns:
