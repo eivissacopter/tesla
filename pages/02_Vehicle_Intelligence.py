@@ -4,6 +4,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
+from src.data.battery_care import CHEMISTRY_CARE, FAQ_ENTRIES, FAQ_SOURCE_URL
 from src.data.battery_chronology import BatteryChronologyClient
 from src.data.vehicle_intelligence import VehicleIntelligenceClient
 from src.data.wltp import WltpReference
@@ -25,14 +26,16 @@ def main():
     st.caption('Decode Tesla battery, motors, release family, and registration clues in one place.')
 
 
-    resolver_tab, wltp_tab, releases_tab, hsn_tab, motors_tab, unicorns_tab = st.tabs([
-        'Resolver', 'WLTP', 'VC/VS Timeline', 'HSN/TSN', 'Motors', 'Unicorns'
+    resolver_tab, wltp_tab, care_tab, releases_tab, hsn_tab, motors_tab, unicorns_tab = st.tabs([
+        'Resolver', 'WLTP', 'Battery Care', 'VC/VS Timeline', 'HSN/TSN', 'Motors', 'Unicorns'
     ])
 
     with resolver_tab:
         _render_resolver()
     with wltp_tab:
         _render_wltp()
+    with care_tab:
+        _render_battery_care()
     with releases_tab:
         _render_release_timeline()
     with hsn_tab:
@@ -389,6 +392,26 @@ def _render_wltp() -> None:
     })
     st.dataframe(table.sort_values('WLTP Range [km]', ascending=False),
                  use_container_width=True, hide_index=True)
+
+
+def _render_battery_care() -> None:
+    """Charging and longevity guidance distilled from the Akkuwiki + FAQ threads."""
+    st.markdown('### Battery Care')
+    st.caption('Charging windows by chemistry, plus battery FAQs — condensed from the maintained Akkuwiki.')
+
+    st.markdown('#### Charging by chemistry')
+    columns = st.columns(len(CHEMISTRY_CARE))
+    for column, (chemistry, care) in zip(columns, CHEMISTRY_CARE.items()):
+        with column:
+            st.markdown(f"**{chemistry}** — {care['headline']}")
+            st.markdown('\n'.join(f'- {point}' for point in care['points']))
+
+    st.markdown('#### FAQ')
+    for entry in FAQ_ENTRIES:
+        with st.expander(entry['question']):
+            st.markdown(entry['answer'])
+
+    st.caption(f'Source: [Akkuwiki FAQ (work in progress)]({FAQ_SOURCE_URL}). More topics are being added.')
 
 
 if __name__ == '__main__':
