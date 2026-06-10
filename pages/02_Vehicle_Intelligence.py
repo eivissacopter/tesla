@@ -1,10 +1,14 @@
 ﻿"""Tesla Vehicle Intelligence reference and resolver page."""
 import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 
 from src.data.battery_chronology import BatteryChronologyClient
 from src.data.vehicle_intelligence import VehicleIntelligenceClient
+from src.data.wltp import WltpReference
 from src.ui import UIComponents
+from src.utils import PlotBuilder
 
 
 st.set_page_config(
@@ -21,12 +25,14 @@ def main():
     st.caption('Decode Tesla battery, motors, release family, and registration clues in one place.')
 
 
-    resolver_tab, releases_tab, hsn_tab, motors_tab, unicorns_tab = st.tabs([
-        'Resolver', 'VC/VS Timeline', 'HSN/TSN', 'Motors', 'Unicorns'
+    resolver_tab, wltp_tab, releases_tab, hsn_tab, motors_tab, unicorns_tab = st.tabs([
+        'Resolver', 'WLTP', 'VC/VS Timeline', 'HSN/TSN', 'Motors', 'Unicorns'
     ])
 
     with resolver_tab:
         _render_resolver()
+    with wltp_tab:
+        _render_wltp()
     with releases_tab:
         _render_release_timeline()
     with hsn_tab:
@@ -40,7 +46,7 @@ def main():
     st.markdown('- [Motor / Drive Units wiki](https://tff-forum.de/t/wiki-model-3-model-y-motoren-drive-units/190111)')
     st.markdown('- [HSN / TSN wiki](https://tff-forum.de/t/wiki-hsn-tsn-schluesselnummern/281435)')
     st.markdown('- [Technical changes wiki](https://tff-forum.de/t/wiki-model-3-model-y-technische-veraenderungen/100784)')
-    st.markdown('- [Battery chronology / Akkuchronik thread](https://tff-forum.de/t/wiki-akkuwiki-model-3-y-s-y-ct/107641)')
+    st.markdown('- [Battery chronology / Akkuwiki thread](https://tff-forum.de/t/wiki-akkuwiki-model-3-y-s-x-ct/107641)')
 
 
 def _render_resolver() -> None:
@@ -257,6 +263,114 @@ def _metric_value(value) -> str:
         return 'n/a'
     value_str = str(value).strip()
     return value_str if value_str else 'n/a'
+
+
+def _render_wltp() -> None:
+    """Compare WLTP range and consumption across packs, trims, and wheel sizes."""
+    st.markdown('### WLTP Range & Efficiency')
+    st.caption(
+        'Homologated WLTP figures per variant and wheel size. WLTP consumption is '
+        'a European test cycle value and is distinct from the EPA-based rated constant.'
+    )
+
+    df = WltpReference.get_df()
+
+    col1, col2, col3 = st.columns(3)
+    sel_models = col1.multiselect('Model', sorted(df['Model'].unique()), default=[])
+    sel_trims = col2.multiselect('Trim', sorted(df['Trim'].unique()), default=[])
+    sel_wheels = col3.multiselect('Wheel size', sorted(df['Wheel Label'].unique()), default=[])
+
+    view = df.copy()
+    if sel_models:
+        view = view[view['Model'].isin(sel_models)]
+    if sel_trims:
+        view = view[view['Trim'].isin(sel_trims)]
+    if sel_wheels:
+        view = view[view['Wheel Label'].isin(sel_wheels)]
+
+    if view.empty:
+        st.info('No variants match the current filters.')
+        return
+
+    metric1, metric2, metric3 = st.columns(3)
+    metric1.metric('Configurations', len(view))
+    best = view.loc[view['Range_km'].idxmax()]
+    metric2.metric('Longest range', f"{int(best['Range_km'])} km", help=best['Label'])
+    efficient = view.dropna(subset=['Wh_km'])
+    if not efficient.empty:
+        low = efficient.loc[efficient['Wh_km'].idxmin()]
+        metric3.metric('Most efficient', f"{low['Wh_km']:.0f} Wh/km", help=low['Label'])
+
+    # Range, coloured by consumption (greener = more efficient).
+    ranked = view.sort_values('Range_km')
+    range_fig = go.Figure(go.Bar(
+        x=ranked['Range_km'],
+        y=ranked['Label'],
+        orientation='h',
+        marker=dict(
+            color=ranked['Wh_km'],
+            colorscale='RdYlGn_r',
+            colorbar=dict(title='Wh/km'),
+            line=dict(width=0.5, color='rgba(255,255,255,0.2)'),
+        ),
+        customdata=ranked[['Config', 'Wh_km', 'Battery', 'Chemistry']].to_numpy(),
+        hovertemplate=(
+            '<b>%{y}</b><br>%{customdata[0]}<br>Range: %{x} km'
+            '<br>Consumption: %{customdata[1]} Wh/km'
+            '<br>Pack: %{customdata[2]} (%{customdata[3]})<extra></extra>'
+        ),
+    ))
+    range_fig.update_layout(
+        xaxis_title='WLTP range [km]',
+        yaxis_title=None,
+        height=max(320, 22 * len(ranked)),
+        margin=dict(l=20, r=20, t=30, b=20),
+    )
+    PlotBuilder._apply_theme(range_fig)
+    st.plotly_chart(range_fig, width='stretch')
+
+    # Efficiency frontier: consumption vs range.
+    scatter_df = view.dropna(subset=['Wh_km'])
+    if not scatter_df.empty:
+        st.markdown('#### Consumption vs. range')
+        eff_fig = px.scatter(
+            scatter_df,
+            x='Wh_km',
+            y='Range_km',
+            color='Model',
+            symbol='Drive',
+            hover_name='Label',
+            hover_data={'Battery': True, 'Chemistry': True, 'Wheel Label': True, 'Wh_km': True, 'Range_km': True},
+            labels={'Wh_km': 'WLTP consumption [Wh/km]', 'Range_km': 'WLTP range [km]'},
+            render_mode='svg',
+        )
+        eff_fig.update_traces(marker=dict(size=11, line=dict(width=0.5, color='rgba(255,255,255,0.4)')))
+        eff_fig.update_layout(margin=dict(l=20, r=20, t=20, b=20))
+        PlotBuilder._apply_theme(eff_fig)
+        st.plotly_chart(eff_fig, width='stretch')
+
+    # Wheel-size impact for configs homologated on more than one wheel.
+    multi_wheel = view.groupby('Config').filter(lambda group: group['Wheel'].nunique() > 1)
+    if not multi_wheel.empty:
+        st.markdown('#### Wheel-size impact on range')
+        wheel_fig = px.bar(
+            multi_wheel.sort_values(['Config', 'Wheel']),
+            x='Config',
+            y='Range_km',
+            color='Wheel Label',
+            barmode='group',
+            labels={'Range_km': 'WLTP range [km]', 'Config': '', 'Wheel Label': 'Wheel'},
+        )
+        wheel_fig.update_layout(margin=dict(l=20, r=20, t=20, b=20))
+        PlotBuilder._apply_theme(wheel_fig)
+        st.plotly_chart(wheel_fig, width='stretch')
+
+    table = view[['Model', 'Trim', 'Drive', 'Year', 'Variant', 'Battery', 'Chemistry',
+                  'Wheel Label', 'Range_km', 'Wh_km']].rename(columns={
+        'Wheel Label': 'Wheel', 'Range_km': 'WLTP Range [km]', 'Wh_km': 'WLTP [Wh/km]',
+    })
+    st.dataframe(table.sort_values('WLTP Range [km]', ascending=False),
+                 use_container_width=True, hide_index=True)
 
 
 if __name__ == '__main__':
