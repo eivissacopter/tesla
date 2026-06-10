@@ -515,6 +515,102 @@ CHRONOLOGY_RECORDS = [
         'confidence': 'medium',
         'notes': 'Late Model Y Performance era from the provided Akkuchronik PDF.',
     },
+    {
+        'market': 'Europe',
+        'model': 'Model S',
+        'trim': 'Long Range',
+        'drivetrain': 'AWD',
+        'battery_label': 'Panasonic b1',
+        'battery_code': 'b1',
+        'chemistry': 'NCA',
+        'plant': 'Fremont',
+        'year_from': 2021,
+        'quarter_from': 1,
+        'year_to': 2026,
+        'quarter_to': 4,
+        'confidence': 'high',
+        'notes': 'Model S Refresh: Panasonic 18650 (NCA) ~100 kWh net, 7920 cells, 408 V. Variant Sb1D (Akkuwiki).',
+    },
+    {
+        'market': 'Europe',
+        'model': 'Model S',
+        'trim': 'Plaid',
+        'drivetrain': 'AWD',
+        'battery_label': 'Panasonic b1',
+        'battery_code': 'b1',
+        'chemistry': 'NCA',
+        'plant': 'Fremont',
+        'year_from': 2021,
+        'quarter_from': 1,
+        'year_to': 2026,
+        'quarter_to': 4,
+        'confidence': 'high',
+        'notes': 'Model S Plaid Refresh: Panasonic 18650 (NCA) ~100 kWh net, tri-motor. Variant Sb1T (Akkuwiki).',
+    },
+    {
+        'market': 'Europe',
+        'model': 'Model X',
+        'trim': 'Long Range',
+        'drivetrain': 'AWD',
+        'battery_label': 'Panasonic b1',
+        'battery_code': 'b1',
+        'chemistry': 'NCA',
+        'plant': 'Fremont',
+        'year_from': 2021,
+        'quarter_from': 1,
+        'year_to': 2026,
+        'quarter_to': 4,
+        'confidence': 'high',
+        'notes': 'Model X Refresh: Panasonic 18650 (NCA) ~100 kWh net, 7920 cells, 408 V. Variant Xb1D (Akkuwiki).',
+    },
+    {
+        'market': 'Europe',
+        'model': 'Model X',
+        'trim': 'Plaid',
+        'drivetrain': 'AWD',
+        'battery_label': 'Panasonic b1',
+        'battery_code': 'b1',
+        'chemistry': 'NCA',
+        'plant': 'Fremont',
+        'year_from': 2021,
+        'quarter_from': 1,
+        'year_to': 2026,
+        'quarter_to': 4,
+        'confidence': 'high',
+        'notes': 'Model X Plaid Refresh: Panasonic 18650 (NCA) ~100 kWh net, tri-motor. Variant Xb1T (Akkuwiki).',
+    },
+    {
+        'market': 'Europe',
+        'model': 'Cybertruck',
+        'trim': 'All-Wheel Drive',
+        'drivetrain': 'AWD',
+        'battery_label': 'Tesla 4680',
+        'battery_code': '4680',
+        'chemistry': 'NMC',
+        'plant': 'Austin',
+        'year_from': 2024,
+        'quarter_from': 1,
+        'year_to': 2026,
+        'quarter_to': 4,
+        'confidence': 'high',
+        'notes': 'Cybertruck: Tesla 4680 (NMC) ~123 kWh net, 1344 cells (192s/7p), 816 V, structural pack (Akkuwiki).',
+    },
+    {
+        'market': 'Europe',
+        'model': 'Cybertruck',
+        'trim': 'Cyberbeast',
+        'drivetrain': 'Tri Motor',
+        'battery_label': 'Tesla 4680',
+        'battery_code': '4680',
+        'chemistry': 'NMC',
+        'plant': 'Austin',
+        'year_from': 2024,
+        'quarter_from': 1,
+        'year_to': 2026,
+        'quarter_to': 4,
+        'confidence': 'high',
+        'notes': 'Cybertruck Cyberbeast: Tesla 4680 (NMC) ~123 kWh net, 816 V, structural pack (Akkuwiki).',
+    },
 ]
 
 
@@ -803,9 +899,15 @@ class BatteryChronologyClient:
             return None
         if any(hint in text for hint in ['model 3', 'model3', 'm3', 'highland']):
             return 'Model 3'
-        if any(hint in text for hint in ['model y', 'modely', 'my', 'juniper']):
+        if any(hint in text for hint in ['model y', 'modely', 'juniper']):
             return 'Model Y'
-        return None
+        if any(hint in text for hint in ['model s', 'models']):
+            return 'Model S'
+        if any(hint in text for hint in ['model x', 'modelx']):
+            return 'Model X'
+        if 'cybertruck' in text or 'cyber truck' in text:
+            return 'Cybertruck'
+        return 'Model Y' if 'my' in text else None
 
     @staticmethod
     def infer_trim(value: Any) -> Optional[str]:
