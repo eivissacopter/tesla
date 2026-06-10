@@ -341,17 +341,21 @@ class UIComponents:
         odo_min = (odo_min // step) * step
         odo_max = max(odo_min + step, int(np.ceil(odo_max / step)) * step)
 
+        # Preselect a sensible lower bound on first load (upper bound stays at max).
+        age_default_min = max(age_min, min(Config.DEFAULT_MIN_AGE_MONTHS, age_max))
+        odo_default_min = max(odo_min, min((Config.DEFAULT_MIN_ODOMETER_KM // step) * step, odo_max))
+
         age_range = target.slider(
             'Age [months]',
             min_value=age_min,
             max_value=age_max,
-            value=(age_min, age_max)
+            value=(age_default_min, age_max)
         )
         odo_range = target.slider(
             'Odometer [km]',
             min_value=odo_min,
             max_value=odo_max,
-            value=(odo_min, odo_max),
+            value=(odo_default_min, odo_max),
             step=step
         )
 

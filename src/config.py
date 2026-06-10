@@ -13,6 +13,10 @@ class Config:
 
     # Plotly settings
     PLOTLY_TEMPLATE = "plotly_dark"
+    # Opaque chart background, matching .streamlit/config.toml backgroundColor, so
+    # in-app charts blend in AND exported PNGs keep the dark background (a
+    # transparent export shows black in the app but white on sites like X).
+    CHART_BACKGROUND = "#0B0E14"
     COLOR_SEQUENCE = [
         "#0068c9", "#83c9ff", "#ff2b2b", "#ffabab", "#29b09d",
         "#7defa1", "#ff8700", "#ffd16a", "#6d3fc0", "#d5dae5",
@@ -37,6 +41,10 @@ class Config:
     MIN_AGE_MONTHS = 1
     MIN_ODOMETER_KM = 1000
     ODOMETER_STEP = 10000
+
+    # Default lower bound preselected on the range sliders when the app loads
+    DEFAULT_MIN_AGE_MONTHS = 24
+    DEFAULT_MIN_ODOMETER_KM = 30000
 
     # Battery power thresholds
     BATTERY_POWER_THRESHOLD = 40  # kW

@@ -31,8 +31,7 @@ class PlotBuilder:
             column: True
             for column in [
                 'Tesla', 'Version', 'Battery', 'Username', 'Age', 'Odometer', 'SOH',
-                'Daily SOC Limit', 'DC Ratio', 'Chronology Pack', 'Chronology Chemistry',
-                'Chronology Plant', 'Chronology Code', 'Chronology Match'
+                'Daily SOC Limit', 'DC Ratio'
             ]
             if column in plot_df.columns and column not in {x_column, y_column, color_column}
         }
@@ -434,8 +433,8 @@ class PlotBuilder:
     def _apply_theme(fig: go.Figure) -> None:
         """Apply consistent dark, transparent styling so charts blend with the app."""
         fig.update_layout(
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor=Config.CHART_BACKGROUND,
+            plot_bgcolor=Config.CHART_BACKGROUND,
             font=dict(color='#E6E9EF'),
             colorway=Config.COLOR_SEQUENCE,
         )
