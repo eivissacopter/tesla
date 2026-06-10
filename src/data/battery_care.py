@@ -87,3 +87,91 @@ FAQ_ENTRIES = [
         ),
     },
 ]
+
+# Degradation science — consensus from peer-reviewed Li-ion aging research, mapped to
+# the fields this app tracks. Educational summary, not personalized advice.
+SCIENCE_TOPICS = [
+    {
+        'icon': '🌡️',
+        'title': 'Temperature',
+        'summary': 'Temperature is the strongest environmental driver of aging — both extremes hurt, for different reasons.',
+        'findings': [
+            'Heat accelerates parasitic side reactions: SEI growth and electrolyte oxidation follow roughly an '
+            'Arrhenius law, so calendar fade rises steeply with temperature (often on the order of ~2× per +10 °C).',
+            'Cold is dangerous *while charging*: slow lithium diffusion promotes metallic **lithium plating** on '
+            'the anode, which is partly irreversible and a safety risk. Post-mortem work finds an aging minimum '
+            'near ~25 °C — plating-dominated below it, SEI/cathode-dominated above.',
+            'Practical sweet spot is roughly 15–35 °C; cells prefer slightly above room temperature. Avoid hard '
+            'charging when very cold and prolonged heat-soak at high SoC.',
+        ],
+        'app_tie': 'Long-term thermal exposure is baked into the Degradation-vs-Age and per-cycle trends you see here.',
+        'evidence': 'Waldmann et al. 2014; Vetter et al. 2005.',
+    },
+    {
+        'icon': '🔋',
+        'title': 'State of charge & cell voltage',
+        'summary': 'Time spent at high SoC (high cell voltage) is the dominant calendar-aging stressor.',
+        'findings': [
+            'Higher SoC means higher cathode potential, which speeds electrolyte oxidation, SEI growth and '
+            'transition-metal dissolution. Calendar fade climbs sharply above ~70–80% SoC, and far worse combined with heat.',
+            'Sitting near 100% is the most damaging everyday habit for nickel-rich (NCA/NMC) cells; the ~30–70% '
+            'band minimizes calendar aging.',
+            "LFP's lower, flatter voltage makes it much more tolerant of high SoC — which is why charging it to "
+            '100% is fine and even useful for BMS calibration.',
+        ],
+        'app_tie': 'Maps directly to the **Daily SOC Limit** filter — higher limits are expected to track with faster degradation.',
+        'evidence': 'Keil et al. 2016; Schmalstieg et al. 2014.',
+    },
+    {
+        'icon': '⚡',
+        'title': 'Charge rate (C-rate) & fast charging',
+        'summary': 'High currents add heat and overpotential; high charge rates promote lithium plating.',
+        'findings': [
+            'Higher C-rate raises internal heating (I²R) and electrode overpotentials, accelerating SEI growth '
+            'and mechanical stress.',
+            'High **charge** C-rate is especially harmful when cold — the classic trigger for lithium plating. A '
+            'high lifetime fraction of DC fast charging measurably increases capacity fade versus AC charging.',
+            'Modern Tesla packs precondition and thermally manage for Supercharging, so occasional DC charging is '
+            'fine — but the cumulative fast-charge fraction still adds up.',
+        ],
+        'app_tie': 'Maps to the **DC Ratio** filter — a higher fast-charge fraction is expected to correlate with more degradation.',
+        'evidence': 'Vetter et al. 2005; Waldmann et al. 2014.',
+    },
+    {
+        'icon': '🔄',
+        'title': 'Depth of discharge & cycles',
+        'summary': 'Shallow cycles age a cell far less than deep ones per unit of energy delivered.',
+        'findings': [
+            'Mechanical stress from lattice expansion/contraction scales with depth of discharge; deep 0–100% '
+            'cycling cracks particles and loses contact more than shallow mid-SoC cycles.',
+            'Cycle life is best expressed in **equivalent full cycles** — many shallow cycles deliver more total '
+            'distance than a few deep ones before reaching the same fade.',
+            'Practical upshot: small, frequent top-ups in the mid band beat deep swings.',
+        ],
+        'app_tie': 'Relates to the **Cycles** axis and the degradation-per-cycle view.',
+        'evidence': 'Vetter et al. 2005.',
+    },
+    {
+        'icon': '🔬',
+        'title': 'What is actually degrading',
+        'summary': 'Capacity fade is mostly lost cyclable lithium; power fade is mostly rising resistance.',
+        'findings': [
+            '**SEI growth** on the anode consumes lithium inventory — the main cause of gradual calendar capacity loss.',
+            '**Lithium plating** (cold or fast charging) removes cyclable lithium and can seed dendrites.',
+            '**Cathode degradation** — particle cracking, transition-metal dissolution, structural change — worsens '
+            'at high voltage and temperature.',
+            'Rising internal impedance and loss of active material reduce usable energy and peak power over time.',
+        ],
+        'app_tie': 'Why SOH (capacity) and power capability fade on different timescales.',
+        'evidence': 'Vetter et al. 2005; Schmalstieg et al. 2014.',
+    },
+]
+
+# Representative, foundational peer-reviewed works (no fabricated DOIs).
+LITERATURE = [
+    'Vetter et al. (2005), *Journal of Power Sources* — “Ageing mechanisms in lithium-ion batteries” (foundational review).',
+    'Waldmann et al. (2014), *Journal of Power Sources* — temperature-dependent aging / post-mortem study (the ~25 °C minimum, plating below it).',
+    'Keil et al. (2016), *Journal of The Electrochemical Society* — calendar aging vs. state of charge.',
+    'Schmalstieg et al. (2014), *Journal of Power Sources* — holistic NMC 18650 aging model (SoC, voltage and temperature stress factors).',
+    'Harlow, Dahn et al. (2019), *Journal of The Electrochemical Society* — long-term benchmark cell testing (Dahn group).',
+]

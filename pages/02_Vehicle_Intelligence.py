@@ -4,7 +4,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-from src.data.battery_care import CHEMISTRY_CARE, FAQ_ENTRIES, FAQ_SOURCE_URL
+from src.data.battery_care import CHEMISTRY_CARE, FAQ_ENTRIES, FAQ_SOURCE_URL, LITERATURE, SCIENCE_TOPICS
 from src.data.battery_chronology import BatteryChronologyClient
 from src.data.vehicle_intelligence import VehicleIntelligenceClient
 from src.data.wltp import WltpReference
@@ -406,12 +406,30 @@ def _render_battery_care() -> None:
             st.markdown(f"**{chemistry}** — {care['headline']}")
             st.markdown('\n'.join(f'- {point}' for point in care['points']))
 
+    st.markdown('#### The science of degradation')
+    st.caption('Consensus from peer-reviewed Li-ion aging research, mapped to the data this app tracks.')
+    for topic in SCIENCE_TOPICS:
+        with st.expander(f"{topic['icon']}  {topic['title']}"):
+            st.markdown(topic['summary'])
+            st.markdown('\n'.join(f'- {finding}' for finding in topic['findings']))
+            if topic.get('app_tie'):
+                st.markdown(f"**In this app:** {topic['app_tie']}")
+            if topic.get('evidence'):
+                st.caption(f"Evidence: {topic['evidence']}")
+
+    st.markdown('**Key literature**')
+    st.markdown('\n'.join(f'- {reference}' for reference in LITERATURE))
+    st.caption(
+        'Educational summary of published scientific consensus — not personalized advice. '
+        'Degradation figures elsewhere in the app are empirical and community-sourced.'
+    )
+
     st.markdown('#### FAQ')
     for entry in FAQ_ENTRIES:
         with st.expander(entry['question']):
             st.markdown(entry['answer'])
 
-    st.caption(f'Source: [Akkuwiki FAQ (work in progress)]({FAQ_SOURCE_URL}). More topics are being added.')
+    st.caption(f'Battery FAQ source: [Akkuwiki FAQ (work in progress)]({FAQ_SOURCE_URL}). More topics are being added.')
 
 
 if __name__ == '__main__':
