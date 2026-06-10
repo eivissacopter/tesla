@@ -54,6 +54,7 @@ WLTP_RECORDS = [
     ('Model Y', 'Performance',    'AWD', '2022-2025', 'Y5LD', 'LG 5L', None, 514, 171),
 
     ('Model 3', 'Long Range',     'RWD', '2025',      'H5MR',  'LG 5M', 19, 691, 136),
+    ('Model 3', 'Long Range',     'RWD', '2025',      'H5MR',  'LG 5M', 18, 750, 126),
     ('Model 3', 'Long Range',     'AWD', '2025',      'H5MD',  'LG 5M', 19, 660, 143),
     ('Model 3', 'Performance',    'AWD', '2025',      'H5MD',  'LG 5M', 20, 571, 165),
     ('Model Y', 'Long Range',     'RWD', '2026',      'YS5MR', 'LG 5M', 20, 661, 142),
@@ -106,9 +107,15 @@ class WltpReference:
         )
         df['Wheel'] = df['Wheel'].astype('Int64')
         df['Wheel Label'] = df['Wheel'].map(lambda w: f'{int(w)}"' if pd.notna(w) else 'std')
-        df['Config'] = (
-            df['Model'] + ' ' + df['Trim'] + ' ' + df['Drive'] + ' ' + df['Year']
-        )
-        df['Label'] = df['Variant'] + ' (' + df['Year'] + ', ' + df['Wheel Label'] + ')'
+        trim_short = {
+            'Long Range': 'LR', 'Performance': 'Perf', 'Standard Range': 'SR',
+            'Standard': 'Std', 'Plaid': 'Plaid',
+        }
+        df['Trim Short'] = df['Trim'].map(lambda t: trim_short.get(t, t))
+        df['Config'] = df['Model'] + ' ' + df['Trim'] + ' ' + df['Drive'] + ' ' + df['Year']
+        # Spec uniquely identifies a configuration (variant + trim + drive + year) so
+        # chart categories never collide and get silently summed by Plotly.
+        df['Spec'] = df['Variant'] + ' · ' + df['Trim Short'] + ' ' + df['Drive'] + ' · ' + df['Year']
+        df['Label'] = df['Spec'] + ' (' + df['Wheel Label'] + ')'
         df['Year Start'] = df['Year'].str.extract(r'(\d{4})').astype(int)
         return df

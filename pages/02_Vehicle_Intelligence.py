@@ -349,21 +349,39 @@ def _render_wltp() -> None:
         PlotBuilder._apply_theme(eff_fig)
         st.plotly_chart(eff_fig, width='stretch')
 
-    # Wheel-size impact for configs homologated on more than one wheel.
-    multi_wheel = view.groupby('Config').filter(lambda group: group['Wheel'].nunique() > 1)
+    # Wheel-size impact for individual variants homologated on more than one wheel.
+    multi_wheel = view.groupby('Spec').filter(lambda group: group['Wheel'].nunique() > 1)
     if not multi_wheel.empty:
         st.markdown('#### Wheel-size impact on range')
         wheel_fig = px.bar(
-            multi_wheel.sort_values(['Config', 'Wheel']),
-            x='Config',
+            multi_wheel.sort_values(['Spec', 'Wheel']),
+            x='Spec',
             y='Range_km',
             color='Wheel Label',
             barmode='group',
-            labels={'Range_km': 'WLTP range [km]', 'Config': '', 'Wheel Label': 'Wheel'},
+            labels={'Range_km': 'WLTP range [km]', 'Spec': '', 'Wheel Label': 'Wheel'},
         )
         wheel_fig.update_layout(margin=dict(l=20, r=20, t=20, b=20))
         PlotBuilder._apply_theme(wheel_fig)
         st.plotly_chart(wheel_fig, width='stretch')
+
+    # RWD vs AWD efficiency. Consumption is the fair comparison (range is confounded
+    # by battery size); AWD adds a front motor and typically consumes more.
+    drive_df = view.dropna(subset=['Wh_km'])
+    if drive_df['Drive'].nunique() > 1:
+        st.markdown('#### RWD vs. AWD efficiency')
+        st.caption('WLTP consumption by drivetrain. Range is omitted here because it is confounded by battery size.')
+        drive_fig = px.box(
+            drive_df,
+            x='Drive',
+            y='Wh_km',
+            color='Model',
+            points='all',
+            labels={'Wh_km': 'WLTP consumption [Wh/km]', 'Drive': ''},
+        )
+        drive_fig.update_layout(margin=dict(l=20, r=20, t=20, b=20), boxmode='group')
+        PlotBuilder._apply_theme(drive_fig)
+        st.plotly_chart(drive_fig, width='stretch')
 
     table = view[['Model', 'Trim', 'Drive', 'Year', 'Variant', 'Battery', 'Chemistry',
                   'Wheel Label', 'Range_km', 'Wh_km']].rename(columns={
