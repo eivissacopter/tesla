@@ -1,0 +1,8 @@
+pandas
+numpy
+sqlalchemy
+pymysql
+pyarrow
+boto3
+psycopg2-binary
+requests

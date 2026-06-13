@@ -1,0 +1,27 @@
+# Weekly anonymized fleet sync, runs on the Unraid home server.
+# It joins the teslalogger Docker network so it can read teslalogger-db directly,
+# and pushes a small anonymized artifact out to the cloud once a week.
+#
+#   docker compose -f deploy/docker-compose.sync.yml --env-file deploy/.env up -d --build
+#
+services:
+  teslatech-sync:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.sync
+    container_name: teslatech-sync
+    env_file: .env
+    environment:
+      RUN_MODE: "loop"
+      SYNC_INTERVAL_SECONDS: "604800"
+      OUT_DIR: "/data/teslatech"
+      PUBLISH_TARGETS: "postgres"     # set to "postgres s3" to also push to R2
+    volumes:
+      - ./out:/data/teslatech
+    networks:
+      - teslalogger_default            # the network teslalogger-db is on
+    restart: unless-stopped
+
+networks:
+  teslalogger_default:
+    external: true

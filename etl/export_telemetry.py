@@ -1,0 +1,71 @@
+"""Home-server ETL: anonymized per-car telemetry cloud for the scatter explorer.
+
+Produces ``telemetry.json`` -- a downsampled, time-stripped sample of the raw
+CAN signals per anonymized car. Kept separate from ``fleet.json`` because it is
+larger and only the explorer page needs it.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+
+import pandas as pd
+
+from etl.db import make_reader_from_env
+from etl.telemetry import build_telemetry, SIGNAL_LABELS
+from etl.anonymize import public_car_id
+
+EXCLUDE_NAME = re.compile(r"test", re.I)
+
+
+def _car_map(reader) -> dict[int, str]:
+    cars = reader.read_sql("SELECT id, display_name, vin FROM cars ORDER BY id")
+    mapping, seen = {}, set()
+    for _, c in cars.iterrows():
+        name, vin = c.get("display_name"), c.get("vin")
+        if name and EXCLUDE_NAME.search(str(name)):
+            continue
+        vkey = str(vin).strip().upper() if isinstance(vin, str) else None
+        if vkey and vkey in seen:
+            continue
+        if vkey:
+            seen.add(vkey)
+        mapping[int(c["id"])] = public_car_id(vin, fallback=str(int(c["id"])))
+    return mapping
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--out", default="artifacts")
+    ap.add_argument("--days", type=int, default=365)
+    ap.add_argument("--bin-seconds", type=int, default=20)
+    ap.add_argument("--max-points", type=int, default=3000)
+    ap.add_argument("--version", default=None)
+    args = ap.parse_args()
+    version = args.version or pd.Timestamp.today().strftime("%Y-%m-%d")
+
+    reader = make_reader_from_env()
+    car_map = _car_map(reader)
+    telem = build_telemetry(reader, car_map, days=args.days,
+                            bin_seconds=args.bin_seconds, max_points=args.max_points)
+
+    os.makedirs(args.out, exist_ok=True)
+    payload = {
+        "data_version": version,
+        "labels": SIGNAL_LABELS,
+        "n_cars": len(telem),
+        "points": sum(len(v) for v in telem.values()),
+        "telemetry": telem,
+    }
+    from etl.jsonsafe import clean
+    path = os.path.join(args.out, "telemetry.json")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(clean(payload), f, separators=(",", ":"), default=str, allow_nan=False)
+    print(f"Wrote telemetry for {len(telem)} cars, {payload['points']} points -> {path}")
+
+
+if __name__ == "__main__":
+    main()

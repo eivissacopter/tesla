@@ -114,3 +114,13 @@ frontend/cypress/snapshots/linux/1x
 # VSCode
 ########################################################################
 .vscode/
+
+# --- TeslaTech secrets & generated artifacts (never commit) ---
+deploy/.env
+**/.streamlit/secrets.toml
+data/fleet.json
+data/telemetry.json
+data/*.db
+artifacts/
+out/
+.claude/

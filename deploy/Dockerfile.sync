@@ -1,0 +1,21 @@
+# Home-server weekly sync: read Teslalogger -> anonymize -> publish to cloud.
+# Lightweight: only the ETL + the shared reference brain (no Streamlit, no app).
+FROM python:3.11-slim
+
+WORKDIR /app
+COPY deploy/requirements.sync.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# ETL code + the shared knowledge brain (reference data only).
+COPY etl /app/etl
+COPY src /app/src
+
+ENV TESLATECH_REFERENCE_REPO=/app \
+    TESLATECH_DB_MODE=direct \
+    PYTHONUNBUFFERED=1
+
+COPY deploy/run_sync.sh /app/run_sync.sh
+RUN chmod +x /app/run_sync.sh
+
+# One-shot by default; the compose file schedules weekly runs.
+ENTRYPOINT ["/app/run_sync.sh"]
