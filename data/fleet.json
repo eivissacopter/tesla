@@ -1,0 +1,1633 @@
+{
+  "data_version": "2026-06-13",
+  "n_cars": 13,
+  "fleet": [
+    {
+      "car": "7845f39c59",
+      "model": "Model 3",
+      "trim": null,
+      "drivetrain": "RWD",
+      "model_year": 2020,
+      "factory": "Fremont",
+      "pack": "52",
+      "battery_code": null,
+      "chemistry": "NCA",
+      "front_motor": null,
+      "rear_motor": "3D1/3D5",
+      "release_family": "Legacy Model 3 RWD",
+      "id_confidence": "medium",
+      "odometer_km": 16646,
+      "age_months": 9.2,
+      "logging_until": "2020-12",
+      "design_kwh": 52.0,
+      "current_kwh": null,
+      "soh_pct": null,
+      "degradation_pct": null,
+      "soh_samples": 0,
+      "wh_per_km": 153.0,
+      "real_wh_per_km": 221.0,
+      "real_km": 14891.0,
+      "factory_wh_per_km": null,
+      "vs_factory_pct": null,
+      "avg_trip_temp_c": 18.7,
+      "charge_sessions": 136,
+      "charge_energy_kwh": 3596.1,
+      "dc_share_pct": 11.6,
+      "max_charge_kw": 11.0
+    },
+    {
+      "car": "6604fc76f8",
+      "model": "Model 3",
+      "trim": "Performance",
+      "drivetrain": "AWD",
+      "model_year": 2021,
+      "factory": "Fremont",
+      "pack": "82",
+      "battery_code": "1L/3L",
+      "chemistry": "NCA",
+      "front_motor": "3D3",
+      "rear_motor": "3D1/3D6",
+      "release_family": "Legacy Performance",
+      "id_confidence": "medium",
+      "odometer_km": 43900,
+      "age_months": 54.6,
+      "logging_until": "2025-07",
+      "design_kwh": 82.0,
+      "current_kwh": 80.38,
+      "soh_pct": 98.0,
+      "degradation_pct": 2.0,
+      "soh_samples": 435,
+      "wh_per_km": 158.0,
+      "real_wh_per_km": 239.0,
+      "real_km": 12771.0,
+      "factory_wh_per_km": 159.0,
+      "vs_factory_pct": 50.3,
+      "avg_trip_temp_c": 10.9,
+      "charge_sessions": 114,
+      "charge_energy_kwh": 3429.5,
+      "dc_share_pct": 11.1,
+      "max_charge_kw": 250.0
+    },
+    {
+      "car": "bf631346b7",
+      "model": "Model 3",
+      "trim": "Performance",
+      "drivetrain": "AWD",
+      "model_year": 2021,
+      "factory": "Fremont",
+      "pack": "82",
+      "battery_code": "1L/3L",
+      "chemistry": "NCA",
+      "front_motor": "3D3",
+      "rear_motor": "3D1/3D6",
+      "release_family": "Legacy Performance",
+      "id_confidence": "medium",
+      "odometer_km": 22749,
+      "age_months": 49.0,
+      "logging_until": "2025-07",
+      "design_kwh": 82.0,
+      "current_kwh": 79.02,
+      "soh_pct": 96.4,
+      "degradation_pct": 3.6,
+      "soh_samples": 501,
+      "wh_per_km": 158.0,
+      "real_wh_per_km": 247.0,
+      "real_km": 9356.0,
+      "factory_wh_per_km": 159.0,
+      "vs_factory_pct": 55.3,
+      "avg_trip_temp_c": 15.9,
+      "charge_sessions": 96,
+      "charge_energy_kwh": 2629.6,
+      "dc_share_pct": 20.9,
+      "max_charge_kw": 250.0
+    },
+    {
+      "car": "9cbb76a3ca",
+      "model": "Model Y",
+      "trim": "Long Range",
+      "drivetrain": "AWD",
+      "model_year": 2021,
+      "factory": "MIC",
+      "pack": null,
+      "battery_code": null,
+      "chemistry": "NMC",
+      "front_motor": "3D3",
+      "rear_motor": "3D7",
+      "release_family": "Legacy Long Range AWD",
+      "id_confidence": "medium",
+      "odometer_km": 7629,
+      "age_months": 6.2,
+      "logging_until": "2022-03",
+      "design_kwh": 79.0,
+      "current_kwh": 74.08,
+      "soh_pct": 93.8,
+      "degradation_pct": 6.2,
+      "soh_samples": 283,
+      "wh_per_km": 148.0,
+      "real_wh_per_km": 248.0,
+      "real_km": 7357.0,
+      "factory_wh_per_km": 148.0,
+      "vs_factory_pct": 67.6,
+      "avg_trip_temp_c": 8.7,
+      "charge_sessions": 61,
+      "charge_energy_kwh": 1930.9,
+      "dc_share_pct": 15.8,
+      "max_charge_kw": 251.0
+    },
+    {
+      "car": "361c753252",
+      "model": "Model 3",
+      "trim": "Performance",
+      "drivetrain": "AWD",
+      "model_year": 2021,
+      "factory": "MIC",
+      "pack": "82",
+      "battery_code": "1L/3L",
+      "chemistry": "NCA",
+      "front_motor": "3D3",
+      "rear_motor": "3D1/3D6",
+      "release_family": "Legacy Performance",
+      "id_confidence": "medium",
+      "odometer_km": 6081,
+      "age_months": 5.1,
+      "logging_until": "2022-06",
+      "design_kwh": 82.0,
+      "current_kwh": 76.32,
+      "soh_pct": 93.1,
+      "degradation_pct": 6.9,
+      "soh_samples": 237,
+      "wh_per_km": 158.0,
+      "real_wh_per_km": 274.0,
+      "real_km": 5557.0,
+      "factory_wh_per_km": 159.0,
+      "vs_factory_pct": 72.3,
+      "avg_trip_temp_c": 8.3,
+      "charge_sessions": 58,
+      "charge_energy_kwh": 1798.5,
+      "dc_share_pct": 16.8,
+      "max_charge_kw": 259.0
+    },
+    {
+      "car": "4e1dfaf7d7",
+      "model": "Model Y",
+      "trim": "Long Range",
+      "drivetrain": "AWD",
+      "model_year": 2022,
+      "factory": "MIC",
+      "pack": "75 MIC",
+      "battery_code": "1L/3L",
+      "chemistry": "NCA",
+      "front_motor": "3D3",
+      "rear_motor": "3D7",
+      "release_family": "Legacy Long Range AWD",
+      "id_confidence": "medium",
+      "odometer_km": 6890,
+      "age_months": 6.1,
+      "logging_until": "2022-08",
+      "design_kwh": 75.0,
+      "current_kwh": 78.06,
+      "soh_pct": 104.1,
+      "degradation_pct": -4.1,
+      "soh_samples": 353,
+      "wh_per_km": 149.0,
+      "real_wh_per_km": 203.0,
+      "real_km": 7013.0,
+      "factory_wh_per_km": 148.0,
+      "vs_factory_pct": 37.2,
+      "avg_trip_temp_c": 18.4,
+      "charge_sessions": 52,
+      "charge_energy_kwh": 1712.3,
+      "dc_share_pct": 22.8,
+      "max_charge_kw": 216.0
+    },
+    {
+      "car": "97da21cc26",
+      "model": "Model 3",
+      "trim": "Performance",
+      "drivetrain": "AWD",
+      "model_year": 2022,
+      "factory": "MIC",
+      "pack": "79 MIC",
+      "battery_code": "5L",
+      "chemistry": "NMC",
+      "front_motor": "3D3",
+      "rear_motor": "3D1/3D6",
+      "release_family": "Legacy Performance",
+      "id_confidence": "medium",
+      "odometer_km": 44332,
+      "age_months": 42.0,
+      "logging_until": "2025-08",
+      "design_kwh": 79.0,
+      "current_kwh": 71.48,
+      "soh_pct": 90.5,
+      "degradation_pct": 9.5,
+      "soh_samples": 2508,
+      "wh_per_km": 158.0,
+      "real_wh_per_km": 233.0,
+      "real_km": 42799.0,
+      "factory_wh_per_km": 159.0,
+      "vs_factory_pct": 46.5,
+      "avg_trip_temp_c": 16.5,
+      "charge_sessions": 405,
+      "charge_energy_kwh": 11034.4,
+      "dc_share_pct": 40.4,
+      "max_charge_kw": 255.0
+    },
+    {
+      "car": "1c07b1696d",
+      "model": "Model Y",
+      "trim": "Long Range",
+      "drivetrain": "AWD",
+      "model_year": 2022,
+      "factory": "MIG",
+      "pack": "79 MIC",
+      "battery_code": "5L",
+      "chemistry": "NMC",
+      "front_motor": "3D3",
+      "rear_motor": "3D7",
+      "release_family": "Legacy Long Range AWD",
+      "id_confidence": "medium",
+      "odometer_km": 15968,
+      "age_months": 14.6,
+      "logging_until": "2023-11",
+      "design_kwh": 79.0,
+      "current_kwh": 77.88,
+      "soh_pct": 98.6,
+      "degradation_pct": 1.4,
+      "soh_samples": 454,
+      "wh_per_km": 149.0,
+      "real_wh_per_km": 203.0,
+      "real_km": 15115.0,
+      "factory_wh_per_km": 148.0,
+      "vs_factory_pct": 37.2,
+      "avg_trip_temp_c": 16.1,
+      "charge_sessions": 133,
+      "charge_energy_kwh": 3656.3,
+      "dc_share_pct": 38.0,
+      "max_charge_kw": 254.0
+    },
+    {
+      "car": "e4234d650f",
+      "model": "Model 3",
+      "trim": "Performance",
+      "drivetrain": "AWD",
+      "model_year": 2022,
+      "factory": "MIC",
+      "pack": "79 MIC",
+      "battery_code": "5L",
+      "chemistry": "NMC",
+      "front_motor": "3D3",
+      "rear_motor": "3D1/3D6",
+      "release_family": "Legacy Performance",
+      "id_confidence": "medium",
+      "odometer_km": 6135,
+      "age_months": 5.0,
+      "logging_until": "2023-02",
+      "design_kwh": 79.0,
+      "current_kwh": 78.6,
+      "soh_pct": 99.5,
+      "degradation_pct": 0.5,
+      "soh_samples": 156,
+      "wh_per_km": 158.0,
+      "real_wh_per_km": 236.0,
+      "real_km": 5959.0,
+      "factory_wh_per_km": 159.0,
+      "vs_factory_pct": 48.4,
+      "avg_trip_temp_c": 6.9,
+      "charge_sessions": 56,
+      "charge_energy_kwh": 1549.1,
+      "dc_share_pct": 32.3,
+      "max_charge_kw": 242.0
+    },
+    {
+      "car": "569fd8db1d",
+      "model": "Model Y",
+      "trim": "Long Range",
+      "drivetrain": "AWD",
+      "model_year": 2022,
+      "factory": "MIC",
+      "pack": "79 MIC",
+      "battery_code": "5L",
+      "chemistry": "NMC",
+      "front_motor": "3D3",
+      "rear_motor": "3D7",
+      "release_family": "Legacy Long Range AWD",
+      "id_confidence": "medium",
+      "odometer_km": 4858,
+      "age_months": 4.5,
+      "logging_until": "2023-01",
+      "design_kwh": 79.0,
+      "current_kwh": 78.73,
+      "soh_pct": 99.7,
+      "degradation_pct": 0.3,
+      "soh_samples": 223,
+      "wh_per_km": 149.0,
+      "real_wh_per_km": 233.0,
+      "real_km": 4627.0,
+      "factory_wh_per_km": 148.0,
+      "vs_factory_pct": 57.4,
+      "avg_trip_temp_c": 9.5,
+      "charge_sessions": 44,
+      "charge_energy_kwh": 1306.3,
+      "dc_share_pct": 10.8,
+      "max_charge_kw": 254.0
+    },
+    {
+      "car": "830838e7ac",
+      "model": "Model Y",
+      "trim": "Long Range",
+      "drivetrain": "AWD",
+      "model_year": 2022,
+      "factory": "MIC",
+      "pack": "79 MIC",
+      "battery_code": "5L",
+      "chemistry": "NMC",
+      "front_motor": "3D3",
+      "rear_motor": "3D7",
+      "release_family": "Legacy Long Range AWD",
+      "id_confidence": "medium",
+      "odometer_km": 58945,
+      "age_months": 25.1,
+      "logging_until": "2024-10",
+      "design_kwh": 79.0,
+      "current_kwh": null,
+      "soh_pct": null,
+      "degradation_pct": null,
+      "soh_samples": 0,
+      "wh_per_km": null,
+      "real_wh_per_km": 186.0,
+      "real_km": 16594.0,
+      "factory_wh_per_km": 148.0,
+      "vs_factory_pct": 25.7,
+      "avg_trip_temp_c": 22.7,
+      "charge_sessions": 574,
+      "charge_energy_kwh": 5422.9,
+      "dc_share_pct": 26.6,
+      "max_charge_kw": 252.0
+    },
+    {
+      "car": "f65ce5c9d4",
+      "model": "Model Y",
+      "trim": "Long Range",
+      "drivetrain": "AWD",
+      "model_year": 2024,
+      "factory": "MIG",
+      "pack": "79 MIG",
+      "battery_code": "5L",
+      "chemistry": "NMC",
+      "front_motor": "3D3A",
+      "rear_motor": "4D3A",
+      "release_family": "Opal Long Range AWD",
+      "id_confidence": "high",
+      "odometer_km": 45747,
+      "age_months": 30.0,
+      "logging_until": "2026-06",
+      "design_kwh": 79.0,
+      "current_kwh": 74.84,
+      "soh_pct": 94.7,
+      "degradation_pct": 5.3,
+      "soh_samples": 1915,
+      "wh_per_km": null,
+      "real_wh_per_km": 217.0,
+      "real_km": 40904.0,
+      "factory_wh_per_km": 148.0,
+      "vs_factory_pct": 46.6,
+      "avg_trip_temp_c": 13.3,
+      "charge_sessions": 553,
+      "charge_energy_kwh": 10024.5,
+      "dc_share_pct": 53.5,
+      "max_charge_kw": 254.0
+    },
+    {
+      "car": "83d5327db0",
+      "model": "Model Y",
+      "trim": "Standard",
+      "drivetrain": "RWD",
+      "model_year": 2023,
+      "factory": "MIG",
+      "pack": "60 MIG",
+      "battery_code": "7C",
+      "chemistry": "LFP",
+      "front_motor": null,
+      "rear_motor": "3D6/3D7/4D1",
+      "release_family": "Structural pack",
+      "id_confidence": "medium",
+      "odometer_km": 13405,
+      "age_months": 12.2,
+      "logging_until": "2025-02",
+      "design_kwh": 60.0,
+      "current_kwh": null,
+      "soh_pct": null,
+      "degradation_pct": null,
+      "soh_samples": 0,
+      "wh_per_km": null,
+      "real_wh_per_km": 170.0,
+      "real_km": 7294.0,
+      "factory_wh_per_km": null,
+      "vs_factory_pct": null,
+      "avg_trip_temp_c": 15.2,
+      "charge_sessions": 44,
+      "charge_energy_kwh": 1565.8,
+      "dc_share_pct": 58.9,
+      "max_charge_kw": 178.0
+    }
+  ],
+  "soh_series": {
+    "7845f39c59": [],
+    "6604fc76f8": [
+      {
+        "month": "2021-01",
+        "kwh": 80.1,
+        "soh_pct": 97.68
+      },
+      {
+        "month": "2021-02",
+        "kwh": 80.0,
+        "soh_pct": 97.56
+      },
+      {
+        "month": "2021-03",
+        "kwh": 80.1,
+        "soh_pct": 97.68
+      },
+      {
+        "month": "2021-04",
+        "kwh": 80.3,
+        "soh_pct": 97.93
+      },
+      {
+        "month": "2021-05",
+        "kwh": 80.3,
+        "soh_pct": 97.93
+      },
+      {
+        "month": "2021-06",
+        "kwh": 80.4,
+        "soh_pct": 98.05
+      }
+    ],
+    "bf631346b7": [
+      {
+        "month": "2021-06",
+        "kwh": 79.75,
+        "soh_pct": 97.26
+      },
+      {
+        "month": "2021-07",
+        "kwh": 80.6,
+        "soh_pct": 98.29
+      },
+      {
+        "month": "2021-08",
+        "kwh": 80.9,
+        "soh_pct": 98.66
+      },
+      {
+        "month": "2021-09",
+        "kwh": 79.9,
+        "soh_pct": 97.44
+      },
+      {
+        "month": "2021-10",
+        "kwh": 79.05,
+        "soh_pct": 96.4
+      },
+      {
+        "month": "2021-11",
+        "kwh": 78.9,
+        "soh_pct": 96.22
+      },
+      {
+        "month": "2021-12",
+        "kwh": 78.5,
+        "soh_pct": 95.73
+      }
+    ],
+    "9cbb76a3ca": [
+      {
+        "month": "2021-09",
+        "kwh": 73.4,
+        "soh_pct": 92.91
+      },
+      {
+        "month": "2021-10",
+        "kwh": 74.4,
+        "soh_pct": 94.18
+      },
+      {
+        "month": "2021-11",
+        "kwh": 74.8,
+        "soh_pct": 94.68
+      },
+      {
+        "month": "2021-12",
+        "kwh": 74.3,
+        "soh_pct": 94.05
+      },
+      {
+        "month": "2022-01",
+        "kwh": 73.6,
+        "soh_pct": 93.16
+      },
+      {
+        "month": "2022-02",
+        "kwh": 74.0,
+        "soh_pct": 93.67
+      },
+      {
+        "month": "2022-03",
+        "kwh": 74.1,
+        "soh_pct": 93.8
+      }
+    ],
+    "361c753252": [
+      {
+        "month": "2021-12",
+        "kwh": 79.8,
+        "soh_pct": 97.32
+      },
+      {
+        "month": "2022-01",
+        "kwh": 79.45,
+        "soh_pct": 96.89
+      },
+      {
+        "month": "2022-02",
+        "kwh": 76.8,
+        "soh_pct": 93.66
+      },
+      {
+        "month": "2022-03",
+        "kwh": 76.3,
+        "soh_pct": 93.05
+      },
+      {
+        "month": "2022-04",
+        "kwh": 75.9,
+        "soh_pct": 92.56
+      },
+      {
+        "month": "2022-05",
+        "kwh": 76.2,
+        "soh_pct": 92.93
+      },
+      {
+        "month": "2022-06",
+        "kwh": 76.35,
+        "soh_pct": 93.11
+      }
+    ],
+    "4e1dfaf7d7": [
+      {
+        "month": "2022-02",
+        "kwh": 77.0,
+        "soh_pct": 102.67
+      },
+      {
+        "month": "2022-03",
+        "kwh": 77.45,
+        "soh_pct": 103.27
+      },
+      {
+        "month": "2022-04",
+        "kwh": 77.6,
+        "soh_pct": 103.47
+      },
+      {
+        "month": "2022-05",
+        "kwh": 78.0,
+        "soh_pct": 104.0
+      },
+      {
+        "month": "2022-06",
+        "kwh": 78.1,
+        "soh_pct": 104.13
+      },
+      {
+        "month": "2022-07",
+        "kwh": 77.9,
+        "soh_pct": 103.87
+      },
+      {
+        "month": "2022-08",
+        "kwh": 77.6,
+        "soh_pct": 103.47
+      }
+    ],
+    "97da21cc26": [
+      {
+        "month": "2022-02",
+        "kwh": 74.6,
+        "soh_pct": 94.43
+      },
+      {
+        "month": "2022-04",
+        "kwh": 77.6,
+        "soh_pct": 98.23
+      },
+      {
+        "month": "2022-05",
+        "kwh": 77.1,
+        "soh_pct": 97.59
+      },
+      {
+        "month": "2022-06",
+        "kwh": 76.5,
+        "soh_pct": 96.84
+      },
+      {
+        "month": "2022-07",
+        "kwh": 75.4,
+        "soh_pct": 95.44
+      },
+      {
+        "month": "2022-08",
+        "kwh": 76.1,
+        "soh_pct": 96.33
+      },
+      {
+        "month": "2022-09",
+        "kwh": 75.8,
+        "soh_pct": 95.95
+      },
+      {
+        "month": "2022-10",
+        "kwh": 74.9,
+        "soh_pct": 94.81
+      },
+      {
+        "month": "2022-11",
+        "kwh": 74.62,
+        "soh_pct": 94.46
+      },
+      {
+        "month": "2022-12",
+        "kwh": 74.62,
+        "soh_pct": 94.46
+      },
+      {
+        "month": "2023-01",
+        "kwh": 73.12,
+        "soh_pct": 92.56
+      },
+      {
+        "month": "2023-02",
+        "kwh": 73.12,
+        "soh_pct": 92.56
+      },
+      {
+        "month": "2023-03",
+        "kwh": 71.76,
+        "soh_pct": 90.84
+      },
+      {
+        "month": "2023-04",
+        "kwh": 70.74,
+        "soh_pct": 89.54
+      },
+      {
+        "month": "2023-05",
+        "kwh": 74.12,
+        "soh_pct": 93.82
+      },
+      {
+        "month": "2023-06",
+        "kwh": 71.5,
+        "soh_pct": 90.51
+      },
+      {
+        "month": "2023-07",
+        "kwh": 71.31,
+        "soh_pct": 90.27
+      },
+      {
+        "month": "2023-08",
+        "kwh": 72.38,
+        "soh_pct": 91.62
+      },
+      {
+        "month": "2023-09",
+        "kwh": 73.88,
+        "soh_pct": 93.52
+      },
+      {
+        "month": "2023-10",
+        "kwh": 72.88,
+        "soh_pct": 92.25
+      },
+      {
+        "month": "2023-11",
+        "kwh": 72.12,
+        "soh_pct": 91.29
+      },
+      {
+        "month": "2023-12",
+        "kwh": 73.5,
+        "soh_pct": 93.04
+      },
+      {
+        "month": "2024-01",
+        "kwh": 74.18,
+        "soh_pct": 93.9
+      },
+      {
+        "month": "2024-02",
+        "kwh": 73.38,
+        "soh_pct": 92.89
+      },
+      {
+        "month": "2024-03",
+        "kwh": 74.0,
+        "soh_pct": 93.67
+      },
+      {
+        "month": "2024-04",
+        "kwh": 73.38,
+        "soh_pct": 92.89
+      },
+      {
+        "month": "2024-05",
+        "kwh": 73.0,
+        "soh_pct": 92.41
+      },
+      {
+        "month": "2024-06",
+        "kwh": 72.26,
+        "soh_pct": 91.47
+      },
+      {
+        "month": "2024-07",
+        "kwh": 72.38,
+        "soh_pct": 91.62
+      },
+      {
+        "month": "2024-08",
+        "kwh": 72.0,
+        "soh_pct": 91.14
+      },
+      {
+        "month": "2024-09",
+        "kwh": 71.12,
+        "soh_pct": 90.03
+      },
+      {
+        "month": "2024-10",
+        "kwh": 71.12,
+        "soh_pct": 90.03
+      },
+      {
+        "month": "2024-11",
+        "kwh": 71.38,
+        "soh_pct": 90.35
+      },
+      {
+        "month": "2024-12",
+        "kwh": 71.06,
+        "soh_pct": 89.95
+      },
+      {
+        "month": "2025-01",
+        "kwh": 71.14,
+        "soh_pct": 90.05
+      },
+      {
+        "month": "2025-02",
+        "kwh": 71.38,
+        "soh_pct": 90.35
+      },
+      {
+        "month": "2025-03",
+        "kwh": 71.66,
+        "soh_pct": 90.71
+      },
+      {
+        "month": "2025-04",
+        "kwh": 71.38,
+        "soh_pct": 90.35
+      },
+      {
+        "month": "2025-05",
+        "kwh": 71.6,
+        "soh_pct": 90.63
+      },
+      {
+        "month": "2025-06",
+        "kwh": 71.02,
+        "soh_pct": 89.9
+      },
+      {
+        "month": "2025-07",
+        "kwh": 70.98,
+        "soh_pct": 89.85
+      }
+    ],
+    "1c07b1696d": [
+      {
+        "month": "2022-08",
+        "kwh": 77.5,
+        "soh_pct": 98.1
+      },
+      {
+        "month": "2022-09",
+        "kwh": 78.4,
+        "soh_pct": 99.24
+      },
+      {
+        "month": "2023-01",
+        "kwh": 79.12,
+        "soh_pct": 100.15
+      },
+      {
+        "month": "2023-02",
+        "kwh": 78.88,
+        "soh_pct": 99.85
+      },
+      {
+        "month": "2023-03",
+        "kwh": 78.76,
+        "soh_pct": 99.7
+      },
+      {
+        "month": "2023-04",
+        "kwh": 78.88,
+        "soh_pct": 99.85
+      },
+      {
+        "month": "2023-05",
+        "kwh": 78.88,
+        "soh_pct": 99.85
+      },
+      {
+        "month": "2023-06",
+        "kwh": 78.88,
+        "soh_pct": 99.85
+      },
+      {
+        "month": "2023-07",
+        "kwh": 78.88,
+        "soh_pct": 99.85
+      },
+      {
+        "month": "2023-08",
+        "kwh": 78.88,
+        "soh_pct": 99.85
+      },
+      {
+        "month": "2023-09",
+        "kwh": 77.62,
+        "soh_pct": 98.25
+      },
+      {
+        "month": "2023-10",
+        "kwh": 77.88,
+        "soh_pct": 98.58
+      },
+      {
+        "month": "2023-11",
+        "kwh": 77.88,
+        "soh_pct": 98.58
+      }
+    ],
+    "e4234d650f": [
+      {
+        "month": "2022-11",
+        "kwh": 78.62,
+        "soh_pct": 99.52
+      },
+      {
+        "month": "2022-12",
+        "kwh": 78.62,
+        "soh_pct": 99.52
+      },
+      {
+        "month": "2023-01",
+        "kwh": 78.5,
+        "soh_pct": 99.37
+      },
+      {
+        "month": "2023-02",
+        "kwh": 78.5,
+        "soh_pct": 99.37
+      }
+    ],
+    "569fd8db1d": [
+      {
+        "month": "2022-09",
+        "kwh": 78.1,
+        "soh_pct": 98.86
+      },
+      {
+        "month": "2022-10",
+        "kwh": 78.4,
+        "soh_pct": 99.24
+      },
+      {
+        "month": "2022-11",
+        "kwh": 78.5,
+        "soh_pct": 99.37
+      },
+      {
+        "month": "2022-12",
+        "kwh": 78.62,
+        "soh_pct": 99.52
+      },
+      {
+        "month": "2023-01",
+        "kwh": 78.76,
+        "soh_pct": 99.7
+      }
+    ],
+    "830838e7ac": [],
+    "f65ce5c9d4": [
+      {
+        "month": "2023-12",
+        "kwh": 78.69,
+        "soh_pct": 99.61
+      },
+      {
+        "month": "2024-01",
+        "kwh": 79.12,
+        "soh_pct": 100.15
+      },
+      {
+        "month": "2024-02",
+        "kwh": 79.24,
+        "soh_pct": 100.3
+      },
+      {
+        "month": "2024-03",
+        "kwh": 79.24,
+        "soh_pct": 100.3
+      },
+      {
+        "month": "2024-04",
+        "kwh": 79.24,
+        "soh_pct": 100.3
+      },
+      {
+        "month": "2024-05",
+        "kwh": 79.26,
+        "soh_pct": 100.33
+      },
+      {
+        "month": "2024-06",
+        "kwh": 78.26,
+        "soh_pct": 99.06
+      },
+      {
+        "month": "2024-07",
+        "kwh": 78.38,
+        "soh_pct": 99.22
+      },
+      {
+        "month": "2024-08",
+        "kwh": 78.38,
+        "soh_pct": 99.22
+      },
+      {
+        "month": "2024-09",
+        "kwh": 78.12,
+        "soh_pct": 98.89
+      },
+      {
+        "month": "2024-10",
+        "kwh": 78.26,
+        "soh_pct": 99.06
+      },
+      {
+        "month": "2024-11",
+        "kwh": 78.38,
+        "soh_pct": 99.22
+      },
+      {
+        "month": "2024-12",
+        "kwh": 78.24,
+        "soh_pct": 99.04
+      },
+      {
+        "month": "2025-01",
+        "kwh": 78.32,
+        "soh_pct": 99.14
+      },
+      {
+        "month": "2025-02",
+        "kwh": 78.34,
+        "soh_pct": 99.16
+      },
+      {
+        "month": "2025-03",
+        "kwh": 78.36,
+        "soh_pct": 99.19
+      },
+      {
+        "month": "2025-04",
+        "kwh": 78.14,
+        "soh_pct": 98.91
+      },
+      {
+        "month": "2025-05",
+        "kwh": 78.09,
+        "soh_pct": 98.85
+      },
+      {
+        "month": "2025-06",
+        "kwh": 77.38,
+        "soh_pct": 97.95
+      },
+      {
+        "month": "2025-07",
+        "kwh": 76.86,
+        "soh_pct": 97.29
+      },
+      {
+        "month": "2025-08",
+        "kwh": 76.76,
+        "soh_pct": 97.16
+      },
+      {
+        "month": "2025-09",
+        "kwh": 77.0,
+        "soh_pct": 97.47
+      },
+      {
+        "month": "2025-10",
+        "kwh": 76.5,
+        "soh_pct": 96.84
+      },
+      {
+        "month": "2025-11",
+        "kwh": 76.12,
+        "soh_pct": 96.35
+      },
+      {
+        "month": "2025-12",
+        "kwh": 75.62,
+        "soh_pct": 95.72
+      },
+      {
+        "month": "2026-01",
+        "kwh": 75.0,
+        "soh_pct": 94.94
+      },
+      {
+        "month": "2026-02",
+        "kwh": 75.0,
+        "soh_pct": 94.94
+      },
+      {
+        "month": "2026-03",
+        "kwh": 74.98,
+        "soh_pct": 94.91
+      },
+      {
+        "month": "2026-04",
+        "kwh": 74.86,
+        "soh_pct": 94.76
+      },
+      {
+        "month": "2026-05",
+        "kwh": 74.76,
+        "soh_pct": 94.63
+      },
+      {
+        "month": "2026-06",
+        "kwh": 74.76,
+        "soh_pct": 94.63
+      }
+    ],
+    "83d5327db0": []
+  },
+  "temp_curves": {
+    "7845f39c59": [
+      {
+        "temp_c": 0,
+        "wh_per_km": 244.0,
+        "km": 208.0
+      },
+      {
+        "temp_c": 5,
+        "wh_per_km": 247.0,
+        "km": 692.0
+      },
+      {
+        "temp_c": 10,
+        "wh_per_km": 238.0,
+        "km": 2393.0
+      },
+      {
+        "temp_c": 15,
+        "wh_per_km": 229.0,
+        "km": 3600.0
+      },
+      {
+        "temp_c": 20,
+        "wh_per_km": 211.0,
+        "km": 2901.0
+      },
+      {
+        "temp_c": 25,
+        "wh_per_km": 225.0,
+        "km": 2848.0
+      },
+      {
+        "temp_c": 30,
+        "wh_per_km": 186.0,
+        "km": 2212.0
+      },
+      {
+        "temp_c": 35,
+        "wh_per_km": 204.0,
+        "km": 37.0
+      }
+    ],
+    "6604fc76f8": [
+      {
+        "temp_c": -10,
+        "wh_per_km": 287.0,
+        "km": 66.0
+      },
+      {
+        "temp_c": -5,
+        "wh_per_km": 236.0,
+        "km": 480.0
+      },
+      {
+        "temp_c": 0,
+        "wh_per_km": 243.0,
+        "km": 1499.0
+      },
+      {
+        "temp_c": 5,
+        "wh_per_km": 254.0,
+        "km": 2885.0
+      },
+      {
+        "temp_c": 10,
+        "wh_per_km": 245.0,
+        "km": 3040.0
+      },
+      {
+        "temp_c": 15,
+        "wh_per_km": 235.0,
+        "km": 1839.0
+      },
+      {
+        "temp_c": 20,
+        "wh_per_km": 227.0,
+        "km": 1321.0
+      },
+      {
+        "temp_c": 25,
+        "wh_per_km": 221.0,
+        "km": 620.0
+      },
+      {
+        "temp_c": 30,
+        "wh_per_km": 210.0,
+        "km": 1021.0
+      }
+    ],
+    "bf631346b7": [
+      {
+        "temp_c": 0,
+        "wh_per_km": 246.0,
+        "km": 525.0
+      },
+      {
+        "temp_c": 5,
+        "wh_per_km": 267.0,
+        "km": 2039.0
+      },
+      {
+        "temp_c": 10,
+        "wh_per_km": 285.0,
+        "km": 1722.0
+      },
+      {
+        "temp_c": 15,
+        "wh_per_km": 221.0,
+        "km": 1784.0
+      },
+      {
+        "temp_c": 20,
+        "wh_per_km": 225.0,
+        "km": 1737.0
+      },
+      {
+        "temp_c": 25,
+        "wh_per_km": 235.0,
+        "km": 1129.0
+      },
+      {
+        "temp_c": 30,
+        "wh_per_km": 223.0,
+        "km": 421.0
+      }
+    ],
+    "9cbb76a3ca": [
+      {
+        "temp_c": -5,
+        "wh_per_km": 272.0,
+        "km": 36.0
+      },
+      {
+        "temp_c": 0,
+        "wh_per_km": 273.0,
+        "km": 748.0
+      },
+      {
+        "temp_c": 5,
+        "wh_per_km": 262.0,
+        "km": 2158.0
+      },
+      {
+        "temp_c": 10,
+        "wh_per_km": 251.0,
+        "km": 2690.0
+      },
+      {
+        "temp_c": 15,
+        "wh_per_km": 213.0,
+        "km": 1217.0
+      },
+      {
+        "temp_c": 20,
+        "wh_per_km": 212.0,
+        "km": 503.0
+      }
+    ],
+    "361c753252": [
+      {
+        "temp_c": 0,
+        "wh_per_km": 314.0,
+        "km": 370.0
+      },
+      {
+        "temp_c": 5,
+        "wh_per_km": 287.0,
+        "km": 2248.0
+      },
+      {
+        "temp_c": 10,
+        "wh_per_km": 286.0,
+        "km": 1556.0
+      },
+      {
+        "temp_c": 15,
+        "wh_per_km": 238.0,
+        "km": 1021.0
+      },
+      {
+        "temp_c": 20,
+        "wh_per_km": 212.0,
+        "km": 201.0
+      },
+      {
+        "temp_c": 25,
+        "wh_per_km": 196.0,
+        "km": 114.0
+      },
+      {
+        "temp_c": 30,
+        "wh_per_km": 213.0,
+        "km": 46.0
+      }
+    ],
+    "4e1dfaf7d7": [
+      {
+        "temp_c": 0,
+        "wh_per_km": 216.0,
+        "km": 58.0
+      },
+      {
+        "temp_c": 5,
+        "wh_per_km": 253.0,
+        "km": 942.0
+      },
+      {
+        "temp_c": 10,
+        "wh_per_km": 184.0,
+        "km": 926.0
+      },
+      {
+        "temp_c": 15,
+        "wh_per_km": 198.0,
+        "km": 955.0
+      },
+      {
+        "temp_c": 20,
+        "wh_per_km": 199.0,
+        "km": 1457.0
+      },
+      {
+        "temp_c": 25,
+        "wh_per_km": 190.0,
+        "km": 1344.0
+      },
+      {
+        "temp_c": 30,
+        "wh_per_km": 210.0,
+        "km": 882.0
+      },
+      {
+        "temp_c": 35,
+        "wh_per_km": 182.0,
+        "km": 447.0
+      }
+    ],
+    "97da21cc26": [
+      {
+        "temp_c": -5,
+        "wh_per_km": 428.0,
+        "km": 5.0
+      },
+      {
+        "temp_c": 0,
+        "wh_per_km": 247.0,
+        "km": 1658.0
+      },
+      {
+        "temp_c": 5,
+        "wh_per_km": 255.0,
+        "km": 4777.0
+      },
+      {
+        "temp_c": 10,
+        "wh_per_km": 241.0,
+        "km": 8887.0
+      },
+      {
+        "temp_c": 15,
+        "wh_per_km": 231.0,
+        "km": 8794.0
+      },
+      {
+        "temp_c": 20,
+        "wh_per_km": 228.0,
+        "km": 9731.0
+      },
+      {
+        "temp_c": 25,
+        "wh_per_km": 218.0,
+        "km": 5430.0
+      },
+      {
+        "temp_c": 30,
+        "wh_per_km": 215.0,
+        "km": 2850.0
+      },
+      {
+        "temp_c": 35,
+        "wh_per_km": 236.0,
+        "km": 421.0
+      },
+      {
+        "temp_c": 40,
+        "wh_per_km": 241.0,
+        "km": 244.0
+      }
+    ],
+    "1c07b1696d": [
+      {
+        "temp_c": -5,
+        "wh_per_km": 263.0,
+        "km": 87.0
+      },
+      {
+        "temp_c": 0,
+        "wh_per_km": 244.0,
+        "km": 454.0
+      },
+      {
+        "temp_c": 5,
+        "wh_per_km": 215.0,
+        "km": 897.0
+      },
+      {
+        "temp_c": 10,
+        "wh_per_km": 216.0,
+        "km": 2502.0
+      },
+      {
+        "temp_c": 15,
+        "wh_per_km": 207.0,
+        "km": 3898.0
+      },
+      {
+        "temp_c": 20,
+        "wh_per_km": 190.0,
+        "km": 3861.0
+      },
+      {
+        "temp_c": 25,
+        "wh_per_km": 190.0,
+        "km": 2646.0
+      },
+      {
+        "temp_c": 30,
+        "wh_per_km": 201.0,
+        "km": 769.0
+      }
+    ],
+    "e4234d650f": [
+      {
+        "temp_c": -10,
+        "wh_per_km": 513.0,
+        "km": 6.0
+      },
+      {
+        "temp_c": -5,
+        "wh_per_km": 255.0,
+        "km": 230.0
+      },
+      {
+        "temp_c": 0,
+        "wh_per_km": 252.0,
+        "km": 1198.0
+      },
+      {
+        "temp_c": 5,
+        "wh_per_km": 238.0,
+        "km": 2382.0
+      },
+      {
+        "temp_c": 10,
+        "wh_per_km": 227.0,
+        "km": 1543.0
+      },
+      {
+        "temp_c": 15,
+        "wh_per_km": 213.0,
+        "km": 550.0
+      },
+      {
+        "temp_c": 20,
+        "wh_per_km": 201.0,
+        "km": 51.0
+      }
+    ],
+    "569fd8db1d": [
+      {
+        "temp_c": -5,
+        "wh_per_km": 223.0,
+        "km": 114.0
+      },
+      {
+        "temp_c": 0,
+        "wh_per_km": 236.0,
+        "km": 1221.0
+      },
+      {
+        "temp_c": 5,
+        "wh_per_km": 260.0,
+        "km": 1218.0
+      },
+      {
+        "temp_c": 10,
+        "wh_per_km": 236.0,
+        "km": 941.0
+      },
+      {
+        "temp_c": 15,
+        "wh_per_km": 204.0,
+        "km": 852.0
+      },
+      {
+        "temp_c": 20,
+        "wh_per_km": 189.0,
+        "km": 279.0
+      }
+    ],
+    "830838e7ac": [
+      {
+        "temp_c": 5,
+        "wh_per_km": 258.0,
+        "km": 76.0
+      },
+      {
+        "temp_c": 10,
+        "wh_per_km": 191.0,
+        "km": 1065.0
+      },
+      {
+        "temp_c": 15,
+        "wh_per_km": 193.0,
+        "km": 2167.0
+      },
+      {
+        "temp_c": 20,
+        "wh_per_km": 185.0,
+        "km": 4483.0
+      },
+      {
+        "temp_c": 25,
+        "wh_per_km": 178.0,
+        "km": 5238.0
+      },
+      {
+        "temp_c": 30,
+        "wh_per_km": 191.0,
+        "km": 2628.0
+      },
+      {
+        "temp_c": 35,
+        "wh_per_km": 207.0,
+        "km": 710.0
+      },
+      {
+        "temp_c": 40,
+        "wh_per_km": 182.0,
+        "km": 226.0
+      }
+    ],
+    "f65ce5c9d4": [
+      {
+        "temp_c": -5,
+        "wh_per_km": 277.0,
+        "km": 456.0
+      },
+      {
+        "temp_c": 0,
+        "wh_per_km": 245.0,
+        "km": 4207.0
+      },
+      {
+        "temp_c": 5,
+        "wh_per_km": 237.0,
+        "km": 6079.0
+      },
+      {
+        "temp_c": 10,
+        "wh_per_km": 216.0,
+        "km": 8275.0
+      },
+      {
+        "temp_c": 15,
+        "wh_per_km": 203.0,
+        "km": 6787.0
+      },
+      {
+        "temp_c": 20,
+        "wh_per_km": 202.0,
+        "km": 6523.0
+      },
+      {
+        "temp_c": 25,
+        "wh_per_km": 199.0,
+        "km": 2260.0
+      },
+      {
+        "temp_c": 30,
+        "wh_per_km": 211.0,
+        "km": 1938.0
+      },
+      {
+        "temp_c": 35,
+        "wh_per_km": 165.0,
+        "km": 87.0
+      }
+    ],
+    "83d5327db0": [
+      {
+        "temp_c": 0,
+        "wh_per_km": 235.0,
+        "km": 255.0
+      },
+      {
+        "temp_c": 5,
+        "wh_per_km": 198.0,
+        "km": 1101.0
+      },
+      {
+        "temp_c": 10,
+        "wh_per_km": 183.0,
+        "km": 1588.0
+      },
+      {
+        "temp_c": 15,
+        "wh_per_km": 164.0,
+        "km": 2074.0
+      },
+      {
+        "temp_c": 20,
+        "wh_per_km": 151.0,
+        "km": 1052.0
+      },
+      {
+        "temp_c": 25,
+        "wh_per_km": 137.0,
+        "km": 668.0
+      },
+      {
+        "temp_c": 30,
+        "wh_per_km": 143.0,
+        "km": 461.0
+      },
+      {
+        "temp_c": 35,
+        "wh_per_km": 171.0,
+        "km": 94.0
+      }
+    ]
+  }
+}

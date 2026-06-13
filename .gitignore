@@ -115,12 +115,13 @@ frontend/cypress/snapshots/linux/1x
 ########################################################################
 .vscode/
 
-# --- TeslaTech secrets & generated artifacts (never commit) ---
+# --- TeslaTech secrets (never commit) ---
 deploy/.env
 **/.streamlit/secrets.toml
-data/fleet.json
-data/telemetry.json
 data/*.db
 artifacts/
 out/
 .claude/
+# Note: data/fleet.json and data/telemetry.json ARE committed as the app's
+# offline fallback (fully anonymized — no PII). Supabase serves fresher data
+# on top when its secret is configured.
