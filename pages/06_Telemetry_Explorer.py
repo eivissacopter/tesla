@@ -67,6 +67,7 @@ def main():
     UIComponents.inject_global_styles()
     data = load_telemetry()
     frames, labels, meta = data["frames"], data["labels"], data["meta"]
+    car_labels = data.get("car_labels", {})
 
     st.title("Telemetry Explorer")
     st.caption("Detailed signal relationships from the anonymized fleet — battery and motor "
@@ -82,7 +83,7 @@ def main():
 
     c1, c2 = st.columns([2, 3])
     car = c1.selectbox("Car", list(frames.keys()),
-                       format_func=lambda k: k[:8])
+                       format_func=lambda k: car_labels.get(k, k[:8]))
     preset = c2.selectbox("View", list(PRESETS.keys()))
     df = frames[car]
     avail = [col for col in df.columns if col in labels]

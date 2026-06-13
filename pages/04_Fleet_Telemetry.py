@@ -67,7 +67,7 @@ def _soh_curves(soh_series, df):
         ys = [s["soh_pct"] for s in series]
         if len(xs) < 2:
             continue
-        label = f"{meta.get('model','?')} {meta.get('trim') or ''} · {chem} · {car[:6]}"
+        label = meta.get("label") or f"{meta.get('model','?')} {meta.get('trim') or ''} · {chem}"
         fig.add_trace(go.Scatter(
             x=xs, y=ys, mode="lines", name=label.strip(),
             line=dict(width=2, color=CHEM_COLORS.get(chem, "#808495")),
@@ -127,11 +127,12 @@ def _temp_curve(temp_curves, df):
         chem = id_to_meta[car].get("chemistry") or "Unknown"
         xs = [p["temp_c"] for p in curve]
         ys = [p["wh_per_km"] for p in curve]
+        lbl = id_to_meta[car].get("label", car[:6])
         fig.add_trace(go.Scatter(
-            x=xs, y=ys, mode="lines+markers", name=car[:6],
+            x=xs, y=ys, mode="lines+markers", name=lbl,
             line=dict(width=1.5, color=CHEM_COLORS.get(chem, "#808495")),
             marker=dict(size=4), opacity=0.55, showlegend=False,
-            hovertemplate="%{x}°C → %{y:.0f} Wh/km<extra>" + car[:6] + "</extra>"))
+            hovertemplate="%{x}°C → %{y:.0f} Wh/km<extra>" + lbl + "</extra>"))
         plotted += 1
     # Fleet median curve (bold)
     allpts = {}
@@ -153,9 +154,10 @@ def _eff_vs_factory(df):
         d[c] = pd.to_numeric(d[c], errors="coerce")
     d = d.dropna(subset=["real_wh_per_km", "factory_wh_per_km"]).sort_values("vs_factory_pct")
     fig = go.Figure()
-    fig.add_trace(go.Bar(y=d["car"].str[:6], x=d["factory_wh_per_km"], orientation="h",
+    ylab = d["label"] if "label" in d.columns else d["car"].str[:6]
+    fig.add_trace(go.Bar(y=ylab, x=d["factory_wh_per_km"], orientation="h",
                          name="Factory constant", marker_color="#3a4a63"))
-    fig.add_trace(go.Bar(y=d["car"].str[:6], x=d["real_wh_per_km"] - d["factory_wh_per_km"],
+    fig.add_trace(go.Bar(y=ylab, x=d["real_wh_per_km"] - d["factory_wh_per_km"],
                          orientation="h", name="Real-world penalty", marker_color="#E82127",
                          base=d["factory_wh_per_km"],
                          hovertemplate="real %{customdata[0]:.0f} Wh/km (+%{customdata[1]:.0f}%)<extra></extra>",
@@ -171,7 +173,8 @@ def _benchmark_plot(df, car_id, population=None):
     fig.add_trace(go.Scatter(
         x=cloud["odometer_km"], y=cloud["soh_pct"], mode="markers", name="Population",
         marker=dict(size=9, color="rgba(140,150,170,0.55)", line=dict(width=1, color="rgba(0,0,0,0.4)")),
-        hovertext=cloud["car"].str[:6], hovertemplate="%{hovertext}: %{y:.1f}% @ %{x:,.0f} km<extra></extra>"))
+        hovertext=(cloud["label"] if "label" in cloud.columns else cloud["car"].str[:6]),
+        hovertemplate="%{hovertext}: %{y:.1f}% @ %{x:,.0f} km<extra></extra>"))
     try:
         odo, retention = BatteryDataProcessor.get_tesla_retention_line()
         fig.add_trace(go.Scatter(x=odo, y=100.0 + np.asarray(retention, dtype=float), mode="lines",
@@ -199,7 +202,7 @@ def _render_benchmark(view):
     if benchable.empty:
         st.info("No cars with computed SOH in the current selection.")
         return
-    labels = {f"{r['car'][:6]} · {r.get('model','?')} {r.get('trim') or ''} · {r.get('chemistry') or '?'}".strip(): r["car"]
+    labels = {(r.get("label") or f"{r.get('model','?')} {r.get('trim') or ''}").strip(): r["car"]
               for _, r in benchable.iterrows()}
     pick = st.selectbox("Car", list(labels.keys()))
     car_id = labels[pick]
@@ -282,12 +285,12 @@ def main():
 
     st.divider()
     st.subheader("Anonymized fleet")
-    show_cols = ["car", "model", "trim", "drivetrain", "model_year", "factory", "pack",
-                 "chemistry", "front_motor", "rear_motor", "odometer_km", "design_kwh",
+    show_cols = ["label", "pack", "chemistry", "front_motor", "rear_motor", "odometer_km", "design_kwh",
                  "soh_pct", "degradation_pct", "real_wh_per_km", "factory_wh_per_km", "vs_factory_pct",
                  "charge_sessions", "dc_share_pct", "max_charge_kw"]
     show_cols = [c for c in show_cols if c in view.columns]
-    st.dataframe(view[show_cols], use_container_width=True, hide_index=True)
+    st.dataframe(view[show_cols].rename(columns={"label": "Car"}),
+                 use_container_width=True, hide_index=True)
 
 
 if __name__ == "__main__":

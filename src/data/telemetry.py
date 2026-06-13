@@ -72,6 +72,7 @@ def load_telemetry() -> dict:
     frames = {car: pd.DataFrame(rows) for car, rows in raw.get("telemetry", {}).items()}
     return {
         "labels": raw.get("labels", {}),
+        "car_labels": raw.get("car_labels", {}),
         "telemetry": raw.get("telemetry", {}),
         "frames": frames,
         "meta": {"data_version": raw.get("data_version"), "n_cars": raw.get("n_cars", len(frames)),

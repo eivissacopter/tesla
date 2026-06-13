@@ -29,6 +29,7 @@ from etl.db import make_reader_from_env
 from etl.identity import resolve_identity, factory_constant
 from etl.analytics import compute_soh, compute_charging, compute_efficiency
 from etl.anonymize import public_car_id, assert_clean
+from etl.labels import build_car_labels
 
 # Cars whose telemetry is not a real, distinct vehicle (test rigs, imports with
 # duplicated VINs). Excluded from the public set.
@@ -194,6 +195,11 @@ def build_fleet(reader) -> pd.DataFrame:
         rec["_temp_curve"] = eff.temp_curve      # efficiency vs temperature
         records.append(rec)
 
+    # Readable, de-duplicated labels in place of the opaque car id.
+    car_labels = build_car_labels(records)
+    for rec in records:
+        rec["label"] = car_labels.get(rec["car"], rec["car"])
+
     return pd.DataFrame(records)
 
 
@@ -207,12 +213,14 @@ def write_artifact(fleet: pd.DataFrame, out_dir: str, data_version: str) -> dict
         parquet_path = None
     series = {row["car"]: row.get("_soh_monthly", []) for _, row in fleet.iterrows()}
     temp_curves = {row["car"]: row.get("_temp_curve", []) for _, row in fleet.iterrows()}
+    car_labels = {row["car"]: row.get("label", row["car"]) for _, row in fleet.iterrows()}
     payload = {
         "data_version": data_version,
         "n_cars": int(len(fleet)),
         "fleet": flat.where(pd.notnull(flat), None).to_dict(orient="records"),
         "soh_series": series,
         "temp_curves": temp_curves,
+        "car_labels": car_labels,
     }
     from etl.jsonsafe import clean
     json_path = os.path.join(out_dir, "fleet.json")
